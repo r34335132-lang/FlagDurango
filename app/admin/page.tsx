@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -32,7 +31,7 @@ interface Player {
   jersey_number: number
   position: string
   team_id: number
-  team?: { name: string }
+  team?: { name: string } // Asegúrate de que esta propiedad exista si la usas
   created_at: string
 }
 
@@ -309,28 +308,43 @@ export default function AdminPage() {
 
   const handleCreatePlayer = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log("🔍 Client: Iniciando creación de jugador...")
+    console.log("📋 Client: Datos del formulario de jugador antes de parsear:", playerForm)
+
     try {
+      const payload = {
+        ...playerForm,
+        jersey_number: Number.parseInt(playerForm.jersey_number),
+        team_id: Number.parseInt(playerForm.team_id),
+      }
+      console.log("📦 Client: Payload enviado a la API de jugadores:", payload)
+
       const response = await fetch("/api/players", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...playerForm,
-          jersey_number: Number.parseInt(playerForm.jersey_number),
-          team_id: Number.parseInt(playerForm.team_id),
-        }),
+        body: JSON.stringify(payload),
       })
 
+      console.log("📡 Client: Estado de la respuesta de la API:", response.status)
       const data = await response.json()
-      if (data.success) {
+      console.log("📊 Client: Datos de la respuesta de la API:", data)
+
+      if (response.ok && data.success) {
+        // Añadido response.ok para verificar el estado HTTP
         setPlayers([data.data, ...players])
         setPlayerForm({ name: "", jersey_number: "", position: "", team_id: "" })
         alert("Jugador creado exitosamente")
+        console.log("✅ Client: Jugador creado exitosamente y estado actualizado.")
       } else {
-        alert("Error: " + data.message)
+        alert("Error: " + (data.message || "Error desconocido"))
+        console.error(
+          "❌ Client: La API reportó un error durante la creación del jugador:",
+          data.message || data.error || "Error desconocido",
+        )
       }
-    } catch (error) {
-      console.error("Error creating player:", error)
-      alert("Error al crear jugador")
+    } catch (error: any) {
+      console.error("💥 Client: Error al crear jugador (red/no manejado):", error)
+      alert("Error al crear jugador: " + error.message)
     }
   }
 
@@ -605,8 +619,9 @@ export default function AdminPage() {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       programado: { color: "bg-blue-500", text: "Programado" },
-      "en vivo": { color: "bg-red-500", text: "En Vivo" },
+      en_vivo: { color: "bg-red-500", text: "En Vivo" }, // Corregido a 'en_vivo'
       finalizado: { color: "bg-green-500", text: "Finalizado" },
+      cancelado: { color: "bg-gray-500", text: "Cancelado" }, // Añadido 'cancelado'
       pending: { color: "bg-yellow-500", text: "Pendiente" },
       paid: { color: "bg-green-500", text: "Pagado" },
       overdue: { color: "bg-red-500", text: "Vencido" },
@@ -1089,12 +1104,13 @@ export default function AdminPage() {
                         required
                       >
                         <option value="programado">Programado</option>
-                        <option value="en vivo">En Vivo</option>
+                        <option value="en_vivo">En Vivo</option> {/* Corregido a 'en_vivo' */}
                         <option value="finalizado">Finalizado</option>
+                        <option value="cancelado">Cancelado</option> {/* Añadido 'cancelado' */}
                       </select>
                     </div>
 
-                    {(gameForm.status === "en vivo" || gameForm.status === "finalizado") && (
+                    {(gameForm.status === "en_vivo" || gameForm.status === "finalizado") && (
                       <>
                         <div>
                           <Label htmlFor="home-score">Marcador Local</Label>
