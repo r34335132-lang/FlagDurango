@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase-admin"
+import { supabase } from "@/lib/supabase-admin" // Asegúrate de que esta importación sea correcta
 
 export async function GET() {
   try {
-    console.log("🔍 Fetching players...")
+    console.log("🔍 API Players: Fetching players...")
 
     const { data: players, error } = await supabase
       .from("players")
@@ -14,28 +14,28 @@ export async function GET() {
       .order("created_at", { ascending: false })
 
     if (error) {
-      console.error("❌ Error fetching players:", error)
+      console.error("❌ API Players: Error fetching players:", error)
       return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
 
-    console.log(`✅ Found ${players?.length || 0} players`)
+    console.log(`✅ API Players: Found ${players?.length || 0} players`)
     return NextResponse.json({ success: true, data: players || [] })
-  } catch (error) {
-    console.error("💥 Error in players GET:", error)
-    return NextResponse.json({ success: false, error: "Error interno del servidor" }, { status: 500 })
+  } catch (error: any) {
+    console.error("💥 API Players: Error in players GET:", error)
+    return NextResponse.json({ success: false, error: "Error interno del servidor: " + error.message }, { status: 500 })
   }
 }
 
 export async function POST(request: Request) {
   try {
-    console.log("📝 Creating new player...")
+    console.log("📝 API Players: Creating new player...")
     const body = await request.json()
-    console.log("📋 Player data:", body)
+    console.log("📋 API Players: Player data received:", body)
 
     const { name, team_id, position, jersey_number, birth_date, phone, email } = body
 
     if (!name || !team_id || !position || !jersey_number) {
-      console.log("❌ Missing required fields")
+      console.log("❌ API Players: Missing required fields for player creation.")
       return NextResponse.json(
         {
           success: false,
@@ -46,15 +46,21 @@ export async function POST(request: Request) {
     }
 
     // Verificar si el número de jersey ya existe en el equipo
-    const { data: existingPlayer } = await supabase
+    const { data: existingPlayer, error: existingPlayerError } = await supabase
       .from("players")
       .select("id")
-      .eq("team_id", team_id)
-      .eq("jersey_number", jersey_number)
+      .eq("team_id", Number.parseInt(team_id)) // Asegúrate de que team_id sea un número
+      .eq("jersey_number", Number.parseInt(jersey_number)) // Asegúrate de que jersey_number sea un número
       .single()
 
+    if (existingPlayerError && existingPlayerError.code !== "PGRST116") {
+      // PGRST116 means no rows found, which is fine
+      console.error("❌ API Players: Error checking existing player:", existingPlayerError)
+      return NextResponse.json({ success: false, message: existingPlayerError.message }, { status: 500 })
+    }
+
     if (existingPlayer) {
-      console.log("❌ Jersey number already exists in team")
+      console.log("❌ API Players: Jersey number already exists in team.")
       return NextResponse.json(
         {
           success: false,
@@ -85,15 +91,18 @@ export async function POST(request: Request) {
       .single()
 
     if (error) {
-      console.error("❌ Error creating player:", error)
+      console.error("❌ API Players: Error creating player:", error)
       return NextResponse.json({ success: false, message: error.message }, { status: 500 })
     }
 
-    console.log("✅ Player created successfully:", player.id)
+    console.log("✅ API Players: Player created successfully:", player.id)
     return NextResponse.json({ success: true, data: player })
-  } catch (error) {
-    console.error("💥 Error in players POST:", error)
-    return NextResponse.json({ success: false, message: "Error interno del servidor" }, { status: 500 })
+  } catch (error: any) {
+    console.error("💥 API Players: Error in players POST:", error)
+    return NextResponse.json(
+      { success: false, message: "Error interno del servidor: " + error.message },
+      { status: 500 },
+    )
   }
 }
 
@@ -103,22 +112,26 @@ export async function DELETE(request: Request) {
     const id = searchParams.get("id")
 
     if (!id) {
+      console.log("❌ API Players: ID is required for delete operation.")
       return NextResponse.json({ success: false, message: "ID es requerido" }, { status: 400 })
     }
 
-    console.log("🗑️ Deleting player:", id)
+    console.log("🗑️ API Players: Deleting player:", id)
 
     const { error } = await supabase.from("players").delete().eq("id", id)
 
     if (error) {
-      console.error("❌ Error deleting player:", error)
+      console.error("❌ API Players: Error deleting player:", error)
       return NextResponse.json({ success: false, message: error.message }, { status: 500 })
     }
 
-    console.log("✅ Player deleted successfully:", id)
+    console.log("✅ API Players: Player deleted successfully:", id)
     return NextResponse.json({ success: true, message: "Jugador eliminado exitosamente" })
-  } catch (error) {
-    console.error("💥 Error in players DELETE:", error)
-    return NextResponse.json({ success: false, message: "Error interno del servidor" }, { status: 500 })
+  } catch (error: any) {
+    console.error("💥 API Players: Error in players DELETE:", error)
+    return NextResponse.json(
+      { success: false, message: "Error interno del servidor: " + error.message },
+      { status: 500 },
+    )
   }
 }

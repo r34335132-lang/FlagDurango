@@ -12,6 +12,10 @@ interface Player {
   name: string
   position: string
   jersey_number: number
+  birth_date?: string
+  phone?: string
+  email?: string
+  status: string
 }
 
 interface Team {
@@ -22,8 +26,9 @@ interface Team {
   color2: string
   logo_url?: string
   captain_name?: string
-  captain_phone?: string
-  players?: Player[]
+  contact_phone?: string // Usar contact_phone para mapear a captain_phone
+  contact_email?: string
+  players: Player[] // Aseguramos que siempre sea un array
   stats?: {
     games_played: number
     wins: number
@@ -38,25 +43,56 @@ interface Team {
 export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null) // Nuevo estado para errores
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
 
   const loadTeams = async () => {
+    setLoading(true)
+    setError(null) // Resetear error
     try {
-      console.log("🔍 Loading teams...")
+      console.log("🔍 Client: Fetching teams from /api/teams...")
       const response = await fetch("/api/teams")
-      const data = await response.json()
 
-      console.log("📊 Teams response:", data)
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error("❌ Client: Network response was not ok:", response.status, errorText)
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`)
+      }
+
+      const data = await response.json()
+      console.log("📊 Client: Teams API response received:", data)
 
       if (data.success) {
-        setTeams(data.data || [])
-        console.log(`✅ Loaded ${data.data?.length || 0} teams`)
+        const teamsData = data.data.map((team: any) => ({
+          ...team,
+          players: Array.isArray(team.players) ? team.players : [], // Aseguramos que 'players' sea un array
+          captain_phone: team.contact_phone, // Mapear contact_phone a captain_phone para compatibilidad
+        }))
+
+        setTeams(teamsData)
+        console.log(`✅ Client: Loaded ${teamsData.length} teams.`)
+
+        // Log detallado de jugadores por equipo en el cliente
+        teamsData.forEach((team: Team) => {
+          console.log(`👥 Client: Team "${team.name}" (ID: ${team.id}) has ${team.players.length} players.`)
+          if (team.players.length > 0) {
+            team.players.slice(0, 5).forEach((player: Player) => {
+              // Mostrar hasta 5 jugadores en el log
+              console.log(`    - Player: ${player.name} (#${player.jersey_number}, Pos: ${player.position})`)
+            })
+            if (team.players.length > 5) {
+              console.log(`    ...and ${team.players.length - 5} more players.`)
+            }
+          }
+        })
       } else {
-        console.error("❌ Error loading teams:", data.error)
+        console.error("❌ Client: API reported an error:", data.error)
+        setError(data.error || "Error al cargar equipos desde la API.")
         setTeams([])
       }
-    } catch (error) {
-      console.error("💥 Error fetching teams:", error)
+    } catch (err: any) {
+      console.error("💥 Client: Error fetching teams:", err)
+      setError(err.message || "Error desconocido al cargar equipos.")
       setTeams([])
     } finally {
       setLoading(false)
@@ -102,6 +138,24 @@ export default function TeamsPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900 flex items-center justify-center">
         <div className="text-white text-xl">Cargando equipos...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900 flex items-center justify-center p-4 text-center">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Error al cargar los datos:</strong>
+          <span className="block sm:inline"> {error}</span>
+          <p className="mt-2 text-sm">
+            Por favor, verifica tus variables de entorno de Supabase (`NEXT_PUBLIC_SUPABASE_URL`,
+            `SUPABASE_SERVICE_ROLE_KEY`) y la conexión a tu base de datos.
+          </p>
+          <Button onClick={loadTeams} className="mt-4 bg-red-500 hover:bg-red-700 text-white">
+            Reintentar
+          </Button>
+        </div>
       </div>
     )
   }
@@ -197,10 +251,10 @@ export default function TeamsPage() {
                         <Users className="w-4 h-4" />
                         <span className="font-medium">Capitán: {team.captain_name}</span>
                       </div>
-                      {team.captain_phone && (
+                      {team.contact_phone && (
                         <div className="flex items-center space-x-2 text-white/70 text-sm mt-1">
                           <Phone className="w-3 h-3" />
-                          <span>{team.captain_phone}</span>
+                          <span>{team.contact_phone}</span>
                         </div>
                       )}
                     </div>
@@ -245,7 +299,7 @@ export default function TeamsPage() {
                   </div>
 
                   {/* Players List */}
-                  {team.players && team.players.length > 0 && (
+                  {team.players && team.players.length > 0 ? (
                     <div className="space-y-2">
                       <div className="text-white/90 text-sm font-medium">Plantilla:</div>
                       <div className="max-h-32 overflow-y-auto space-y-1">
@@ -256,10 +310,10 @@ export default function TeamsPage() {
                           >
                             <span className="text-white/90 text-sm">{player.name}</span>
                             <div className="flex items-center space-x-2">
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-xs text-white border-white/30">
                                 #{player.jersey_number}
                               </Badge>
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-xs text-white border-white/30">
                                 {player.position}
                               </Badge>
                             </div>
@@ -271,6 +325,11 @@ export default function TeamsPage() {
                           </div>
                         )}
                       </div>
+                    </div>
+                  ) : (
+                    <div className="bg-white/5 rounded-lg p-4 text-center">
+                      <Users className="w-8 h-8 mx-auto mb-2 text-white/50" />
+                      <div className="text-white/70 text-sm">No hay jugadores registrados</div>
                     </div>
                   )}
                 </CardContent>
