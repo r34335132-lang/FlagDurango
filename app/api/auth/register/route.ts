@@ -6,67 +6,42 @@ export async function POST(request: Request) {
   try {
     const { username, email, password } = await request.json()
 
-    // Validar datos
     if (!username || !email || !password) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Todos los campos son requeridos.",
-        },
+        { success: false, message: "Todos los campos son requeridos." },
         { status: 400 },
       )
     }
 
-    // Verificar si el usuario ya existe
-    const { data: existingUser } = await supabase
+    // Checar existencia
+    const { data: existing } = await supabase
       .from("users")
       .select("id")
       .or(`email.eq.${email},username.eq.${username}`)
-      .single()
+      .maybeSingle()
 
-    if (existingUser) {
+    if (existing) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "El usuario o email ya existe.",
-        },
+        { success: false, message: "El usuario o email ya existe." },
         { status: 409 },
       )
     }
 
-    // Hash de la contraseña
-    const saltRounds = 10
-    const passwordHash = await bcrypt.hash(password, saltRounds)
+    const passwordHash = await bcrypt.hash(password, 10)
 
-    // Insertar usuario directamente en la tabla
+    // IMPORTANTE: incluir role válido para tu CHECK (por defecto coach) y status active
     const { data: newUser, error } = await supabase
       .from("users")
-      .insert([
-        {
-          username,
-          email,
-          password_hash: passwordHash,
-          role: "user",
-          status: "active",
-        },
-      ])
+      .insert([{ username, email, password_hash: passwordHash, role: "coach", status: "active" }])
       .select()
       .single()
 
     if (error) {
       console.error("Error creating user:", error)
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Error al crear el usuario.",
-        },
-        { status: 500 },
-      )
+      return NextResponse.json({ success: false, message: "Error al crear el usuario." }, { status: 500 })
     }
 
-    // Remover password_hash de la respuesta
     const { password_hash, ...userResponse } = newUser
-
     return NextResponse.json({
       success: true,
       message: "Usuario registrado exitosamente. Ya puedes iniciar sesión.",
@@ -74,12 +49,6 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error("Registration error:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Error interno del servidor.",
-      },
-      { status: 500 },
-    )
+    return NextResponse.json({ success: false, message: "Error interno del servidor." }, { status: 500 })
   }
 }

@@ -1,141 +1,111 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase-admin"
 
-export async function GET() {
+// GET /api/teams
+// - sin params: lista de equipos
+// - ?id=123: ficha completa con jugadores
+export async function GET(req: NextRequest) {
   try {
-    console.log("🔍 API: Fetching teams with players...")
-
-    // **Paso 1: Obtener todos los equipos**
-    const { data: teams, error: teamsError } = await supabase
-      .from("teams")
-      .select("*")
-      .order("created_at", { ascending: false })
-
-    if (teamsError) {
-      console.error("❌ API: Error fetching teams:", teamsError)
-      return NextResponse.json({ success: false, error: teamsError.message }, { status: 500 })
-    }
-    console.log(`✅ API: Found ${teams.length} teams.`)
-
-    // **Paso 2: Obtener todos los jugadores**
-    const { data: players, error: playersError } = await supabase
-      .from("players")
-      .select("*")
-      .order("jersey_number", { ascending: true })
-
-    if (playersError) {
-      console.error("❌ API: Error fetching players:", playersError)
-      return NextResponse.json({ success: false, error: playersError.message }, { status: 500 })
-    }
-    console.log(`✅ API: Found ${players.length} players.`)
-
-    // **Paso 3: Combinar equipos y jugadores manualmente**
-    const teamsWithPlayers = teams.map((team) => {
-      const teamPlayers = players.filter((player) => player.team_id === team.id)
-      return {
-        ...team,
-        players: teamPlayers,
-      }
-    })
-
-    console.log("📊 API: Teams with players (manual join results before sending):")
-    teamsWithPlayers.forEach((team) => {
-      console.log(`  - Team "${team.name}" (ID: ${team.id}) has ${team.players.length} players.`)
-      if (team.players.length > 0) {
-        team.players.slice(0, 3).forEach((player) => {
-          // Log solo los primeros 3 jugadores para no saturar
-          console.log(`    * Player: ${player.name} (#${player.jersey_number})`)
-        })
-        if (team.players.length > 3) {
-          console.log(`    ...and ${team.players.length - 3} more players.`)
-        }
-      }
-    })
-
-    return NextResponse.json({
-      success: true,
-      data: teamsWithPlayers,
-    })
-  } catch (error: any) {
-    console.error("💥 API: Uncaught error in teams GET:", error)
-    return NextResponse.json({ success: false, error: "Internal Server Error: " + error.message }, { status: 500 })
-  }
-}
-
-export async function POST(request: Request) {
-  try {
-    console.log("📝 API: Creating new team...")
-    const body = await request.json()
-    console.log("📋 API: Received team data:", body)
-
-    const { name, category, captain_name, contact_name, contact_phone, contact_email, logo_url, color1, color2 } = body
-
-    if (!name || !category || !captain_name || !contact_phone || !contact_email) {
-      console.log("❌ API: Missing required fields for team creation.")
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Nombre, categoría, capitán, teléfono y email son requeridos",
-        },
-        { status: 400 },
-      )
-    }
-
-    const { data: team, error } = await supabase
-      .from("teams")
-      .insert([
-        {
-          name,
-          category,
-          captain_name,
-          contact_name: contact_name || captain_name,
-          contact_phone,
-          contact_email,
-          logo_url: logo_url || null,
-          color1: color1 || "#3B82F6",
-          color2: color2 || "#1E40AF",
-          status: "active",
-        },
-      ])
-      .select()
-      .single()
-
-    if (error) {
-      console.error("❌ API: Error creating team:", error)
-      return NextResponse.json({ success: false, message: error.message }, { status: 500 })
-    }
-
-    console.log("✅ API: Team created successfully:", team.id)
-    return NextResponse.json({ success: true, data: { ...team, players: [] } }) // Return with empty players array for consistency
-  } catch (error: any) {
-    console.error("💥 API: Uncaught error in teams POST:", error)
-    return NextResponse.json({ success: false, message: "Internal Server Error: " + error.message }, { status: 500 })
-  }
-}
-
-export async function DELETE(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url)
+    const { searchParams } = new URL(req.url)
     const id = searchParams.get("id")
 
-    if (!id) {
-      console.log("❌ API: ID is required for delete operation.")
-      return NextResponse.json({ success: false, message: "ID es requerido" }, { status: 400 })
+    if (id) {
+      const teamId = Number.parseInt(id)
+      const { data: team, error: teamErr } = await supabase
+        .from("teams")
+        .select("*")
+        .eq("id", teamId)
+        .maybeSingle()
+
+      if (teamErr) return NextResponse.json({ success: false, message: teamErr.message }, { status: 500 })
+      if (!team) return NextResponse.json({ success: false, message: "Equipo no encontrado" }, { status: 404 })
+
+      const { data: players, error: plErr } = await supabase
+        .from("players")
+        .select("*")
+        .eq("team_id", teamId)
+        .order("jersey_number", { ascending: true })
+
+      if (plErr) return NextResponse.json({ success: false, message: plErr.message }, { status: 500 })
+
+      return NextResponse.json({ success: true, data: { team, players: players || [] } })
     }
 
-    console.log("🗑️ API: Deleting team:", id)
+    const { data, error } = await supabase.from("teams").select("*").order("name", { ascending: true })
+    if (error) return NextResponse.json({ success: false, message: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, data: data || [] })
+  } catch (e) {
+    return NextResponse.json({ success: false, message: "Error interno" }, { status: 500 })
+  }
+}
 
-    const { error } = await supabase.from("teams").delete().eq("id", id)
+// POST /api/teams
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const {
+      name,
+      category,
+      color1,
+      color2,
+      logo_url,
+      is_institutional,
+      coordinator_name,
+      coordinator_phone,
+      captain_photo_url,
+      // Campos opcionales nuevos: solo los incluimos si vienen en el body
+      captain_name,
+      captain_phone,
+      coach_name,
+      coach_phone,
+      coach_photo_url,
+    } = body
 
-    if (error) {
-      console.error("❌ API: Error deleting team:", error)
-      return NextResponse.json({ success: false, message: error.message }, { status: 500 })
+    if (!name || !category) {
+      return NextResponse.json({ success: false, message: "Nombre y categoría son requeridos" }, { status: 400 })
     }
 
-    console.log("✅ API: Team deleted successfully:", id)
-    return NextResponse.json({ success: true, message: "Equipo eliminado exitosamente" })
-  } catch (error: any) {
-    console.error("💥 API: Uncaught error in teams DELETE:", error)
-    return NextResponse.json({ success: false, message: "Internal Server Error: " + error.message }, { status: 500 })
+    const base: any = {
+      name,
+      category,
+      color1: color1 || "#3B82F6",
+      color2: color2 || "#1E40AF",
+      logo_url: logo_url || null,
+      is_institutional: Boolean(is_institutional),
+      coordinator_name: coordinator_name || null,
+      coordinator_phone: coordinator_phone || null,
+      captain_photo_url: captain_photo_url || null,
+    }
+
+    // Solo agrega los nuevos campos si vienen definidos en el body,
+    // evitando errores en DB que aún no tiene esas columnas.
+    if (captain_name !== undefined) base.captain_name = captain_name
+    if (captain_phone !== undefined) base.captain_phone = captain_phone
+    if (coach_name !== undefined) base.coach_name = coach_name
+    if (coach_phone !== undefined) base.coach_phone = coach_phone
+    if (coach_photo_url !== undefined) base.coach_photo_url = coach_photo_url
+
+    const { data, error } = await supabase.from("teams").insert([base]).select().single()
+
+    if (error) return NextResponse.json({ success: false, message: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, data }, { status: 201 })
+  } catch (e) {
+    return NextResponse.json({ success: false, message: "Error interno" }, { status: 500 })
+  }
+}
+
+// DELETE /api/teams?id=123
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const id = searchParams.get("id")
+    if (!id) return NextResponse.json({ success: false, message: "ID requerido" }, { status: 400 })
+
+    const { error } = await supabase.from("teams").delete().eq("id", Number.parseInt(id))
+    if (error) return NextResponse.json({ success: false, message: error.message }, { status: 500 })
+
+    return NextResponse.json({ success: true, message: "Equipo eliminado" })
+  } catch (e) {
+    return NextResponse.json({ success: false, message: "Error interno" }, { status: 500 })
   }
 }

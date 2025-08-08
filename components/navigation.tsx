@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { LogOut, Menu, X } from "lucide-react"
+import { LogOut, Menu, X } from 'lucide-react'
+import { cn } from "@/lib/utils"
 
 interface User {
   id: number
@@ -17,150 +18,164 @@ interface User {
 export function Navigation() {
   const [user, setUser] = useState<User | null>(null)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [wildbrowlEnabled, setWildbrowlEnabled] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
-    // Verificar si hay usuario logueado
-    const checkUser = () => {
+    // Si alguna página inyectó otra nav, deja solo 1.
+    const nodes = document.querySelectorAll("#main-nav")
+    if (nodes.length > 1) {
+      nodes.forEach((n, i) => {
+        if (i > 0) n.parentElement?.removeChild(n)
+      })
+    }
+
+    const syncUser = () => {
       try {
         const userData = localStorage.getItem("user")
-        if (userData) {
-          setUser(JSON.parse(userData))
-        }
-      } catch (error) {
-        console.error("Error parsing user data:", error)
+        if (userData) setUser(JSON.parse(userData))
+        else setUser(null)
+      } catch {
         localStorage.removeItem("user")
+        setUser(null)
       }
     }
-
-    checkUser()
-
-    // Escuchar cambios en localStorage
-    window.addEventListener("storage", checkUser)
-    return () => window.removeEventListener("storage", checkUser)
+    syncUser()
+    window.addEventListener("storage", syncUser)
+    return () => window.removeEventListener("storage", syncUser)
   }, [])
 
-  const handleLogout = async () => {
-    try {
-      // Limpiar localStorage
-      localStorage.removeItem("user")
-
-      // Limpiar cookies
-      document.cookie = "user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
-
-      setUser(null)
-
-      // Redirigir a inicio
-      router.push("/")
-      router.refresh()
-    } catch (error) {
-      console.error("Error during logout:", error)
+  useEffect(() => {
+    // Mostrar "WildBrowl 1v1" si está habilitado en System Config
+    const loadConfig = async () => {
+      try {
+        const res = await fetch("/api/system-config", { cache: "no-store" })
+        const data = await res.json()
+        if (data?.success) {
+          const map: Record<string, string> = {}
+          for (const c of data.data as { config_key: string; config_value: string }[]) {
+            map[c.config_key] = c.config_value
+          }
+          setWildbrowlEnabled(map["wildbrowl_enabled"] === "true")
+        }
+      } catch {
+        // ignore
+      }
     }
+    loadConfig()
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem("user")
+    document.cookie = "user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+    setUser(null)
+    router.push("/")
+    router.refresh()
   }
 
-  const navLinks = [
+  const links = [
     { href: "/", label: "Inicio" },
     { href: "/partidos", label: "Partidos" },
     { href: "/equipos", label: "Equipos" },
+    ...(wildbrowlEnabled ? [{ href: "/wildbrowl", label: "WildBrowl 1v1" } as const] : []),
     { href: "/estadisticas", label: "Estadísticas" },
-    { href: "/noticias", label: "Noticias" },
+
   ]
 
   return (
-    <nav className="bg-black/20 backdrop-blur-sm border-b border-white/10 sticky top-0 z-50">
+    <header id="main-nav" className="w-full border-b bg-white sticky top-0 z-50" role="banner" aria-label="Navegación principal">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center py-4">
-          {/* Logo */}
           <Link href="/" className="text-center">
-            <h1 className="text-xl md:text-2xl font-bold text-white">Liga Flag Durango</h1>
-            <p className="text-white/70 text-sm">Temporada 2025</p>
+            <h1 className="text-xl md:text-2xl font-bold text-neutral-900">Liga Flag Durango</h1>
+            <p className="text-neutral-500 text-sm">Temporada Otoño 2025</p>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-6">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-white hover:text-yellow-400 transition-colors font-medium"
-              >
-                {link.label}
-              </Link>
-            ))}
+          <nav aria-label="Principal" className="hidden md:flex items-center gap-6">
+            {links.map((l) => {
+              const active = pathname === l.href || (l.href !== "/" && pathname.startsWith(l.href))
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className={cn("text-sm font-medium text-neutral-900 hover:underline", active && "text-yellow-500")}
+                >
+                  {l.label}
+                </Link>
+              )
+            })}
 
             {user ? (
               <div className="flex items-center space-x-4">
-                <Link href="/admin" className="text-yellow-400 hover:text-yellow-300 font-medium">
-                  Admin
-                </Link>
+                {user.role === "admin" && (
+                  <Link href="/admin" className="text-yellow-500 hover:text-yellow-600 font-medium">
+                    Admin
+                  </Link>
+                )}
                 <div className="flex items-center space-x-2">
-                  <span className="text-white/80 text-sm">Hola, {user.username}</span>
-                  <Button
-                    onClick={handleLogout}
-                    variant="ghost"
-                    size="sm"
-                    className="text-white hover:text-red-400 hover:bg-red-400/10"
-                  >
+                  <span className="text-neutral-800 text-sm">Hola, {user.username}</span>
+                  <Button onClick={handleLogout} variant="ghost" size="sm" className="text-neutral-900 hover:text-red-500">
                     <LogOut className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
             ) : (
-              <Link href="/login" className="text-white hover:text-yellow-400 transition-colors font-medium">
+              <Link href="/login" className="text-sm font-semibold text-neutral-900 hover:underline">
                 Cuenta
               </Link>
             )}
-          </div>
+          </nav>
 
-          {/* Mobile Menu Button */}
-          <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden text-white">
+          <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="md:hidden text-neutral-900" aria-label="Menú">
             {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
         </div>
 
-        {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t border-white/10">
+          <div className="md:hidden py-4 border-t border-neutral-100">
             <div className="flex flex-col space-y-4">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="text-white hover:text-yellow-400 transition-colors font-medium"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {link.label}
-                </Link>
-              ))}
-
-              {user ? (
-                <div className="flex flex-col space-y-2 pt-2 border-t border-white/10">
+              {links.map((l) => {
+                const active = pathname === l.href || (l.href !== "/" && pathname.startsWith(l.href))
+                return (
                   <Link
-                    href="/admin"
-                    className="text-yellow-400 hover:text-yellow-300 font-medium"
+                    key={l.href}
+                    href={l.href}
+                    className={cn(
+                      "rounded-md px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100",
+                      active && "bg-neutral-900 text-white hover:bg-neutral-900"
+                    )}
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    Admin
+                    {l.label}
                   </Link>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/80 text-sm">Hola, {user.username}</span>
-                    <Button
-                      onClick={() => {
-                        handleLogout()
-                        setIsMenuOpen(false)
-                      }}
-                      variant="ghost"
-                      size="sm"
-                      className="text-white hover:text-red-400 hover:bg-red-400/10"
-                    >
-                      <LogOut className="w-4 h-4" />
-                    </Button>
-                  </div>
+                )
+              })}
+
+              {user ? (
+                <div className="flex items-center justify-between border-top pt-3">
+                  {user.role === "admin" && (
+                    <Link href="/admin" className="text-yellow-600 font-medium" onClick={() => setIsMenuOpen(false)}>
+                      Admin
+                    </Link>
+                  )}
+                  <Button
+                    onClick={() => {
+                      handleLogout()
+                      setIsMenuOpen(false)
+                    }}
+                    variant="ghost"
+                    size="sm"
+                    className="text-neutral-900 hover:text-red-500"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="sr-only">Cerrar sesión</span>
+                  </Button>
                 </div>
               ) : (
                 <Link
                   href="/login"
-                  className="text-white hover:text-yellow-400 transition-colors font-medium"
+                  className="text-sm font-semibold text-neutral-900 hover:underline"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Cuenta
@@ -170,6 +185,7 @@ export function Navigation() {
           </div>
         )}
       </div>
-    </nav>
+      <div className="h-1 w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-amber-600" />
+    </header>
   )
 }

@@ -4,9 +4,16 @@ import bcrypt from "bcryptjs"
 
 export async function POST(request: Request) {
   try {
-    const { username, password } = await request.json()
+    // Tu payload original aceptaba username; agrego soporte a identifier y email
+    const body = await request.json()
+    const username: string | undefined = body?.username
+    const email: string | undefined = body?.email
+    const identifier: string | undefined = body?.identifier
+    const password: string | undefined = body?.password
 
-    if (!username || !password) {
+    const id = (identifier ?? username ?? email)?.trim()
+
+    if (!id || !password) {
       return NextResponse.json(
         {
           success: false,
@@ -16,15 +23,15 @@ export async function POST(request: Request) {
       )
     }
 
-    // Buscar usuario por username o email
+    // Buscar usuario por username O email (exacto, como en tu versión)
     const { data: user, error } = await supabase
       .from("users")
       .select("*")
-      .or(`username.eq.${username},email.eq.${username}`)
+      .or(`username.eq.${id},email.eq.${id}`)
       .single()
 
     if (error || !user) {
-      console.log("Usuario no encontrado:", { username, error })
+      console.log("Usuario no encontrado:", { id, error })
       return NextResponse.json(
         {
           success: false,
@@ -34,19 +41,25 @@ export async function POST(request: Request) {
       )
     }
 
-    // Verificar contraseña
+    // Verificar contraseña: primero hash, si no coincide, fallback a texto plano para datos antiguos
     let isValidPassword = false
-
     try {
-      isValidPassword = await bcrypt.compare(password, user.password_hash)
+      if (user.password_hash) {
+        isValidPassword = await bcrypt.compare(password, user.password_hash)
+      }
     } catch (bcryptError) {
       console.error("Error en bcrypt.compare:", bcryptError)
-      // Fallback: comparación directa (solo para debug)
-      isValidPassword = password === user.password_hash
+      isValidPassword = false
+    }
+    if (!isValidPassword) {
+      // Fallback: si tuvieras columna 'password' en texto plano (datos viejos)
+      if (user.password && password === user.password) {
+        isValidPassword = true
+      }
     }
 
     if (!isValidPassword) {
-      console.log("Contraseña incorrecta para usuario:", username)
+      console.log("Contraseña incorrecta para usuario:", id)
       return NextResponse.json(
         {
           success: false,
@@ -56,7 +69,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // Verificar que el usuario esté activo
+    // Verificar status activo (igual a tu versión)
     if (user.status !== "active") {
       return NextResponse.json(
         {
@@ -67,26 +80,43 @@ export async function POST(request: Request) {
       )
     }
 
+    // Construir redirección por rol
+    const role: string = user.role || "user"
+    const redirectTo =
+      role === "admin"
+        ? "/admin"
+        : role === "coach" || role === "capitan"
+        ? "/coach-dashboard"
+        : role === "referee"
+        ? "/referee-dashboard"
+        : role === "staff"
+        ? "/staff"
+        : "/"
+
+    // Sugerencia de registro de equipo (para coach/capitan)
+    const registerTeamUrl = role === "coach" || role === "capitan" ? "/register-team" : null
+
     // Remover password_hash de la respuesta
-    const { password_hash, ...userResponse } = user
+    const { password_hash, password: _plain, ...userResponse } = user
 
-    console.log("Login exitoso para:", username, "con rol:", user.role)
+    console.log("Login exitoso para:", id, "con rol:", role)
 
-    // Crear la respuesta con headers para establecer la cookie
+    // Respuesta con redirectTo por rol
     const response = NextResponse.json({
       success: true,
       message: "Login exitoso.",
       user: userResponse,
-      redirectTo: "/admin", // Cambiar redirección a /admin
+      redirectTo,
+      registerTeamUrl,
     })
 
-    // Establecer cookie para el middleware
+    // Cookie para middleware/cliente
     const userData = JSON.stringify(userResponse)
     response.cookies.set("user", userData, {
       httpOnly: false, // Permitir acceso desde JavaScript
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 86400, // 24 horas
+      maxAge: 60 * 60 * 24, // 24 horas
       path: "/",
     })
 

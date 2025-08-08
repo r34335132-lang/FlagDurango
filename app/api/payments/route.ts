@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     console.log("📋 Payment data:", body)
 
-    const { team_id, player_id, referee_id, type, amount, description, status, due_date } = body
+    const { team_id, player_id, referee_id, type, amount, description, status, due_date, paid_date } = body
 
     if (!type || !amount) {
       console.log("❌ Missing required fields")
@@ -47,9 +47,13 @@ export async function POST(request: Request) {
       )
     }
 
-    // Validar que el tipo sea válido (basado en tu comentario que solo funciona team_registration)
+    // Tipos de pago válidos
     const validTypes = ["team_registration", "referee_payment", "field_rental", "equipment", "other"]
     const safeType = validTypes.includes(type) ? type : "team_registration"
+
+    // Estados válidos
+    const validStatuses = ["pending", "paid", "overdue", "cancelled"]
+    const safeStatus = validStatuses.includes(status) ? status : "pending"
 
     const { data: payment, error } = await supabase
       .from("payments")
@@ -61,8 +65,9 @@ export async function POST(request: Request) {
           type: safeType,
           amount: Number.parseFloat(amount),
           description: description || null,
-          status: status || "pending",
+          status: safeStatus,
           due_date: due_date || null,
+          paid_date: paid_date || null,
         },
       ])
       .select()
@@ -88,25 +93,33 @@ export async function PUT(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
-    const body = await request.json()
 
     if (!id) {
       return NextResponse.json({ success: false, message: "ID es requerido" }, { status: 400 })
     }
 
     console.log("📝 Updating payment:", id)
+    const body = await request.json()
     console.log("📋 Update data:", body)
 
     const { team_id, player_id, referee_id, type, amount, description, status, due_date, paid_date } = body
+
+    // Tipos de pago válidos
+    const validTypes = ["team_registration", "referee_payment", "field_rental", "equipment", "other"]
+    const safeType = validTypes.includes(type) ? type : "team_registration"
+
+    // Estados válidos
+    const validStatuses = ["pending", "paid", "overdue", "cancelled"]
+    const safeStatus = validStatuses.includes(status) ? status : "pending"
 
     const updateData: any = {}
     if (team_id !== undefined) updateData.team_id = team_id
     if (player_id !== undefined) updateData.player_id = player_id
     if (referee_id !== undefined) updateData.referee_id = referee_id
-    if (type !== undefined) updateData.type = type
+    if (type !== undefined) updateData.type = safeType
     if (amount !== undefined) updateData.amount = Number.parseFloat(amount)
     if (description !== undefined) updateData.description = description
-    if (status !== undefined) updateData.status = status
+    if (status !== undefined) updateData.status = safeStatus
     if (due_date !== undefined) updateData.due_date = due_date
     if (paid_date !== undefined) updateData.paid_date = paid_date
 
@@ -117,8 +130,11 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, message: error.message }, { status: 500 })
     }
 
-    console.log("✅ Payment updated successfully:", id)
-    return NextResponse.json({ success: true, data: payment })
+    console.log("✅ Payment updated successfully:", payment.id)
+    return NextResponse.json({
+      success: true,
+      data: payment,
+    })
   } catch (error) {
     console.error("💥 Error in payments PUT:", error)
     return NextResponse.json({ success: false, message: "Error interno del servidor" }, { status: 500 })

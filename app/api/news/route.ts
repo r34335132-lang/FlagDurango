@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     const body = await request.json()
     console.log("📋 News data:", body)
 
-    const { title, content, author, image_url } = body
+    const { title, content, author, status, published_date } = body
 
     if (!title || !content) {
       console.log("❌ Missing required fields")
@@ -39,29 +39,33 @@ export async function POST(request: Request) {
       )
     }
 
-    const { data: article, error } = await supabase
+    // Estados válidos
+    const validStatuses = ["draft", "published", "archived"]
+    const safeStatus = validStatuses.includes(status) ? status : "draft"
+
+    const { data: newsArticle, error } = await supabase
       .from("news")
       .insert([
         {
-          title,
-          content,
+          title: title,
+          content: content,
           author: author || "Admin",
-          image_url: image_url || null,
+          status: safeStatus,
+          published_date: published_date || null,
         },
       ])
       .select()
       .single()
 
     if (error) {
-      console.error("❌ Error creating news:", error)
+      console.error("❌ Error creating news article:", error)
       return NextResponse.json({ success: false, message: error.message }, { status: 500 })
     }
 
-    console.log("✅ News article created successfully:", article.id)
+    console.log("✅ News article created successfully:", newsArticle.id)
     return NextResponse.json({
       success: true,
-      article,
-      message: "Noticia creada exitosamente",
+      data: newsArticle,
     })
   } catch (error) {
     console.error("💥 Error in news POST:", error)
@@ -83,7 +87,7 @@ export async function DELETE(request: Request) {
     const { error } = await supabase.from("news").delete().eq("id", id)
 
     if (error) {
-      console.error("❌ Error deleting news:", error)
+      console.error("❌ Error deleting news article:", error)
       return NextResponse.json({ success: false, message: error.message }, { status: 500 })
     }
 

@@ -1,0 +1,549 @@
+\`\`\`typescript
+"use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+
+export default function LoginPage() {
+  const router = useRouter()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+      const data = await res.json()
+      if (!data?.success || !data?.user) {
+        setError(data?.message || "Credenciales inválidas")
+        return
+      }
+      const user = data.user
+      try {
+        localStorage.setItem("user", JSON.stringify(user))
+      } catch {}
+      if (user.role === "admin") {
+        router.push("/admin")
+      } else {
+        router.push("/coach-dashboard")
+      }
+    } catch {
+      setError("Error de red")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-white">
+      <div className="container mx-auto px-4 py-10">
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>Iniciar sesión</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={onSubmit} className="space-y-4">
+              <div>
+                <Label>Correo</Label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="username"
+                />
+              </div>
+              <div>
+                <Label>Contraseña</Label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                />
+              </div>
+              {error && (
+                <div role="alert" className="p-2 rounded bg-red-50 text-red-700 text-sm">
+                  {error}
+                </div>
+              )}
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? "Entrando..." : "Entrar"}
+              </Button>
+              <div className="text-center text-sm text-gray-600">
+                ¿Aún no tienes cuenta?{" "}
+                <a href="/register-team" className="underline">
+                  Registra tu equipo
+                </a>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
+\`\`\`
+
+\`\`\`typescript
+"use client"
+
+import { useEffect, useState } from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Calendar, MapPin, Clock, Trophy, Users, Newspaper, Star, Play, ArrowRight, Target } from 'lucide-react'
+
+interface Game {
+  id: number
+  home_team: string
+  away_team: string
+  home_score?: number
+  away_score?: number
+  game_date: string
+  game_time: string
+  venue: string
+  field: string
+  category: string
+  referee1?: string
+  referee2?: string
+  mvp?: string
+  status: string
+}
+
+interface Team {
+  id: number
+  name: string
+  category: string
+  logo_url?: string
+  color1: string
+  color2: string
+}
+
+interface Player {
+  id: number
+  team_id: number
+  name: string
+}
+
+interface News {
+  id: number
+  title: string
+  content: string
+  image_url?: string
+  author: string
+  created_at: string
+}
+
+interface SystemConfig {
+  config_key: string
+  config_value: string
+}
+
+export default function HomePage() {
+  const [games, setGames] = useState<Game[]>([])
+  const [teams, setTeams] = useState<Team[]>([])
+  const [players, setPlayers] = useState<Player[]>([])
+  const [news, setNews] = useState<News[]>([])
+  const [loading, setLoading] = useState(true)
+  const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+  const [systemConfig, setSystemConfig] = useState<{ [key: string]: string }>({})
+
+  const loadData = async () => {
+    try {
+      const [gamesResponse, teamsResponse, playersResponse, newsResponse, configResponse] = await Promise.all([
+        fetch("/api/games"),
+        fetch("/api/teams"),
+        fetch("/api/players"),
+        fetch("/api/news"),
+        fetch("/api/system-config"),
+      ])
+
+      const [gamesData, teamsData, playersData, newsData, configData] = await Promise.all([
+        gamesResponse.json(),
+        teamsResponse.json(),
+        playersResponse.json(),
+        newsResponse.json(),
+        configResponse.json(),
+      ])
+
+      if (gamesData.success) setGames(gamesData.data)
+      if (teamsData.success) setTeams(teamsData.data)
+      if (playersData.success) setPlayers(playersData.data || [])
+      if (newsData.success) setNews((newsData.data || []).slice(0, 3))
+
+      if (configData.success) {
+        const map: { [key: string]: string } = {}
+        configData.data.forEach((c: SystemConfig) => {
+          map[c.config_key] = c.config_value
+        })
+        setSystemConfig(map)
+      }
+    } catch (error) {
+      console.error("Error loading data:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const deadlineDate = systemConfig.registration_deadline || "2025-09-15"
+      const targetDate = new Date(`${deadlineDate}T23:59:59`).getTime()
+      const now = new Date().getTime()
+      const distance = targetDate - now
+      if (distance > 0) {
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24))
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000)
+        setCountdown({ days, hours, minutes, seconds })
+      }
+    }
+    updateCountdown()
+    const interval = setInterval(updateCountdown, 1000)
+    return () => clearInterval(interval)
+  }, [systemConfig.registration_deadline])
+
+  useEffect(() => {
+    loadData()
+    const interval = setInterval(loadData, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const upcomingGames = games
+    .filter((game) => game.status === "programado")
+    .sort((a, b) => new Date(a.game_date).getTime() - new Date(b.game_date).getTime())
+    .slice(0, 6)
+
+  const liveGames = games.filter((game) => game.status === "en_vivo" || game.status === "en vivo")
+
+  const recentGames = games
+    .filter((game) => game.status === "finalizado")
+    .sort((a, b) => new Date(b.game_date).getTime() - new Date(a.game_date).getTime())
+    .slice(0, 6)
+
+  const getCategoryLabel = (category: string) => {
+    const labels: { [key: string]: string } = {
+      "varonil-gold": "Varonil Gold",
+      "varonil-silver": "Varonil Silver",
+      "femenil-gold": "Femenil Gold",
+      "femenil-silver": "Femenil Silver",
+      "femenil-cooper": "Femenil Cooper",
+      "mixto-gold": "Mixto Gold",
+      "mixto-silver": "Mixto Silver",
+    }
+    return labels[category] || category
+  }
+
+  const isSeasonStarted = systemConfig.season_started === "true"
+  const isWildBrowlEnabled = systemConfig.wildbrowl_enabled === "true"
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-orange-500 flex items-center justify-center">
+        <div className="text-white text-xl">Cargando...</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-white">
+      {/* HERO (Navbar removida para evitar doble barra) */}
+      {!isSeasonStarted ? (
+        <>
+          <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500">
+            <div className="absolute inset-0 bg-black/40"></div>
+            <div className="container mx-auto px-4 relative z-10 text-center">
+              <div className="inline-block bg-yellow-400/95 backdrop-blur-sm text-gray-900 px-8 py-3 rounded-full font-bold mb-8 border border-black/10 shadow-lg">
+                {'🏆 Temporada Otoño 2025 - ¡Inscripciones Abiertas!'}
+              </div>
+              <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight">
+                <span className="block">Temporada</span>
+                <span className="block text-white">Otoño 2025</span>
+              </h1>
+              <div className="mb-12">
+                <h3 className="text-xl md:text-2xl font-bold text-white mb-6 flex items-center justify-center">
+                  <Clock className="w-6 h-6 mr-2" />
+                  Cierre de inscripciones en:
+                </h3>
+                <div className="grid grid-cols-4 gap-4 max-w-lg mx-auto">
+                  <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
+                    <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.days}</div>
+                    <div className="text-sm text-gray-600 capitalize">Días</div>
+                  </div>
+                  <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
+                    <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.hours}</div>
+                    <div className="text-sm text-gray-600 capitalize">Horas</div>
+                  </div>
+                  <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
+                    <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.minutes}</div>
+                    <div className="text-sm text-gray-600 capitalize">Min</div>
+                  </div>
+                  <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
+                    <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.seconds}</div>
+                    <div className="text-sm text-gray-600 capitalize">Seg</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+          <div className="h-2 bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500" />
+        </>
+      ) : (
+        <>
+          <section className="relative py-20 overflow-hidden bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500">
+            <div className="absolute inset-0 bg-black/40"></div>
+            <div className="container mx-auto px-4 relative z-10">
+              <div className="text-center max-w-4xl mx-auto">
+                <div className="inline-block bg-green-400/95 backdrop-blur-sm text-gray-900 px-6 py-2 rounded-full font-bold mb-6">
+                  {'🏈 Temporada en Curso - ¡Sigue la Acción!'}
+                </div>
+                <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
+                  Liga Flag
+                  <span className="block bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+                    Durango
+                  </span>
+                </h1>
+                <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
+                  20 años haciendo historia en el flag football de Durango.
+                  <span className="block mt-2 text-yellow-300 font-semibold">¡La temporada 2025 está en marcha!</span>
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold"
+                    onClick={() => (window.location.href = "/partidos")}
+                  >
+                    <Play className="w-5 h-5 mr-2" />
+                    Ver Partidos
+                  </Button>
+                  {isWildBrowlEnabled && (
+                    <Button
+                      size="lg"
+                      className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-bold"
+                      onClick={() => (window.location.href = "/wildbrowl")}
+                    >
+                      <Target className="w-5 h-5 mr-2" />
+                      WildBrowl 1v1
+                    </Button>
+                  )}
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent"
+                    onClick={() => (window.location.href = "/estadisticas")}
+                  >
+                    Ver Estadísticas
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </section>
+          <div className="h-2 bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500" />
+        </>
+      )}
+
+      {/* 20 Años */}
+      <section className="py-16 bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500">
+        <div className="container mx-auto px-4 text-center">
+          <img
+            src="/imagenes/20años.png"
+            alt="20 Años de Flag - Haciendo Historia"
+            className="max-w-md w-full h-auto mx-auto filter drop-shadow-lg"
+          />
+        </div>
+      </section>
+
+      {/* ... Resto de secciones tal como ya las tenías (sin navbar duplicada) ... */}
+
+      <div className="container mx-auto px-4 py-8">
+        {/* EN VIVO */}
+        {liveGames.length > 0 && (
+          <section className="mb-16">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4 flex items-center justify-center">
+                <div className="w-3 h-3 bg-red-500 rounded-full mr-3 animate-pulse"></div>
+                EN VIVO
+              </h2>
+              <p className="text-gray-600 text-lg">Partidos que se están jugando ahora mismo</p>
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {liveGames.map((game) => (
+                <Card key={game.id} className="bg-red-50 border-red-200 hover:bg-red-100 transition-all transform hover:scale-105">
+                  <CardContent className="p-6">
+                    <div className="text-center">
+                      <Badge className="mb-4 bg-red-500 text-white animate-pulse">🔴 EN VIVO</Badge>
+                      <h3 className="text-gray-900 font-bold text-xl mb-4">
+                        {game.home_team} vs {game.away_team}
+                      </h3>
+                      <div className="text-4xl font-bold text-gray-900 mb-4">
+                        {game.home_score || 0} - {game.away_score || 0}
+                      </div>
+                      <div className="space-y-2 text-gray-600 text-sm">
+                        <div className="flex items-center justify-center">
+                          <MapPin className="w-4 h-4 mr-1" />
+                          {game.venue} - {game.field}
+                        </div>
+                        <div className="flex items-center justify-center">
+                          <Clock className="w-4 h-4 mr-1" />
+                          {game.game_time}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Próximos y Resultados y Noticias se mantienen como estaban */}
+        {/* Liga en Números - ahora muestra Jugadores Registrados */}
+        <section className="mb-16">
+          <div className="text-center mb-8">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Liga en Números</h2>
+            <p className="text-gray-600 text-lg">Estadísticas generales de la temporada actual</p>
+          </div>
+          <div className="grid md:grid-cols-4 gap-6">
+            <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
+              <CardContent className="p-6 text-center">
+                <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                <h3 className="text-3xl font-bold text-gray-900">{teams.length}</h3>
+                <p className="text-gray-600">Equipos Registrados</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
+              <CardContent className="p-6 text-center">
+                <Calendar className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+                <h3 className="text-3xl font-bold text-gray-900">{games.length}</h3>
+                <p className="text-gray-600">Partidos Programados</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
+              <CardContent className="p-6 text-center">
+                <Users className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                <h3 className="text-3xl font-bold text-gray-900">{players.length}</h3>
+                <p className="text-gray-600">Jugadores Registrados</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
+              <CardContent className="p-6 text-center">
+                {isWildBrowlEnabled ? (
+                  <>
+                    <Target className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+                    <h3 className="text-3xl font-bold text-gray-900">1v1</h3>
+                    <p className="text-gray-600">Torneo WildBrowl</p>
+                  </>
+                ) : (
+                  <>
+                    <Newspaper className="w-12 h-12 text-purple-500 mx-auto mb-4" />
+                    <h3 className="text-3xl font-bold text-gray-900">{news.length}</h3>
+                    <p className="text-gray-600">Noticias Publicadas</p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      </div>
+
+      {/* Sponsors y Footer se mantienen como estaban */}
+    </div>
+  )
+}
+\`\`\`
+
+\`\`\`typescript
+// app/admin/page.tsx
+<div>
+  <Label>Equipo Local</Label>
+  <select
+    value={gameForm.home_team}
+    onChange={(e) => setGameForm({ ...gameForm, home_team: e.target.value })}
+    className="w-full p-2 border rounded"
+    required
+  >
+    <option value="">Seleccionar equipo</option>
+    {teams
+      .filter((t) => t.category === gameForm.category)
+      .map((t) => (
+        <option key={t.id} value={t.name}>
+          {t.name}
+        </option>
+      ))}
+  </select>
+</div>
+
+<div>
+  <Label>Equipo Visitante</Label>
+  <select
+    value={gameForm.away_team}
+    onChange={(e) => setGameForm({ ...gameForm, away_team: e.target.value })}
+    className="w-full p-2 border rounded"
+    required
+  >
+    <option value="">Seleccionar equipo</option>
+    {teams
+      .filter((t) => t.category === gameForm.category)
+      .map((t) => (
+        <option key={t.id} value={t.name}>
+          {t.name}
+        </option>
+      ))}
+  </select>
+</div>
+\`\`\`
+
+\`\`\`typescript
+// app/dashboard/page.tsx
+<div>
+  <Label className="text-white">Equipo Local</Label>
+  <select
+    value={gameForm.home_team}
+    onChange={(e) => setGameForm({ ...gameForm, home_team: e.target.value })}
+    className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+  >
+    <option value="">Seleccionar equipo</option>
+    {teams
+      .filter((team) => team.category === gameForm.category)
+      .map((team) => (
+        <option key={team.id} value={team.name}>
+          {team.name}
+        </option>
+      ))}
+  </select>
+</div>
+
+<div>
+  <Label className="text-white">Equipo Visitante</Label>
+  <select
+    value={gameForm.away_team}
+    onChange={(e) => setGameForm({ ...gameForm, away_team: e.target.value })}
+    className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+  >
+    <option value="">Seleccionar equipo</option>
+    {teams
+      .filter((team) => team.category === gameForm.category)
+      .map((team) => (
+        <option key={team.id} value={team.name}>
+          {team.name}
+        </option>
+      ))}
+  </select>
+</div>
+\`\`\`

@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Navigation } from "@/components/navigation"
-import { Trophy, Target, Users, TrendingUp } from "lucide-react"
+import { Trophy, Target, Users, TrendingUp, Award } from 'lucide-react'
 import Image from "next/image"
 
 interface TeamStats {
@@ -26,10 +26,39 @@ interface TeamStats {
   win_percentage: string
 }
 
+interface WeeklyMVP {
+  id: number
+  mvp_type: "weekly"
+  category: string
+  week_number?: number | null
+  season?: string | null
+  notes?: string | null
+  created_at: string
+  player?: {
+    id: number
+    name: string
+    photo_url?: string | null
+    team_id?: number | null
+    team?: { id: number; name: string; logo_url?: string | null } | null
+  } | null
+}
+
+interface GameLite {
+  id: number
+  category: string
+  status: string
+}
+
+function normalizeCategory(v: string) {
+  return (v || "").toLowerCase().replace(/_/g, "-").trim()
+}
+
 export default function EstadisticasPage() {
   const [stats, setStats] = useState<TeamStats[]>([])
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [loading, setLoading] = useState(true)
+  const [mvps, setMvps] = useState<WeeklyMVP[]>([])
+  const [games, setGames] = useState<GameLite[]>([])
 
   const categories = [
     { value: "all", label: "Todas las Categorías" },
@@ -37,6 +66,7 @@ export default function EstadisticasPage() {
     { value: "varonil-silver", label: "Varonil Silver" },
     { value: "femenil-gold", label: "Femenil Gold" },
     { value: "femenil-silver", label: "Femenil Silver" },
+    { value: "femenil-cooper", label: "Femenil Cooper" },
     { value: "mixto-gold", label: "Mixto Gold" },
     { value: "mixto-silver", label: "Mixto Silver" },
   ]
@@ -45,12 +75,16 @@ export default function EstadisticasPage() {
     fetchStats()
   }, [selectedCategory])
 
+  useEffect(() => {
+    fetchMvps()
+    fetchGames()
+  }, [])
+
   const fetchStats = async () => {
     try {
       setLoading(true)
       const response = await fetch(`/api/stats?category=${selectedCategory}&season=2025`)
       const data = await response.json()
-
       if (data.success) {
         setStats(data.data)
       }
@@ -60,6 +94,48 @@ export default function EstadisticasPage() {
       setLoading(false)
     }
   }
+
+  const fetchMvps = async () => {
+    try {
+      const response = await fetch(`/api/mvps/weekly`)
+      const data = await response.json()
+      if (data.success) {
+        setMvps(data.data || [])
+      }
+    } catch (e) {
+      console.error("Error fetching weekly MVPs:", e)
+    }
+  }
+
+  const fetchGames = async () => {
+    try {
+      const res = await fetch(`/api/games`)
+      const json = await res.json()
+      if (json.success) {
+        // Tomamos solo lo necesario para contar correctamente
+        const list: GameLite[] = (json.data || []).map((g: any) => ({
+          id: g.id,
+          category: g.category,
+          status: g.status,
+        }))
+        setGames(list)
+      }
+    } catch (e) {
+      console.error("Error fetching games:", e)
+    }
+  }
+
+  const filteredLatestMvp = useMemo(() => {
+    if (!mvps || mvps.length === 0) return null
+    if (selectedCategory === "all") return null
+    const target = normalizeCategory(selectedCategory)
+    return mvps.find((m) => normalizeCategory(m.category) === target) || null
+  }, [mvps, selectedCategory])
+
+  const latestMvpsAnyCategory = useMemo(() => {
+    if (!mvps || mvps.length === 0) return []
+    return mvps.slice(0, 6)
+  }, [mvps])
 
   const getCategoryColor = (category: string) => {
     if (category.includes("femenil")) return "bg-pink-500"
@@ -73,6 +149,16 @@ export default function EstadisticasPage() {
     if (position === 3) return "text-orange-400"
     return "text-white"
   }
+
+  // Conteo correcto de partidos jugados (distintos), no sumando por equipo.
+  const totalGamesDistinct = useMemo(() => {
+    let list = games.filter((g) => String(g.status).toLowerCase() === "finalizado")
+    if (selectedCategory !== "all") {
+      const target = normalizeCategory(selectedCategory)
+      list = list.filter((g) => normalizeCategory(g.category) === target)
+    }
+    return list.length
+  }, [games, selectedCategory])
 
   if (loading) {
     return (
@@ -88,14 +174,13 @@ export default function EstadisticasPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900">
       <Navigation />
-
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-4">Estadísticas</h1>
           <p className="text-gray-200">Tabla de posiciones y estadísticas de equipos</p>
         </div>
 
-        {/* Category Filter */}
+        {/* Filtro de categoría */}
         <div className="mb-6">
           <div className="flex flex-wrap gap-2">
             {categories.map((category) => (
@@ -114,7 +199,79 @@ export default function EstadisticasPage() {
           </div>
         </div>
 
-        {/* Stats Summary */}
+        {/* MVP de la Jornada */}
+        <div className="mb-8">
+          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-white flex items-center gap-2">
+                <Award className="h-5 w-5 text-yellow-400" />
+                MVP de la Jornada
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {selectedCategory !== "all" && filteredLatestMvp ? (
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-white/10 border border-white/20">
+                    <Image
+                      src={
+                        filteredLatestMvp.player?.photo_url ||
+                        "/placeholder.svg?height=128&width=128&query=foto-de-jugador-mvp"
+                       || "/placeholder.svg"}
+                      alt={filteredLatestMvp.player?.name || "MVP"}
+                      width={64}
+                      height={64}
+                      className="object-cover w-16 h-16"
+                    />
+                  </div>
+                  <div>
+                    <div className="text-white text-lg font-semibold">
+                      {filteredLatestMvp.player?.name || "—"}
+                    </div>
+                    <div className="text-white/80 text-sm">
+                      {filteredLatestMvp.player?.team?.name || "Equipo"}{" "}
+                      {filteredLatestMvp.week_number ? `• Semana ${filteredLatestMvp.week_number}` : ""}
+                    </div>
+                    <Badge className={`${getCategoryColor(filteredLatestMvp.category)} text-white mt-2`}>
+                      {filteredLatestMvp.category.replace("-", " ").toUpperCase()}
+                    </Badge>
+                  </div>
+                </div>
+              ) : selectedCategory === "all" ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {latestMvpsAnyCategory.map((mvp) => (
+                    <div key={mvp.id} className="flex items-center gap-4 bg-white/5 p-3 rounded">
+                      <div className="w-14 h-14 rounded-full overflow-hidden bg-white/10 border border-white/20">
+                        <Image
+                          src={mvp.player?.photo_url || "/placeholder.svg?height=128&width=128&query=foto-de-jugador-mvp"}
+                          alt={mvp.player?.name || "MVP"}
+                          width={56}
+                          height={56}
+                          className="object-cover w-14 h-14"
+                        />
+                      </div>
+                      <div>
+                        <div className="text-white font-semibold">{mvp.player?.name || "—"}</div>
+                        <div className="text-white/80 text-xs">
+                          {mvp.player?.team?.name || "Equipo"} {mvp.week_number ? `• Semana ${mvp.week_number}` : ""}
+                        </div>
+                        <Badge className={`${getCategoryColor(mvp.category)} text-white mt-1`}>
+                          {mvp.category.replace("-", " ").toUpperCase()}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                  {latestMvpsAnyCategory.length === 0 && (
+                    <div className="text-white/70">Aún no hay MVPs registrados.</div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-white/70">Aún no hay MVP de la jornada para esta categoría.</div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Resumen */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="bg-white/10 backdrop-blur-sm border-white/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -126,7 +283,6 @@ export default function EstadisticasPage() {
               <p className="text-xs text-gray-300">En la categoría seleccionada</p>
             </CardContent>
           </Card>
-
           <Card className="bg-white/10 backdrop-blur-sm border-white/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-white">Partidos Jugados</CardTitle>
@@ -134,12 +290,11 @@ export default function EstadisticasPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-white">
-                {stats.reduce((sum, team) => sum + team.games_played, 0)}
+                {totalGamesDistinct}
               </div>
               <p className="text-xs text-gray-300">Total de partidos</p>
             </CardContent>
           </Card>
-
           <Card className="bg-white/10 backdrop-blur-sm border-white/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-white">Puntos Totales</CardTitle>
@@ -152,7 +307,6 @@ export default function EstadisticasPage() {
               <p className="text-xs text-gray-300">Puntos anotados</p>
             </CardContent>
           </Card>
-
           <Card className="bg-white/10 backdrop-blur-sm border-white/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-white">Promedio por Partido</CardTitle>
@@ -160,13 +314,10 @@ export default function EstadisticasPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-white">
-                {stats.length > 0
+                {totalGamesDistinct > 0
                   ? (
-                      stats.reduce((sum, team) => sum + team.points_for, 0) /
-                      Math.max(
-                        stats.reduce((sum, team) => sum + team.games_played, 0),
-                        1,
-                      )
+                      stats.reduce((sum, t) => sum + t.points_for, 0) /
+                      totalGamesDistinct
                     ).toFixed(1)
                   : "0.0"}
               </div>
@@ -175,7 +326,7 @@ export default function EstadisticasPage() {
           </Card>
         </div>
 
-        {/* Stats Table */}
+        {/* Tabla */}
         <Card className="bg-white/10 backdrop-blur-sm border-white/20">
           <CardHeader>
             <CardTitle className="text-white">Tabla de Posiciones</CardTitle>
@@ -202,7 +353,11 @@ export default function EstadisticasPage() {
                   {stats.map((team) => (
                     <tr key={team.team_id} className="border-b border-white/10 hover:bg-white/5">
                       <td className="py-3 px-2">
-                        <span className={`font-bold text-lg ${getPositionColor(team.position)}`}>{team.position}</span>
+                        <span className={`font-bold text-lg ${
+                          team.position === 1 ? "text-yellow-400" :
+                          team.position === 2 ? "text-gray-300" :
+                          team.position === 3 ? "text-orange-400" : "text-white"
+                        }`}>{team.position}</span>
                       </td>
                       <td className="py-3 px-2">
                         <div className="flex items-center space-x-3">
@@ -214,19 +369,11 @@ export default function EstadisticasPage() {
                           >
                             {team.team_logo ? (
                               <Image
-                                src={team.team_logo || "/placeholder.svg"}
+                                src={team.team_logo || "/placeholder.svg?height=32&width=32&query=logo-equipo"}
                                 alt={team.team_name}
                                 width={32}
                                 height={32}
                                 className="rounded-full object-cover"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement
-                                  target.style.display = "none"
-                                  const parent = target.parentElement
-                                  if (parent) {
-                                    parent.textContent = team.team_name.charAt(0)
-                                  }
-                                }}
                               />
                             ) : (
                               team.team_name.charAt(0)
@@ -252,8 +399,8 @@ export default function EstadisticasPage() {
                             team.point_difference > 0
                               ? "text-green-400"
                               : team.point_difference < 0
-                                ? "text-red-400"
-                                : "text-gray-400"
+                              ? "text-red-400"
+                              : "text-gray-400"
                           }`}
                         >
                           {team.point_difference > 0 ? "+" : ""}
@@ -269,7 +416,6 @@ export default function EstadisticasPage() {
                 </tbody>
               </table>
             </div>
-
             {stats.length === 0 && (
               <div className="text-center py-8">
                 <p className="text-gray-400">No hay estadísticas disponibles para esta categoría.</p>
@@ -277,18 +423,6 @@ export default function EstadisticasPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Legend */}
-        <div className="mt-6">
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-            <CardContent className="p-4">
-              <div className="text-white text-sm">
-                <strong>Leyenda:</strong> PJ = Partidos Jugados, G = Ganados, E = Empatados, P = Perdidos, PF = Puntos a
-                Favor, PC = Puntos en Contra, DP = Diferencia de Puntos, Pts = Puntos, % = Porcentaje de Victorias
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   )

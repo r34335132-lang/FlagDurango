@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Calendar, MapPin, Clock, Trophy, Users, Newspaper, Star, Play, ArrowRight } from "lucide-react"
+import { Calendar, MapPin, Clock, Trophy, Users, Newspaper, Star, Play, ArrowRight, Target } from 'lucide-react'
 
 interface Game {
   id: number
@@ -41,36 +41,48 @@ interface News {
   created_at: string
 }
 
+interface SystemConfig {
+  config_key: string
+  config_value: string
+}
+
 export default function HomePage() {
   const [games, setGames] = useState<Game[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [news, setNews] = useState<News[]>([])
   const [loading, setLoading] = useState(true)
+  const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
+  const [systemConfig, setSystemConfig] = useState<{ [key: string]: string }>({})
 
   const loadData = async () => {
     try {
-      const [gamesResponse, teamsResponse, newsResponse] = await Promise.all([
+      const [gamesResponse, teamsResponse, newsResponse, configResponse] = await Promise.all([
         fetch("/api/games"),
         fetch("/api/teams"),
         fetch("/api/news"),
+        fetch("/api/system-config"),
       ])
-
-      const [gamesData, teamsData, newsData] = await Promise.all([
+      const [gamesData, teamsData, newsData, configData] = await Promise.all([
         gamesResponse.json(),
         teamsResponse.json(),
         newsResponse.json(),
+        configResponse.json(),
       ])
-
       if (gamesData.success) {
         setGames(gamesData.data)
       }
-
       if (teamsData.success) {
         setTeams(teamsData.data)
       }
-
       if (newsData.success) {
-        setNews(newsData.data.slice(0, 3))
+        setNews((newsData.data || []).slice(0, 3))
+      }
+      if (configData.success) {
+        const configMap: { [key: string]: string } = {}
+        configData.data.forEach((config: SystemConfig) => {
+          configMap[config.config_key] = config.config_value
+        })
+        setSystemConfig(configMap)
       }
     } catch (error) {
       console.error("Error loading data:", error)
@@ -78,6 +90,26 @@ export default function HomePage() {
       setLoading(false)
     }
   }
+
+  // Countdown timer
+  useEffect(() => {
+    const updateCountdown = () => {
+      const deadlineDate = systemConfig.registration_deadline || "2025-09-15"
+      const targetDate = new Date(`${deadlineDate}T23:59:59`).getTime()
+      const now = new Date().getTime()
+      const distance = targetDate - now
+      if (distance > 0) {
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24))
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60))
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000)
+        setCountdown({ days, hours, minutes, seconds })
+      }
+    }
+    updateCountdown()
+    const interval = setInterval(updateCountdown, 1000)
+    return () => clearInterval(interval)
+  }, [systemConfig.registration_deadline])
 
   useEffect(() => {
     loadData()
@@ -103,120 +135,398 @@ export default function HomePage() {
       "varonil-silver": "Varonil Silver",
       "femenil-gold": "Femenil Gold",
       "femenil-silver": "Femenil Silver",
+      "femenil-cooper": "Femenil Cooper",
       "mixto-gold": "Mixto Gold",
       "mixto-silver": "Mixto Silver",
     }
     return labels[category] || category
   }
 
+  const isSeasonStarted = systemConfig.season_started === "true"
+  const isWildBrowlEnabled = systemConfig.wildbrowl_enabled === "true"
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-orange-500 flex items-center justify-center">
         <div className="text-white text-xl">Cargando...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900">
-      {/* Navigation */}
-      <nav className="bg-black/20 backdrop-blur-sm border-b border-white/10 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="text-center md:text-left mb-4 md:mb-0">
-              <h1 className="text-2xl md:text-3xl font-bold text-white">Liga Flag Durango</h1>
-              <p className="text-white/70">Temporada 2025</p>
+    <div className="min-h-screen bg-white">
+      {/* Hero Section (NAV removida para evitar doble barra) */}
+      {!isSeasonStarted ? (
+        <>
+          {/* Pre-temporada */}
+          <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500">
+            <div className="absolute inset-0 bg-black/40"></div>
+            <div className="container mx-auto px-4 relative z-10 text-center">
+              <div className="inline-block bg-yellow-400/95 backdrop-blur-sm text-gray-900 px-8 py-3 rounded-full font-bold mb-8 border border-black/10 shadow-lg">
+                {"🏆 Temporada Otoño 2025 - ¡Inscripciones Abiertas!"}
+              </div>
+              <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight">
+                <span className="block">Temporada</span>
+                <span className="block text-white">Otoño 2025</span>
+              </h1>
+              {/* Countdown */}
+              <div className="mb-12">
+                <h3 className="text-xl md:text-2xl font-bold text-white mb-6 flex items-center justify-center">
+                  <Clock className="w-6 h-6 mr-2" />
+                  Cierre de inscripciones en:
+                </h3>
+                <div className="grid grid-cols-4 gap-4 max-w-lg mx-auto">
+                  <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
+                    <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.days}</div>
+                    <div className="text-sm text-gray-600 capitalize">Días</div>
+                  </div>
+                  <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
+                    <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.hours}</div>
+                    <div className="text-sm text-gray-600 capitalize">Horas</div>
+                  </div>
+                  <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
+                    <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.minutes}</div>
+                    <div className="text-sm text-gray-600 capitalize">Min</div>
+                  </div>
+                  <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
+                    <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.seconds}</div>
+                    <div className="text-sm text-gray-600 capitalize">Seg</div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-wrap justify-center gap-4 md:gap-6">
-              <a href="/" className="text-white hover:text-yellow-400 transition-colors font-medium">
-                Inicio
-              </a>
-              <a href="/partidos" className="text-white hover:text-yellow-400 transition-colors font-medium">
-                Partidos
-              </a>
-              <a href="/equipos" className="text-white hover:text-yellow-400 transition-colors font-medium">
-                Equipos
-              </a>
-              <a href="/estadisticas" className="text-white hover:text-yellow-400 transition-colors font-medium">
-                Estadísticas
-              </a>
-              <a href="/noticias" className="text-white hover:text-yellow-400 transition-colors font-medium">
-                Noticias
-              </a>
-              <a href="/login" className="text-white hover:text-yellow-400 transition-colors font-medium">
-                Cuenta
-              </a>
+          </section>
+          <div className="h-2 bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500" />
+        </>
+      ) : (
+        <>
+          {/* Temporada iniciada */}
+          <section className="relative py-20 overflow-hidden bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500">
+            <div className="absolute inset-0 bg-black/40"></div>
+            <div className="container mx-auto px-4 relative z-10">
+              <div className="text-center max-w-4xl mx-auto">
+                <div className="inline-block bg-green-400/95 backdrop-blur-sm text-gray-900 px-6 py-2 rounded-full font-bold mb-6">
+                  {"🏈 Temporada en Curso - ¡Sigue la Acción!"}
+                </div>
+                <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
+                  Liga Flag
+                  <span className="block bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+                    Durango
+                  </span>
+                </h1>
+                <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
+                  20 años haciendo historia en el flag football de Durango.
+                  <span className="block mt-2 text-yellow-300 font-semibold">¡La temporada 2025 está en marcha!</span>
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold"
+                    onClick={() => (window.location.href = "/partidos")}
+                  >
+                    <Play className="w-5 h-5 mr-2" />
+                    Ver Partidos
+                  </Button>
+                  {isWildBrowlEnabled && (
+                    <Button
+                      size="lg"
+                      className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-bold"
+                      onClick={() => (window.location.href = "/wildbrowl")}
+                    >
+                      <Target className="w-5 h-5 mr-2" />
+                      WildBrowl 1v1
+                    </Button>
+                  )}
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent"
+                    onClick={() => (window.location.href = "/estadisticas")}
+                  >
+                    Ver Estadísticas
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </nav>
+          </section>
+          <div className="h-2 bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500" />
+        </>
+      )}
 
-      {/* Hero Section */}
-      <section className="relative py-20 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-orange-500/20"></div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
-              Liga Flag
-              <span className="bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-                {" "}
-                Durango
-              </span>
-            </h1>
-            <p className="text-xl md:text-2xl text-white/80 mb-8 leading-relaxed">
-              La liga de flag football más emocionante de Durango. Únete a la acción con 6 categorías competitivas y
-              partidos llenos de adrenalina.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold"
-                onClick={() => (window.location.href = "/partidos")}
-              >
-                <Play className="w-5 h-5 mr-2" />
-                Ver Partidos
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white text-white hover:bg-white hover:text-black bg-transparent"
-                onClick={() => (window.location.href = "/equipos")}
-              >
-                Conocer Equipos
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </div>
-          </div>
+      {/* 20 Años Section */}
+      <section className="py-16 bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500">
+        <div className="container mx-auto px-4 text-center">
+          <img
+            src="/images/20.png"
+            alt="20 Años de Flag - Haciendo Historia"
+            className="max-w-md w-full h-auto mx-auto filter drop-shadow-lg"
+          />
         </div>
       </section>
 
+      {/* Secciones solo si no inicia la temporada */}
+      {!isSeasonStarted ? (
+        <>
+          {/* Una Liga Hecha Para Ti */}
+          <section className="py-20 bg-white">
+            <div className="container mx-auto px-4">
+              <h2 className="text-4xl md:text-5xl font-black text-center text-gray-900 mb-16">UNA LIGA HECHA PARA TI</h2>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105 h-full">
+                  <CardContent className="p-8 text-center h-full flex flex-col">
+                    <img src="/images/live.png" alt="Transmisiones en Vivo" className="w-16 h-16 mx-auto mb-6" />
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Transmisiones en Vivo</h3>
+                    <p className="text-gray-600 leading-relaxed flex-grow">
+                      Todos los partidos del Campo A se transmiten en vivo para que no te pierdas ni una jugada, estés
+                      donde estés. ¡Siente la emoción desde cualquier dispositivo!
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105 h-full">
+                  <CardContent className="p-8 text-center h-full flex flex-col">
+                    <img src="/images/estadisticas.png" alt="Estadísticas en Tiempo Real" className="w-16 h-16 mx-auto mb-6" />
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Estadísticas en Tiempo Real</h3>
+                    <p className="text-gray-600 leading-relaxed flex-grow">
+                      Consulta resultados, posiciones, rendimiento de jugadores y mucho más, todo actualizado jugada por
+                      jugada.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105 h-full">
+                  <CardContent className="p-8 text-center h-full flex flex-col">
+                    <img src="/images/media.png" alt="Contenido Multimedia" className="w-16 h-16 mx-auto mb-6" />
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Contenido Multimedia</h3>
+                    <p className="text-gray-600 leading-relaxed flex-grow">
+                      Nuestro equipo media captura cada momento clave: fotos, videos, reels y contenido exclusivo para
+                      que revivas cada jornada desde otro ángulo.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105 h-full">
+                  <CardContent className="p-8 text-center h-full flex flex-col">
+                    <img src="/images/hidratacion.png" alt="Puntos de Hidratación" className="w-16 h-16 mx-auto mb-6" />
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Puntos de Hidratación</h3>
+                    <p className="text-gray-600 leading-relaxed flex-grow">
+                      En cada jornada encontrarás estaciones de hidratación gratuita para todos los jugadores.
+                      Rendimiento, salud y seguridad siempre van primero.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105 h-full">
+                  <CardContent className="p-8 text-center h-full flex flex-col">
+                    <img src="/images/serviciosmedicos.png" alt="Atención Médica" className="w-16 h-16 mx-auto mb-6" />
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Atención Médica</h3>
+                    <p className="text-gray-600 leading-relaxed flex-grow">
+                      Contamos con paramédicos profesionales durante cada jornada, listos para atender cualquier
+                      eventualidad. Porque tu seguridad es prioridad.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </section>
+
+          {/* Convocatoria Otoño 2025 */}
+          <section className="py-20 bg-gray-50">
+            <div className="container mx-auto px-4">
+              <h2 className="text-4xl md:text-5xl font-black text-center text-gray-900 mb-4">Convocatoria Otoño 2025</h2>
+              <p className="text-xl text-center text-gray-600 mb-16">Todo lo que necesitas saber para participar</p>
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <CardContent className="p-6 text-center">
+                    <img src="/images/cierre.png" alt="Cierre de Inscripción" className="w-12 h-12 mx-auto mb-4" />
+                    <h3 className="font-bold text-gray-900 mb-2">Cierre de Inscripción</h3>
+                    <div className="text-3xl font-black text-gray-900">15 Sep</div>
+                    <div className="text-gray-600">2025</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <CardContent className="p-6 text-center">
+                    <img src="/images/inscripciones.png" alt="Inscripción" className="w-12 h-12 mx-auto mb-4" />
+                    <h3 className="font-bold text-gray-900 mb-2">Inscripción</h3>
+                    <div className="text-3xl font-black text-gray-900">$1,600</div>
+                    <div className="text-gray-600">Por equipo</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <CardContent className="p-6 text-center">
+                    <img src="/images/fianza.png" alt="Fianza" className="w-12 h-12 mx-auto mb-4" />
+                    <h3 className="font-bold text-gray-900 mb-2">Fianza</h3>
+                    <div className="text-3xl font-black text-gray-900">$300</div>
+                    <div className="text-gray-600">Por equipo</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <CardContent className="p-6 text-center">
+                    <img src="/images/inicio.png" alt="Inicio de Temporada" className="w-12 h-12 mx-auto mb-4" />
+                    <h3 className="font-bold text-gray-900 mb-2">Inicio de Temporada</h3>
+                    <div className="text-3xl font-black text-gray-900">21 Sep</div>
+                    <div className="text-gray-600">2025</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <CardContent className="p-6 text-center">
+                    <img src="/images/sede.png" alt="Sede" className="w-12 h-12 mx-auto mb-4" />
+                    <h3 className="font-bold text-gray-900 mb-2">Sede</h3>
+                    <div className="text-xl font-black text-gray-900">Polideportivo</div>
+                    <div className="text-gray-600">Mario Vázquez Raña</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <CardContent className="p-6 text-center">
+                    <img src="/images/modalidad.png" alt="Modalidad" className="w-12 h-12 mx-auto mb-4" />
+                    <h3 className="font-bold text-gray-900 mb-2">Modalidad</h3>
+                    <div className="text-xl font-black text-gray-900">IFAF</div>
+                    <div className="text-gray-600">Dominical round robin 8 jornadas</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <CardContent className="p-6 text-center">
+                    <img src="/images/arbitraje.png" alt="Arbitraje" className="w-12 h-12 mx-auto mb-4" />
+                    <h3 className="font-bold text-gray-900 mb-2">Arbitraje</h3>
+                    <div className="text-3xl font-black text-gray-900">$300</div>
+                    <div className="text-gray-600">Por juego</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <CardContent className="p-6 text-center">
+                    <img src="/images/premiacion.png" alt="Premiación" className="w-12 h-12 mx-auto mb-4" />
+                    <h3 className="font-bold text-gray-900 mb-2">Premiación</h3>
+                    <div className="text-xl font-black text-gray-900">Campeón</div>
+                    <div className="text-gray-600">Subcampeones y MVPs</div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </section>
+
+          {/* Categorías */}
+          <section className="py-20 bg-white">
+            <div className="container mx-auto px-4">
+              <h3 className="text-3xl md:text-4xl font-black text-center text-gray-900 mb-12">Categorías Disponibles</h3>
+              <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <CardContent className="p-6 text-center">
+                    <img src="/images/varonilgold.png" alt="Varonil Gold" className="w-16 h-16 mx-auto mb-4" />
+                    <h4 className="font-bold text-gray-900">Varonil Gold</h4>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <CardContent className="p-6 text-center">
+                    <img src="/images/varonilsilver.png" alt="Varonil Silver" className="w-16 h-16 mx-auto mb-4" />
+                    <h4 className="font-bold text-gray-900">Varonil Silver</h4>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <CardContent className="p-6 text-center">
+                    <img src="/images/femenilgold.png" alt="Femenil Gold" className="w-16 h-16 mx-auto mb-4" />
+                    <h4 className="font-bold text-gray-900">Femenil Gold</h4>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <CardContent className="p-6 text-center">
+                    <img src="/images/femenilsilver.png" alt="Femenil Silver" className="w-16 h-16 mx-auto mb-4" />
+                    <h4 className="font-bold text-gray-900">Femenil Silver</h4>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <CardContent className="p-6 text-center">
+                    <img src="/images/mixtogold.png" alt="Mixto Gold" className="w-16 h-16 mx-auto mb-4" />
+                    <h4 className="font-bold text-gray-900">Mixto Gold</h4>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <CardContent className="p-6 text-center">
+                    <img src="/images/mixtosilver.png" alt="Mixto Silver" className="w-16 h-16 mx-auto mb-4" />
+                    <h4 className="font-bold text-gray-900">Mixto Silver</h4>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105 relative">
+                  <div className="absolute -top-2 -right-2 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse shadow-lg">
+                    {"¡NUEVA!"}
+                  </div>
+                  <CardContent className="p-6 text-center">
+                    <img src="/images/femenilcopper.png" alt="Cooper Femenil" className="w-16 h-16 mx-auto mb-4" />
+                    <h4 className="font-bold text-gray-900">Cooper Femenil</h4>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </section>
+
+          {/* MVPs */}
+          <section className="py-20 bg-gray-50">
+            <div className="container mx-auto px-4">
+              <h3 className="text-3xl md:text-4xl font-black text-center text-gray-900 mb-12">Premiación MVPs</h3>
+              <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <CardContent className="p-8 text-center">
+                    <img src="/images/MVPs.png" alt="MVP Ofensivo" className="w-16 h-16 mx-auto mb-4" />
+                    <h4 className="font-bold text-gray-900">MVP Ofensivo</h4>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <CardContent className="p-8 text-center">
+                    <img src="/images/MVPs.png" alt="MVP Defensivo" className="w-16 h-16 mx-auto mb-4" />
+                    <h4 className="font-bold text-gray-900">MVP Defensivo</h4>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <CardContent className="p-8 text-center">
+                    <img src="/images/MVPs.png" alt="MVP Final" className="w-16 h-16 mx-auto mb-4" />
+                    <h4 className="font-bold text-gray-900">MVP Final</h4>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </section>
+        </>
+      ) : null}
+
       <div className="container mx-auto px-4 py-8">
-        {/* Live Games */}
+        {/* EN VIVO */}
         {liveGames.length > 0 && (
           <section className="mb-16">
             <div className="text-center mb-8">
-              <h2 className="text-4xl font-bold text-white mb-4 flex items-center justify-center">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4 flex items-center justify-center">
                 <div className="w-3 h-3 bg-red-500 rounded-full mr-3 animate-pulse"></div>
                 EN VIVO
               </h2>
-              <p className="text-white/70 text-lg">Partidos que se están jugando ahora mismo</p>
+              <p className="text-gray-600 text-lg">Partidos que se están jugando ahora mismo</p>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {liveGames.map((game) => (
-                <Card
-                  key={game.id}
-                  className="bg-red-500/20 backdrop-blur-sm border-red-500/50 hover:bg-red-500/30 transition-all transform hover:scale-105"
-                >
+                <Card key={game.id} className="bg-red-50 border-red-200 hover:bg-red-100 transition-all transform hover:scale-105">
                   <CardContent className="p-6">
                     <div className="text-center">
                       <Badge className="mb-4 bg-red-500 text-white animate-pulse">🔴 EN VIVO</Badge>
-                      <h3 className="text-white font-bold text-xl mb-4">
+                      <h3 className="text-gray-900 font-bold text-xl mb-4">
                         {game.home_team} vs {game.away_team}
                       </h3>
-                      <div className="text-4xl font-bold text-white mb-4">
+                      <div className="text-4xl font-bold text-gray-900 mb-4">
                         {game.home_score || 0} - {game.away_score || 0}
                       </div>
-                      <div className="space-y-2 text-white/70 text-sm">
+                      <div className="space-y-2 text-gray-600 text-sm">
                         <div className="flex items-center justify-center">
                           <MapPin className="w-4 h-4 mr-1" />
                           {game.venue} - {game.field}
@@ -234,28 +544,27 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* Upcoming Games */}
+        {/* Próximos */}
         <section className="mb-16">
           <div className="text-center mb-8">
-            <h2 className="text-4xl font-bold text-white mb-4 flex items-center justify-center">
-              <Calendar className="w-10 h-10 mr-3" />
-              Próximos Partidos
+            <h2 className="text-4xl font-bold text-gray-900 mb-4 flex items-center justify-center">
+              <Calendar className="w-10 h-10 mr-3 text-blue-600" />
+              {isSeasonStarted ? "Próximos Partidos" : "Partidos Programados"}
             </h2>
-            <p className="text-white/70 text-lg">No te pierdas los emocionantes encuentros que vienen</p>
+            <p className="text-gray-600 text-lg">
+              {isSeasonStarted ? "No te pierdas los emocionantes encuentros que vienen" : "Los partidos se programarán una vez iniciada la temporada"}
+            </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {upcomingGames.map((game) => (
-              <Card
-                key={game.id}
-                className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all transform hover:scale-105"
-              >
+              <Card key={game.id} className="bg-white border-gray-200 hover:shadow-lg transition-all transform hover:scale-105">
                 <CardContent className="p-6">
                   <div className="text-center">
                     <Badge className="mb-4 bg-blue-600">{getCategoryLabel(game.category)}</Badge>
-                    <h3 className="text-white font-bold text-xl mb-4">
+                    <h3 className="text-gray-900 font-bold text-xl mb-4">
                       {game.home_team} vs {game.away_team}
                     </h3>
-                    <div className="space-y-3 text-white/70 text-sm">
+                    <div className="space-y-3 text-gray-600 text-sm">
                       <div className="flex items-center justify-center">
                         <Calendar className="w-4 h-4 mr-2" />
                         {new Date(game.game_date).toLocaleDateString("es-ES", {
@@ -274,9 +583,7 @@ export default function HomePage() {
                         {game.venue} - {game.field}
                       </div>
                       {(game.referee1 || game.referee2) && (
-                        <div className="text-xs">
-                          Árbitros: {[game.referee1, game.referee2].filter(Boolean).join(", ")}
-                        </div>
+                        <div className="text-xs">Árbitros: {[game.referee1, game.referee2].filter(Boolean).join(", ")}</div>
                       )}
                     </div>
                   </div>
@@ -286,37 +593,36 @@ export default function HomePage() {
           </div>
           {upcomingGames.length === 0 && (
             <div className="text-center py-12">
-              <p className="text-white/70 text-lg">No hay partidos programados próximamente</p>
+              <p className="text-gray-600 text-lg">
+                {isSeasonStarted ? "No hay partidos programados próximamente" : "Los partidos se programarán una vez iniciada la temporada"}
+              </p>
             </div>
           )}
         </section>
 
-        {/* Recent Results */}
+        {/* Resultados */}
         {recentGames.length > 0 && (
           <section className="mb-16">
             <div className="text-center mb-8">
-              <h2 className="text-4xl font-bold text-white mb-4 flex items-center justify-center">
-                <Trophy className="w-10 h-10 mr-3" />
+              <h2 className="text-4xl font-bold text-gray-900 mb-4 flex items-center justify-center">
+                <Trophy className="w-10 h-10 mr-3 text-green-600" />
                 Resultados Recientes
               </h2>
-              <p className="text-white/70 text-lg">Los últimos partidos finalizados con sus marcadores</p>
+              <p className="text-gray-600 text-lg">Los últimos partidos finalizados con sus marcadores</p>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {recentGames.map((game) => (
-                <Card
-                  key={game.id}
-                  className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all transform hover:scale-105"
-                >
+                <Card key={game.id} className="bg-white border-gray-200 hover:shadow-lg transition-all transform hover:scale-105">
                   <CardContent className="p-6">
                     <div className="text-center">
                       <Badge className="mb-4 bg-green-600">{getCategoryLabel(game.category)}</Badge>
-                      <h3 className="text-white font-bold text-xl mb-2">
+                      <h3 className="text-gray-900 font-bold text-xl mb-2">
                         {game.home_team} vs {game.away_team}
                       </h3>
-                      <div className="text-4xl font-bold text-white mb-4">
+                      <div className="text-4xl font-bold text-gray-900 mb-4">
                         {game.home_score} - {game.away_score}
                       </div>
-                      <div className="space-y-2 text-white/70 text-sm">
+                      <div className="space-y-2 text-gray-600 text-sm">
                         <div className="flex items-center justify-center">
                           <Calendar className="w-4 h-4 mr-1" />
                           {new Date(game.game_date).toLocaleDateString("es-ES")}
@@ -326,7 +632,7 @@ export default function HomePage() {
                           {game.venue} - {game.field}
                         </div>
                         {game.mvp && (
-                          <div className="flex items-center justify-center text-yellow-400">
+                          <div className="flex items-center justify-center text-yellow-600">
                             <Star className="w-4 h-4 mr-1" />
                             MVP: {game.mvp}
                           </div>
@@ -340,34 +646,30 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* Latest News */}
+        {/* Noticias */}
         {news.length > 0 && (
           <section className="mb-16">
             <div className="text-center mb-8">
-              <h2 className="text-4xl font-bold text-white mb-4 flex items-center justify-center">
-                <Newspaper className="w-10 h-10 mr-3" />
+              <h2 className="text-4xl font-bold text-gray-900 mb-4 flex items-center justify-center">
+                <Newspaper className="w-10 h-10 mr-3 text-purple-600" />
                 Últimas Noticias
               </h2>
-              <p className="text-white/70 text-lg">Mantente al día con las novedades de la liga</p>
             </div>
             <div className="grid md:grid-cols-3 gap-6">
               {news.map((item) => (
-                <Card
-                  key={item.id}
-                  className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all transform hover:scale-105"
-                >
+                <Card key={item.id} className="bg-white border-gray-200 hover:shadow-lg transition-all transform hover:scale-105">
                   <CardContent className="p-6">
                     {item.image_url && (
                       <img
-                        src={item.image_url || "/placeholder.svg"}
+                        src={item.image_url || "/placeholder.svg?height=300&width=600&query=noticia%20liga%20flag"}
                         alt={item.title}
                         className="w-full h-48 object-cover rounded-lg mb-4"
                       />
                     )}
-                    <h3 className="text-white font-bold text-lg mb-2">{item.title}</h3>
-                    <p className="text-white/70 text-sm mb-4 line-clamp-3">{item.content}</p>
-                    <div className="flex justify-between items-center text-xs text-white/60">
-                      <span>Por: {item.author}</span>
+                    <h3 className="text-gray-900 font-bold text-lg mb-2">{item.title}</h3>
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-3">{item.content}</p>
+                    <div className="flex justify-between items-center text-xs text-gray-500">
+                      <span>{"Por: "}{item.author}</span>
                       <span>{new Date(item.created_at).toLocaleDateString("es-ES")}</span>
                     </div>
                   </CardContent>
@@ -377,99 +679,118 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* Stats Summary */}
+        {/* Liga en números */}
         <section className="mb-16">
           <div className="text-center mb-8">
-            <h2 className="text-4xl font-bold text-white mb-4">Liga en Números</h2>
-            <p className="text-white/70 text-lg">Estadísticas generales de la temporada actual</p>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Liga en Números</h2>
+            <p className="text-gray-600 text-lg">Estadísticas generales de la temporada actual</p>
           </div>
           <div className="grid md:grid-cols-4 gap-6">
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all">
+            <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
               <CardContent className="p-6 text-center">
-                <Trophy className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-                <h3 className="text-3xl font-bold text-white">{teams.length}</h3>
-                <p className="text-white/70">Equipos Registrados</p>
+                <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                <h3 className="text-3xl font-bold text-gray-900">{teams.length}</h3>
+                <p className="text-gray-600">Equipos Registrados</p>
               </CardContent>
             </Card>
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all">
+            <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
               <CardContent className="p-6 text-center">
-                <Calendar className="w-12 h-12 text-blue-400 mx-auto mb-4" />
-                <h3 className="text-3xl font-bold text-white">{games.length}</h3>
-                <p className="text-white/70">Partidos Programados</p>
+                <Calendar className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+                <h3 className="text-3xl font-bold text-gray-900">{games.length}</h3>
+                <p className="text-gray-600">Partidos Programados</p>
               </CardContent>
             </Card>
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all">
+            <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
               <CardContent className="p-6 text-center">
-                <Users className="w-12 h-12 text-green-400 mx-auto mb-4" />
-                <h3 className="text-3xl font-bold text-white">{recentGames.length}</h3>
-                <p className="text-white/70">Partidos Finalizados</p>
+                <Users className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                <h3 className="text-3xl font-bold text-gray-900">{recentGames.length}</h3>
+                <p className="text-gray-600">Partidos Finalizados</p>
               </CardContent>
             </Card>
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all">
+            <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
               <CardContent className="p-6 text-center">
-                <Newspaper className="w-12 h-12 text-purple-400 mx-auto mb-4" />
-                <h3 className="text-3xl font-bold text-white">{news.length}</h3>
-                <p className="text-white/70">Noticias Publicadas</p>
+                {isWildBrowlEnabled ? (
+                  <>
+                    <Target className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+                    <h3 className="text-3xl font-bold text-gray-900">1v1</h3>
+                    <p className="text-gray-600">Torneo WildBrowl</p>
+                  </>
+                ) : (
+                  <>
+                    <Newspaper className="w-12 h-12 text-purple-500 mx-auto mb-4" />
+                    <h3 className="text-3xl font-bold text-gray-900">{news.length}</h3>
+                    <p className="text-gray-600">Noticias Publicadas</p>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
         </section>
       </div>
 
+      {/* Sponsors */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center text-gray-600 mb-12 tracking-wider">NUESTROS SPONSORS</h2>
+          <div className="flex justify-center items-center gap-8 flex-wrap">
+            <img src="/images/wildsports.png" alt="Wild Sports" className="h-14 w-auto filter grayscale-20 hover:grayscale-0 transition-all" />
+            <img src="/images/wildstudio.png" alt="Wild Studio" className="h-14 w-auto filter grayscale-20 hover:grayscale-0 transition-all" />
+            <img src="/images/axis.png" alt="Axis Flag Football" className="h-14 w-auto filter grayscale-20 hover:grayscale-0 transition-all" />
+            <img src="/images/doctor-click.png" alt="Dr. Click" className="h-14 w-auto filter grayscale-20 hover:grayscale-0 transition-all" />
+            <img src="/images/rnb.png" alt="RNB" className="h-14 w-auto filter grayscale-20 hover:grayscale-0 transition-all" />
+            <img src="/images/AguaRoca.png" alt="Agua Roca" className="h-14 w-auto filter grayscale-20 hover:grayscale-0 transition-all" />
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
-      <footer className="bg-black/30 backdrop-blur-sm border-t border-white/10">
+      <footer className="bg-gray-700 text-white">
         <div className="container mx-auto px-4 py-12">
           <div className="grid md:grid-cols-4 gap-8">
-            <div className="col-span-2">
-              <h3 className="text-2xl font-bold text-white mb-4">Liga Flag Durango</h3>
-              <p className="text-white/70 mb-4">
-                La liga de flag football más emocionante de Durango. Únete a nosotros y vive la pasión del deporte.
-              </p>
-              <div className="text-white/60">
-                <p>📍 Durango, México</p>
-                <p>📞 618-123-4567</p>
-                <p>✉️ info@ligaflagdurango.com</p>
+            <div className="flex flex-col items-start">
+              <img src="/images/20.png" alt="20 Años de Flag" className="w-48 h-auto mb-4" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold mb-4">CONTACTO</h3>
+              <ul className="space-y-2 text-gray-300">
+                <li>• TELEFONO</li>
+                <li>• CORREO</li>
+                <li>• OFICINAS</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold mb-4">LINKS</h3>
+              <ul className="space-y-2 text-gray-300">
+                <li>• WILDSTUDIO</li>
+                <li>• WILDSPORTS</li>
+                <li>• AXIS FLAG FOOTBALL</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold mb-4">SIGUENOS</h3>
+              <div className="flex gap-3">
+                <a href="https://wa.me/526183288280" className="w-9 h-9 bg-gray-600 rounded flex items-center justify-center hover:bg-blue-600 transition-colors">
+                  <span className="text-sm">📱</span>
+                </a>
+                <a
+                  href="https://www.facebook.com/share/1AfHDmwRku/?mibextid=wwXIfr"
+                  className="w-9 h-9 bg-gray-600 rounded flex items-center justify-center hover:bg-blue-600 transition-colors"
+                >
+                  <span className="text-sm">📘</span>
+                </a>
+                <a
+                  href="https://www.instagram.com/flag.durango?igsh=aW5jNzVlZTU1YXFy"
+                  className="w-9 h-9 bg-gray-600 rounded flex items-center justify-center hover:bg-blue-600 transition-colors"
+                >
+                  <span className="text-sm">📷</span>
+                </a>
               </div>
             </div>
-            <div>
-              <h4 className="text-lg font-semibold text-white mb-4">Enlaces Rápidos</h4>
-              <ul className="space-y-2 text-white/70">
-                <li>
-                  <a href="/partidos" className="hover:text-white transition-colors">
-                    Partidos
-                  </a>
-                </li>
-                <li>
-                  <a href="/equipos" className="hover:text-white transition-colors">
-                    Equipos
-                  </a>
-                </li>
-                <li>
-                  <a href="/estadisticas" className="hover:text-white transition-colors">
-                    Estadísticas
-                  </a>
-                </li>
-                <li>
-                  <a href="/noticias" className="hover:text-white transition-colors">
-                    Noticias
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold text-white mb-4">Categorías</h4>
-              <ul className="space-y-2 text-white/70">
-                <li>Varonil Gold</li>
-                <li>Varonil Silver</li>
-                <li>Femenil Gold</li>
-                <li>Femenil Silver</li>
-                <li>Mixto Gold</li>
-                <li>Mixto Silver</li>
-              </ul>
-            </div>
           </div>
-          <div className="border-t border-white/10 mt-8 pt-8 text-center text-white/60">
-            <p>&copy; 2025 Liga Flag Durango. Todos los derechos reservados.</p>
+          <div className="mt-8">
+            <div className="bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500 text-white text-center py-4 rounded-lg">
+              <p className="font-semibold">FLAGDURANGO.COM / CREADO POR WILDSTUDIO</p>
+            </div>
           </div>
         </div>
       </footer>
