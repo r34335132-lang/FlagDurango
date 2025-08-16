@@ -576,7 +576,7 @@ export default function HomePage() {
                 >
                   <CardContent className="p-6">
                     <div className="text-center">
-                      <Badge className="mb-4 bg-red-500 text-white animate-pulse">🔴 EN VIVO</Badge>
+                      <Badge className="mb-4 bg-red-500 text-white animate-pulse"> EN VIVO</Badge>
                       <h3 className="text-gray-900 font-bold text-xl mb-4">
                         {game.home_team} vs {game.away_team}
                       </h3>
