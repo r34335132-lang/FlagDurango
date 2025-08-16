@@ -1,39 +1,81 @@
-import { NextRequest, NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase-admin"
-
-const MP_BASE = "https://api.mercadopago.com"
 
 export async function POST(req: NextRequest) {
   try {
-    const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN
-    if (!accessToken) return NextResponse.json({ ok: true })
-
     const body = await req.json()
-    // MP sends: { action, api_version, data: { id }, date_created, id, live_mode, type, user_id } etc.
-    const topic = body.type || body.topic
-    const paymentId = body.data?.id || body.resource?.split("/").pop()
+    console.log("Webhook recibido:", body)
 
-    if ((topic === "payment" || topic === "test.created") && paymentId) {
-      const res = await fetch(`${MP_BASE}/v1/payments/${paymentId}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
+    const { type, data } = body
+
+    if (type === "payment") {
+      const paymentId = data.id
+
+      // Obtener detalles del pago desde MercadoPago
+      const accessToken = process.env.MP_ACCESS_TOKEN
+      if (!accessToken) {
+        console.error("MP_ACCESS_TOKEN no configurado")
+        return NextResponse.json({ success: false }, { status: 500 })
+      }
+
+      const paymentResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
       })
-      const payment = await res.json()
 
-      if (payment?.status === "approved") {
-        const metadata = payment?.metadata || {}
-        if (metadata?.type === "wildbrowl" && metadata?.participant_id) {
-          await supabase
-            .from("wildbrowl_participants")
-            .update({ payment_status: "paid" })
-            .eq("id", metadata.participant_id)
+      if (!paymentResponse.ok) {
+        console.error("Error obteniendo pago de MP")
+        return NextResponse.json({ success: false }, { status: 500 })
+      }
+
+      const payment = await paymentResponse.json()
+      console.log("Detalles del pago:", payment)
+
+      // Extraer team_id del external_reference
+      const externalRef = payment.external_reference
+      if (!externalRef || !externalRef.startsWith("team_")) {
+        console.error("external_reference inválido:", externalRef)
+        return NextResponse.json({ success: false }, { status: 400 })
+      }
+
+      const teamId = Number.parseInt(externalRef.replace("team_", ""))
+
+      // Si el pago fue aprobado, marcar equipo como pagado
+      if (payment.status === "approved") {
+        console.log("Pago aprobado para equipo:", teamId)
+
+        // Actualizar equipo
+        const { error: teamError } = await supabase.from("teams").update({ paid: true }).eq("id", teamId)
+
+        if (teamError) {
+          console.error("Error actualizando equipo:", teamError)
         }
-        // future: handle team registration if needed using metadata.team_id
+
+        // Registrar pago
+        const { error: paymentError } = await supabase.from("payments").insert([
+          {
+            team_id: teamId,
+            amount: payment.transaction_amount,
+            currency: payment.currency_id,
+            payment_method: payment.payment_method_id,
+            status: payment.status,
+            external_id: payment.id.toString(),
+            created_at: new Date().toISOString(),
+          },
+        ])
+
+        if (paymentError) {
+          console.error("Error registrando pago:", paymentError)
+        }
+
+        console.log("Pago procesado exitosamente")
       }
     }
 
-    return NextResponse.json({ ok: true })
-  } catch (e) {
-    console.error("MP webhook error:", e)
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ success: true })
+  } catch (error: any) {
+    console.error("Error en webhook:", error)
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 })
   }
 }

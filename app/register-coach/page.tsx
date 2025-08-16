@@ -1,11 +1,12 @@
 "use client"
 
+import type React from "react"
+
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
 
 interface Team {
   id: number
@@ -25,6 +26,10 @@ export default function RegisterCoachPage() {
     team_id: "",
     team_name: "",
     category: "varonil-gold",
+    captain_name: "",
+    captain_phone: "",
+    coordinator_name: "",
+    coordinator_phone: "",
   })
 
   useEffect(() => {
@@ -46,7 +51,10 @@ export default function RegisterCoachPage() {
     e.preventDefault()
     setSubmitting(true)
     setMessage(null)
+
     try {
+      console.log("Enviando datos:", form)
+
       const res = await fetch("/api/auth/register-coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -55,14 +63,29 @@ export default function RegisterCoachPage() {
           team_id: form.team_id ? Number.parseInt(form.team_id) : undefined,
         }),
       })
+
       const data = await res.json()
+      console.log("Respuesta:", data)
+
       if (data.success) {
-        setMessage("¡Registro enviado! Un admin debe aprobar tu acceso.")
-        setForm({ username: "", email: "", password: "", team_id: "", team_name: "", category: "varonil-gold" })
+        setMessage("¡Registro exitoso! Ahora puedes hacer login y pagar la inscripción ($1,900 MXN).")
+        setForm({
+          username: "",
+          email: "",
+          password: "",
+          team_id: "",
+          team_name: "",
+          category: "varonil-gold",
+          captain_name: "",
+          captain_phone: "",
+          coordinator_name: "",
+          coordinator_phone: "",
+        })
       } else {
         setMessage(data.message || "Error al registrar")
       }
     } catch (e) {
+      console.error("Error:", e)
       setMessage("Error de red")
     } finally {
       setSubmitting(false)
@@ -72,50 +95,64 @@ export default function RegisterCoachPage() {
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500">
       <div className="container mx-auto px-4 py-10">
-        <Card className="max-w-2xl mx-auto">
+        <Card className="max-w-4xl mx-auto">
           <CardHeader>
-            <CardTitle>Registro de Entrenador/Capitán</CardTitle>
+            <CardTitle className="text-2xl text-center">Registro de Entrenador/Capitán</CardTitle>
+            <p className="text-center text-gray-600">Crea tu cuenta para administrar tu equipo</p>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div>Cargando...</div>
+              <div className="text-center py-8">Cargando...</div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Usuario</Label>
-                    <Input
-                      value={form.username}
-                      onChange={(e) => setForm({ ...form, username: e.target.value })}
-                      required
-                    />
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Datos de Usuario */}
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-4">Datos de Usuario</h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Usuario *</Label>
+                      <Input
+                        value={form.username}
+                        onChange={(e) => setForm({ ...form, username: e.target.value })}
+                        required
+                        placeholder="tu_usuario"
+                      />
+                    </div>
+                    <div>
+                      <Label>Email *</Label>
+                      <Input
+                        type="email"
+                        value={form.email}
+                        onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        required
+                        placeholder="tu@correo.com"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label>Contraseña *</Label>
+                      <Input
+                        type="password"
+                        value={form.password}
+                        onChange={(e) => setForm({ ...form, password: e.target.value })}
+                        required
+                        placeholder="••••••••"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <Label>Email</Label>
-                    <Input
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label>Contraseña</Label>
-                    <Input
-                      type="password"
-                      value={form.password}
-                      onChange={(e) => setForm({ ...form, password: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label>Seleccionar equipo (opcional)</Label>
+                </div>
+
+                {/* Equipo */}
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-semibold mb-4">Equipo</h3>
+
+                  <div className="mb-4">
+                    <Label>Seleccionar equipo existente (opcional)</Label>
                     <select
                       value={form.team_id}
-                      onChange={(e) => setForm({ ...form, team_id: e.target.value })}
+                      onChange={(e) => setForm({ ...form, team_id: e.target.value, team_name: "" })}
                       className="w-full p-2 border rounded"
                     >
-                      <option value="">— Sin equipo —</option>
+                      <option value="">— Seleccionar equipo existente —</option>
                       {teams.map((t) => (
                         <option key={t.id} value={t.id}>
                           {t.name} ({t.category})
@@ -123,44 +160,114 @@ export default function RegisterCoachPage() {
                       ))}
                     </select>
                   </div>
-                </div>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Crear equipo nuevo (opcional)</Label>
-                    <Input
-                      placeholder="Nombre del equipo"
-                      value={form.team_name}
-                      onChange={(e) => setForm({ ...form, team_name: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Categoría</Label>
-                    <select
-                      value={form.category}
-                      onChange={(e) => setForm({ ...form, category: e.target.value })}
-                      className="w-full p-2 border rounded"
-                    >
-                      <option value="varonil-gold">Varonil Gold</option>
-                      <option value="varonil-silver">Varonil Silver</option>
-                      <option value="femenil-gold">Femenil Gold</option>
-                      <option value="femenil-silver">Femenil Silver</option>
-                      <option value="mixto-gold">Mixto Gold</option>
-                      <option value="mixto-silver">Mixto Silver</option>
-                      <option value="femenil-cooper">Femenil Cooper</option>
-                    </select>
+
+                  <div className="text-center text-gray-500 mb-4">— O —</div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label>Crear equipo nuevo</Label>
+                      <Input
+                        placeholder="Nombre del equipo"
+                        value={form.team_name}
+                        onChange={(e) => setForm({ ...form, team_name: e.target.value, team_id: "" })}
+                        disabled={!!form.team_id}
+                      />
+                    </div>
+                    <div>
+                      <Label>Categoría</Label>
+                      <select
+                        value={form.category}
+                        onChange={(e) => setForm({ ...form, category: e.target.value })}
+                        className="w-full p-2 border rounded"
+                        disabled={!!form.team_id}
+                      >
+                        <option value="varonil-gold">Varonil Gold</option>
+                        <option value="varonil-silver">Varonil Silver</option>
+                        <option value="femenil-gold">Femenil Gold</option>
+                        <option value="femenil-silver">Femenil Silver</option>
+                        <option value="mixto-gold">Mixto Gold</option>
+                        <option value="mixto-silver">Mixto Silver</option>
+                        <option value="femenil-cooper">Femenil Cooper</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
-                {message && (
-                  <div className="p-3 rounded bg-yellow-50 border text-yellow-800">{message}</div>
+                {/* Staff del Equipo */}
+                {form.team_name && (
+                  <div className="border rounded-lg p-4">
+                    <h3 className="font-semibold mb-4">Staff del Equipo</h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Nombre del Capitán</Label>
+                        <Input
+                          value={form.captain_name}
+                          onChange={(e) => setForm({ ...form, captain_name: e.target.value })}
+                          placeholder="Nombre completo"
+                        />
+                      </div>
+                      <div>
+                        <Label>Teléfono del Capitán</Label>
+                        <Input
+                          value={form.captain_phone}
+                          onChange={(e) => setForm({ ...form, captain_phone: e.target.value })}
+                          placeholder="618-123-4567"
+                        />
+                      </div>
+                      <div>
+                        <Label>Nombre del Coordinador</Label>
+                        <Input
+                          value={form.coordinator_name}
+                          onChange={(e) => setForm({ ...form, coordinator_name: e.target.value })}
+                          placeholder="Nombre completo"
+                        />
+                      </div>
+                      <div>
+                        <Label>Teléfono del Coordinador</Label>
+                        <Input
+                          value={form.coordinator_phone}
+                          onChange={(e) => setForm({ ...form, coordinator_phone: e.target.value })}
+                          placeholder="618-123-4567"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 )}
 
-                <Button type="submit" disabled={submitting} className="w-full">
-                  {submitting ? "Enviando..." : "Registrarme"}
+                {message && (
+                  <div
+                    className={`p-4 rounded ${
+                      message.includes("exitoso")
+                        ? "bg-green-50 border border-green-200 text-green-800"
+                        : "bg-red-50 border border-red-200 text-red-800"
+                    }`}
+                  >
+                    {message}
+                  </div>
+                )}
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-blue-900 mb-2">Proceso de Registro:</h4>
+                  <ol className="list-decimal list-inside text-sm text-blue-800 space-y-1">
+                    <li>Completa este formulario</li>
+                    <li>Haz login con tu cuenta</li>
+                    <li>
+                      Paga la inscripción de <strong>$1,900 MXN</strong> (incluye fianza)
+                    </li>
+                    <li>Espera aprobación del administrador</li>
+                    <li>¡Comienza a administrar tu equipo!</li>
+                  </ol>
+                </div>
+
+                <Button type="submit" disabled={submitting} className="w-full text-lg py-3">
+                  {submitting ? "Registrando..." : "Crear Cuenta"}
                 </Button>
 
-                <div className="text-sm text-gray-500 text-center mt-2">
-                  Un administrador debe aprobar tu cuenta antes de que puedas gestionar tu equipo.
+                <div className="text-center text-sm text-gray-600">
+                  ¿Ya tienes cuenta?{" "}
+                  <a href="/login" className="text-blue-600 hover:underline">
+                    Inicia sesión aquí
+                  </a>
                 </div>
               </form>
             )}

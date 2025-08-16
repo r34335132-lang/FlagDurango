@@ -1,404 +1,544 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import type React from "react"
+
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Target, Trophy, Users, Calendar, Sparkles, Play } from 'lucide-react'
+import { Target, Trophy, Users, Calendar, DollarSign, Zap, Clock, MapPin } from "lucide-react"
 
-type ConfigMap = Record<string, string>
-type Participant = { id: number; player_name: string; email?: string; phone?: string; category?: string; paid?: boolean }
-type Match = {
+interface SystemConfig {
+  config_key: string
+  config_value: string
+}
+
+interface WildBrowlMatch {
   id: number
-  a_name: string
-  b_name: string
-  a_score?: number
-  b_score?: number
+  player1: string
+  player2: string
+  player1_score?: number
+  player2_score?: number
+  game_date: string
+  game_time: string
+  venue: string
+  field: string
   status: string
-  scheduled_at?: string
-  stage?: string
+  round: string
+}
+
+interface WildBrowlParticipant {
+  id: number
+  player_name: string
+  email: string
+  phone: string
+  category: string
+  paid: boolean
+  created_at: string
 }
 
 export default function WildBrowlPage() {
-  const [config, setConfig] = useState<ConfigMap>({})
-  const [participants, setParticipants] = useState<Participant[]>([])
-  const [matches, setMatches] = useState<Match[]>([])
+  const [systemConfig, setSystemConfig] = useState<{ [key: string]: string }>({})
+  const [matches, setMatches] = useState<WildBrowlMatch[]>([])
+  const [participants, setParticipants] = useState<WildBrowlParticipant[]>([])
   const [loading, setLoading] = useState(true)
-  const [meEmail, setMeEmail] = useState<string | null>(null)
-  const [form, setForm] = useState({ player_name: "", email: "", phone: "", category: "varonil" })
-  const [msg, setMsg] = useState<string | null>(null)
+  const [registering, setRegistering] = useState(false)
+  const [showRegistration, setShowRegistration] = useState(false)
 
-  // Load session email (if any) to show "Mis juegos"
+  const [registrationForm, setRegistrationForm] = useState({
+    player_name: "",
+    email: "",
+    phone: "",
+    category: "varonil",
+  })
+
   useEffect(() => {
-    try {
-      const userStr = localStorage.getItem("user")
-      if (userStr) {
-        const u = JSON.parse(userStr) as { email?: string }
-        if (u?.email) setMeEmail(u.email)
-      }
-    } catch {}
+    loadData()
   }, [])
 
-  const loadAll = async () => {
-    setLoading(true)
+  const loadData = async () => {
     try {
-      const [cfgRes, partRes, matchRes] = await Promise.all([
-        fetch("/api/system-config", { cache: "no-store" }),
-        fetch("/api/wildbrowl/participants", { cache: "no-store" }),
-        fetch("/api/wildbrowl/matches", { cache: "no-store" }),
+      const [configResponse, matchesResponse, participantsResponse] = await Promise.all([
+        fetch("/api/system-config"),
+        fetch("/api/wildbrowl/matches"),
+        fetch("/api/wildbrowl/participants"),
       ])
-      const [cfg, p, m] = await Promise.all([cfgRes.json(), partRes.json(), matchRes.json()])
-      if (cfg?.success) {
-        const map: ConfigMap = {}
-        for (const c of cfg.data as { config_key: string; config_value: string }[]) map[c.config_key] = c.config_value
-        setConfig(map)
+
+      const [configData, matchesData, participantsData] = await Promise.all([
+        configResponse.json(),
+        matchesResponse.json(),
+        participantsResponse.json(),
+      ])
+
+      if (configData.success) {
+        const configMap: { [key: string]: string } = {}
+        configData.data.forEach((config: SystemConfig) => {
+          configMap[config.config_key] = config.config_value
+        })
+        setSystemConfig(configMap)
       }
-      if (p?.success) setParticipants(p.data || [])
-      if (m?.success) setMatches(m.data || [])
-    } catch (e) {
-      console.error(e)
+
+      if (matchesData.success) {
+        setMatches(matchesData.data || [])
+      }
+
+      if (participantsData.success) {
+        setParticipants(participantsData.data || [])
+      }
+    } catch (error) {
+      console.error("Error loading data:", error)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    loadAll()
-  }, [])
-
-  const enabled = config["wildbrowl_enabled"] === "true"
-
-  const myMatches = useMemo(() => {
-    if (!meEmail) return []
-    const myName = participants.find((x) => x.email === meEmail)?.player_name
-    if (!myName) return []
-    return matches.filter((mt) => mt.a_name === myName || mt.b_name === myName)
-  }, [meEmail, participants, matches])
-
-  const standings = useMemo(() => {
-    // Simple ranking: W-L from matches with status "finalizado"
-    const table = new Map<string, { name: string; played: number; won: number; lost: number; pts: number }>()
-    for (const p of participants) {
-      table.set(p.player_name, { name: p.player_name, played: 0, won: 0, lost: 0, pts: 0 })
-    }
-    for (const mt of matches) {
-      if (mt.status !== "finalizado") continue
-      const a = table.get(mt.a_name)
-      const b = table.get(mt.b_name)
-      if (!a || !b) continue
-      a.played += 1
-      b.played += 1
-      const aScore = mt.a_score ?? 0
-      const bScore = mt.b_score ?? 0
-      if (aScore === bScore) continue
-      if (aScore > bScore) {
-        a.won += 1
-        b.lost += 1
-        a.pts += 2
-      } else {
-        b.won += 1
-        a.lost += 1
-        b.pts += 2
-      }
-    }
-    return Array.from(table.values()).sort((x, y) => y.pts - x.pts || y.won - x.won)
-  }, [participants, matches])
-
-  const register = async (e: React.FormEvent) => {
+  const handleRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
-    setMsg(null)
+    setRegistering(true)
+
     try {
-      const reg = await fetch("/api/wildbrowl/register", {
+      const response = await fetch("/api/wildbrowl/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(registrationForm),
       })
-      const data = await reg.json()
-      if (reg.ok && data.success) {
-        setMsg("Registro completado. Pronto recibirás tu programación.")
-        setForm({ player_name: "", email: "", phone: "", category: "varonil" })
-        loadAll()
+
+      const data = await response.json()
+
+      if (data.success) {
+        // Crear preferencia de pago
+        const paymentResponse = await fetch("/api/payments/mercadopago/create-preference", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            team_name: `WildBrowl - ${registrationForm.player_name}`,
+            user_email: registrationForm.email,
+            title: `WildBrowl 1v1 - ${registrationForm.player_name}`,
+            amount: 100,
+          }),
+        })
+
+        const paymentData = await paymentResponse.json()
+
+        if (paymentData.success) {
+          // Redirigir a MercadoPago
+          window.location.href = paymentData.data.init_point
+        } else {
+          alert("Registro exitoso, pero hubo un error con el pago. Contacta al administrador.")
+        }
       } else {
-        setMsg(data.message || "No se pudo registrar")
+        alert(data.message || "Error al registrarse")
       }
-    } catch {
-      setMsg("Error al registrar")
+    } catch (error) {
+      console.error("Error:", error)
+      alert("Error al procesar el registro")
+    } finally {
+      setRegistering(false)
     }
   }
 
-  if (!enabled) {
+  const isWildBrowlEnabled = systemConfig.wildbrowl_enabled === "true"
+
+  const liveMatches = matches.filter((m) => m.status === "en_vivo")
+  const upcomingMatches = matches
+    .filter((m) => m.status === "programado")
+    .sort((a, b) => new Date(a.game_date).getTime() - new Date(b.game_date).getTime())
+    .slice(0, 6)
+
+  const recentMatches = matches
+    .filter((m) => m.status === "finalizado")
+    .sort((a, b) => new Date(b.game_date).getTime() - new Date(a.game_date).getTime())
+    .slice(0, 6)
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-500 via-pink-600 to-purple-700 flex items-center justify-center">
-        <div className="text-white text-center space-y-4">
-          <Target className="w-12 h-12 mx-auto" />
-          <h1 className="text-3xl font-bold">WildBrowl 1v1</h1>
-          <p className="opacity-90">Las inscripciones y el torneo estarán disponibles pronto.</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-orange-500 via-pink-500 to-purple-600 flex items-center justify-center">
+        <div className="text-white text-xl">Cargando WildBrowl...</div>
       </div>
     )
   }
 
-  if (loading) {
+  if (!isWildBrowlEnabled) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-500 via-pink-600 to-purple-700 flex items-center justify-center">
-        <div className="text-white text-xl">Cargando…</div>
+      <div className="min-h-screen bg-gradient-to-br from-orange-500 via-pink-500 to-purple-600">
+        <div className="container mx-auto px-4 py-16">
+          <div className="text-center max-w-4xl mx-auto">
+            <Target className="w-24 h-24 text-white/80 mx-auto mb-8" />
+            <h1 className="text-6xl font-black text-white mb-6">WildBrowl 1v1</h1>
+            <h2 className="text-3xl font-bold text-white/90 mb-8">Próximamente</h2>
+            <p className="text-xl text-white/80 mb-12 leading-relaxed">
+              El torneo más emocionante de flag football 1 contra 1 está en desarrollo.
+              <br />
+              Prepárate para la acción más intensa y competitiva.
+            </p>
+
+            <Card className="bg-white/10 backdrop-blur-sm border-white/20 max-w-2xl mx-auto">
+              <CardContent className="p-8">
+                <h3 className="text-2xl font-bold text-white mb-6">¿Qué es WildBrowl?</h3>
+                <div className="grid md:grid-cols-2 gap-6 text-white/90">
+                  <div className="text-center">
+                    <Target className="w-12 h-12 mx-auto mb-3 text-orange-300" />
+                    <h4 className="font-semibold mb-2">1 vs 1</h4>
+                    <p className="text-sm">Enfrentamientos directos entre jugadores</p>
+                  </div>
+                  <div className="text-center">
+                    <Zap className="w-12 h-12 mx-auto mb-3 text-yellow-300" />
+                    <h4 className="font-semibold mb-2">Acción Rápida</h4>
+                    <p className="text-sm">Partidos intensos y dinámicos</p>
+                  </div>
+                  <div className="text-center">
+                    <Trophy className="w-12 h-12 mx-auto mb-3 text-yellow-500" />
+                    <h4 className="font-semibold mb-2">Premiación</h4>
+                    <p className="text-sm">Reconocimiento a los mejores</p>
+                  </div>
+                  <div className="text-center">
+                    <DollarSign className="w-12 h-12 mx-auto mb-3 text-green-300" />
+                    <h4 className="font-semibold mb-2">$100 MXN</h4>
+                    <p className="text-sm">Inscripción por jugador</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="mt-12">
+              <Button
+                onClick={() => (window.location.href = "/")}
+                size="lg"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                variant="outline"
+              >
+                Volver al Inicio
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-orange-500 via-pink-600 to-purple-700">
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="container mx-auto px-4 py-16 relative z-10 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/95 border border-black/10 rounded-full px-6 py-2 font-bold">
-            <Target className="w-4 h-4" /> WildBrowl 1v1
-          </div>
-          <h1 className="mt-6 text-4xl md:text-6xl font-extrabold text-white">Duelo 1v1 • Skill • Honor</h1>
-          <p className="mt-3 text-white/90 max-w-2xl mx-auto">
-            Regístrate, compite y escala la clasificación. Sin equipos, solo tú.
-          </p>
-          <div className="mt-8 flex justify-center gap-3">
-            <Button
-              size="lg"
-              className="bg-white text-neutral-900 hover:bg-yellow-300 font-bold"
-              onClick={() => document.getElementById("registro")?.scrollIntoView({ behavior: "smooth" })}
-            >
-              <Sparkles className="w-5 h-5 mr-2" /> Registrarme
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-white text-white hover:bg-white hover:text-neutral-900"
-              onClick={() => document.getElementById("partidos")?.scrollIntoView({ behavior: "smooth" })}
-            >
-              <Play className="w-5 h-5 mr-2" /> Ver Partidos
-            </Button>
+    <div className="min-h-screen bg-gradient-to-br from-orange-500 via-pink-500 to-purple-600">
+      {/* Hero Section */}
+      <section className="relative py-20 overflow-hidden">
+        <div className="absolute inset-0 bg-black/30"></div>
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="text-center max-w-4xl mx-auto">
+            <div className="inline-block bg-orange-400/95 backdrop-blur-sm text-gray-900 px-6 py-2 rounded-full font-bold mb-6">
+              🎯 Torneo WildBrowl 1v1 - ¡Inscripciones Abiertas!
+            </div>
+            <h1 className="text-5xl md:text-7xl font-black text-white mb-6">
+              Wild
+              <span className="block bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+                Browl
+              </span>
+            </h1>
+            <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
+              El torneo más emocionante de flag football 1 contra 1.
+              <span className="block mt-2 text-orange-300 font-semibold">¡Demuestra tu habilidad individual!</span>
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button
+                size="lg"
+                onClick={() => setShowRegistration(true)}
+                className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold"
+              >
+                <Target className="w-5 h-5 mr-2" />
+                Registrarse - $100 MXN
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent"
+                onClick={() => document.getElementById("matches")?.scrollIntoView({ behavior: "smooth" })}
+              >
+                Ver Partidos
+              </Button>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Tabs */}
-      <div className="container mx-auto px-4 py-10">
-        <Tabs defaultValue="resumen" className="space-y-6">
-          <TabsList className="bg-neutral-100">
-            <TabsTrigger value="resumen">Resumen</TabsTrigger>
-            <TabsTrigger value="partidos">Partidos</TabsTrigger>
-            <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
-          </TabsList>
+      <div className="container mx-auto px-4 py-8">
+        {/* Registro Modal */}
+        {showRegistration && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5" />
+                  Registro WildBrowl 1v1
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleRegistration} className="space-y-4">
+                  <div>
+                    <Label>Nombre del Jugador</Label>
+                    <Input
+                      value={registrationForm.player_name}
+                      onChange={(e) => setRegistrationForm({ ...registrationForm, player_name: e.target.value })}
+                      required
+                      placeholder="Tu nombre completo"
+                    />
+                  </div>
+                  <div>
+                    <Label>Email</Label>
+                    <Input
+                      type="email"
+                      value={registrationForm.email}
+                      onChange={(e) => setRegistrationForm({ ...registrationForm, email: e.target.value })}
+                      required
+                      placeholder="tu@email.com"
+                    />
+                  </div>
+                  <div>
+                    <Label>Teléfono</Label>
+                    <Input
+                      value={registrationForm.phone}
+                      onChange={(e) => setRegistrationForm({ ...registrationForm, phone: e.target.value })}
+                      required
+                      placeholder="618-123-4567"
+                    />
+                  </div>
+                  <div>
+                    <Label>Categoría</Label>
+                    <select
+                      value={registrationForm.category}
+                      onChange={(e) => setRegistrationForm({ ...registrationForm, category: e.target.value })}
+                      className="w-full p-2 border rounded"
+                    >
+                      <option value="varonil">Varonil</option>
+                      <option value="femenil">Femenil</option>
+                    </select>
+                  </div>
 
-          {/* Resumen */}
-          <TabsContent value="resumen">
-            <div className="grid md:grid-cols-3 gap-6">
-              <Card className="bg-white">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-orange-600" /> Participantes
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-4xl font-black">{participants.length}</div>
-                  <p className="text-sm text-neutral-600">Jugadores registrados</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-white">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-pink-600" /> Partidos
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-4xl font-black">{matches.length}</div>
-                  <p className="text-sm text-neutral-600">Totales (programados y finalizados)</p>
-                </CardContent>
-              </Card>
-              <Card className="bg-white">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-purple-600" /> En juego
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-4xl font-black">{matches.filter((m) => m.status === "en vivo").length}</div>
-                  <p className="text-sm text-neutral-600">Partidos en vivo</p>
-                </CardContent>
-              </Card>
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <DollarSign className="w-5 h-5 text-orange-600" />
+                      <span className="font-semibold text-orange-900">Costo de Inscripción</span>
+                    </div>
+                    <p className="text-orange-800 text-sm">
+                      <strong>$100 MXN</strong> por jugador - Pago seguro con MercadoPago
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowRegistration(false)}
+                      className="flex-1"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button type="submit" disabled={registering} className="flex-1 bg-orange-600 hover:bg-orange-700">
+                      {registering ? "Procesando..." : "Registrar y Pagar"}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* EN VIVO */}
+        {liveMatches.length > 0 && (
+          <section className="mb-16">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl font-bold text-white mb-4 flex items-center justify-center">
+                <div className="w-3 h-3 bg-red-500 rounded-full mr-3 animate-pulse"></div>
+                EN VIVO
+              </h2>
+              <p className="text-white/80 text-lg">Enfrentamientos 1v1 que se están jugando ahora</p>
             </div>
-
-            {/* Registro */}
-            <div id="registro" className="mt-8 grid lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Registro de Jugador</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={register} className="space-y-4">
-                    <div>
-                      <Label>Nombre</Label>
-                      <Input value={form.player_name} onChange={(e) => setForm((p) => ({ ...p, player_name: e.target.value }))} required />
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label>Email</Label>
-                        <Input type="email" value={form.email} onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))} required />
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {liveMatches.map((match) => (
+                <Card
+                  key={match.id}
+                  className="bg-red-50 border-red-200 hover:bg-red-100 transition-all transform hover:scale-105"
+                >
+                  <CardContent className="p-6">
+                    <div className="text-center">
+                      <Badge className="mb-4 bg-red-500 text-white animate-pulse">🔴 EN VIVO</Badge>
+                      <h3 className="text-gray-900 font-bold text-xl mb-4">
+                        {match.player1} vs {match.player2}
+                      </h3>
+                      <div className="text-4xl font-bold text-gray-900 mb-4">
+                        {match.player1_score || 0} - {match.player2_score || 0}
                       </div>
-                      <div>
-                        <Label>Teléfono</Label>
-                        <Input value={form.phone} onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))} />
-                      </div>
-                    </div>
-                    <div>
-                      <Label>Categoría</Label>
-                      <select
-                        value={form.category}
-                        onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))}
-                        className="w-full p-2 border rounded"
-                      >
-                        <option value="varonil">Varonil</option>
-                        <option value="femenil">Femenil</option>
-                        <option value="mixto">Mixto</option>
-                      </select>
-                    </div>
-                    <div className="flex gap-3">
-                      <Button type="submit" className="flex-1">
-                        Registrar jugador
-                      </Button>
-                      {/* Pagar se ofrece después, no primero */}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={async () => {
-                          setMsg(null)
-                          try {
-                            const pref = await fetch("/api/payments/mercadopago/create-preference", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({
-                                type: "wildbrowl",
-                                email: form.email,
-                                player_name: form.player_name,
-                                amount: 1900,
-                              }),
-                            })
-                            const data = await pref.json()
-                            const init =
-                              data?.data?.init_point ||
-                              data?.data?.sandbox_init_point ||
-                              data?.data?.point_of_interaction?.transaction_data?.ticket_url
-                            if (init) window.location.href = init
-                            else setMsg("No se encontró URL de pago.")
-                          } catch {
-                            setMsg("Error iniciando pago")
-                          }
-                        }}
-                      >
-                        Pagar inscripción ($1900)
-                      </Button>
-                    </div>
-                    {msg && <div className="text-sm text-red-600">{msg}</div>}
-                  </form>
-                </CardContent>
-              </Card>
-
-              {/* Mis juegos */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Mis juegos</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {myMatches.length === 0 ? (
-                    <div className="text-sm text-neutral-600">Inicia sesión o regístrate para ver tus próximos juegos.</div>
-                  ) : (
-                    <div className="space-y-3">
-                      {myMatches.map((m) => (
-                        <div key={m.id} className="p-3 border rounded flex items-center justify-between">
-                          <div>
-                            <div className="font-semibold">
-                              {m.a_name} vs {m.b_name}
-                            </div>
-                            <div className="text-xs text-neutral-600">
-                              {m.scheduled_at
-                                ? new Date(m.scheduled_at).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })
-                                : "Por programar"}
-                            </div>
-                          </div>
-                          <Badge variant="outline">{m.status}</Badge>
+                      <div className="space-y-2 text-gray-600 text-sm">
+                        <div className="flex items-center justify-center">
+                          <MapPin className="w-4 h-4 mr-1" />
+                          {match.venue} - {match.field}
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* Partidos */}
-          <TabsContent value="partidos">
-            <div id="partidos" className="grid lg:grid-cols-2 gap-6">
-              {matches.map((m) => (
-                <Card key={m.id} className="hover:shadow-md transition">
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between">
-                      <div className="font-bold">
-                        {m.a_name} vs {m.b_name}
+                        <div className="flex items-center justify-center">
+                          <Clock className="w-4 h-4 mr-1" />
+                          {match.game_time}
+                        </div>
                       </div>
-                      <Badge className={m.status === "finalizado" ? "bg-green-600" : m.status === "en vivo" ? "bg-red-600" : "bg-blue-600"}>
-                        {m.status}
-                      </Badge>
                     </div>
-                    <div className="mt-2 text-sm text-neutral-600">
-                      {m.scheduled_at
-                        ? new Date(m.scheduled_at).toLocaleString("es-MX", { dateStyle: "short", timeStyle: "short" })
-                        : "Fecha por confirmar"}
-                    </div>
-                    {m.status !== "programado" && (
-                      <div className="mt-3 font-black text-xl">
-                        {(m.a_score ?? 0)} - {(m.b_score ?? 0)}
-                      </div>
-                    )}
-                    {m.stage && <div className="mt-1 text-xs text-neutral-500">Etapa: {m.stage}</div>}
                   </CardContent>
                 </Card>
               ))}
             </div>
-            {matches.length === 0 && <div className="text-neutral-600">No hay partidos aún.</div>}
-          </TabsContent>
+          </section>
+        )}
 
-          {/* Estadísticas */}
-          <TabsContent value="estadisticas">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left border-b">
-                    <th className="py-2 pr-2">#</th>
-                    <th className="py-2 pr-2">Jugador</th>
-                    <th className="py-2 pr-2">PJ</th>
-                    <th className="py-2 pr-2">W</th>
-                    <th className="py-2 pr-2">L</th>
-                    <th className="py-2 pr-2">PTS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {standings.map((row, i) => (
-                    <tr key={row.name} className="border-b hover:bg-neutral-50">
-                      <td className="py-2 pr-2">{i + 1}</td>
-                      <td className="py-2 pr-2">{row.name}</td>
-                      <td className="py-2 pr-2">{row.played}</td>
-                      <td className="py-2 pr-2">{row.won}</td>
-                      <td className="py-2 pr-2">{row.lost}</td>
-                      <td className="py-2 pr-2 font-bold">{row.pts}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {standings.length === 0 && <div className="text-neutral-600 mt-4">Aún no hay estadísticas.</div>}
+        {/* Próximos Enfrentamientos */}
+        <section id="matches" className="mb-16">
+          <div className="text-center mb-8">
+            <h2 className="text-4xl font-bold text-white mb-4 flex items-center justify-center">
+              <Calendar className="w-10 h-10 mr-3 text-orange-400" />
+              Próximos Enfrentamientos
+            </h2>
+            <p className="text-white/80 text-lg">Los duelos 1v1 más esperados</p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {upcomingMatches.length > 0 ? (
+              upcomingMatches.map((match) => (
+                <Card
+                  key={match.id}
+                  className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all transform hover:scale-105"
+                >
+                  <CardContent className="p-6">
+                    <div className="text-center">
+                      <Badge className="mb-4 bg-orange-600">{match.round}</Badge>
+                      <h3 className="text-white font-bold text-xl mb-4">
+                        {match.player1} vs {match.player2}
+                      </h3>
+                      <div className="space-y-3 text-white/80 text-sm">
+                        <div className="flex items-center justify-center">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          {new Date(match.game_date).toLocaleDateString("es-ES", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </div>
+                        <div className="flex items-center justify-center">
+                          <Clock className="w-4 h-4 mr-2" />
+                          {match.game_time}
+                        </div>
+                        <div className="flex items-center justify-center">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          {match.venue} - {match.field}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <Target className="w-16 h-16 text-white/50 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-2">No hay enfrentamientos programados</h3>
+                <p className="text-white/70">Los duelos aparecerán aquí una vez que se programen.</p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Resultados Recientes */}
+        {recentMatches.length > 0 && (
+          <section className="mb-16">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl font-bold text-white mb-4 flex items-center justify-center">
+                <Trophy className="w-10 h-10 mr-3 text-yellow-400" />
+                Resultados Recientes
+              </h2>
+              <p className="text-white/80 text-lg">Los últimos enfrentamientos finalizados</p>
             </div>
-          </TabsContent>
-        </Tabs>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recentMatches.map((match) => (
+                <Card
+                  key={match.id}
+                  className="bg-white/10 backdrop-blur-sm border-white/20 hover:bg-white/20 transition-all transform hover:scale-105"
+                >
+                  <CardContent className="p-6">
+                    <div className="text-center">
+                      <Badge className="mb-4 bg-green-600">Finalizado</Badge>
+                      <h3 className="text-white font-bold text-xl mb-2">
+                        {match.player1} vs {match.player2}
+                      </h3>
+                      <div className="text-4xl font-bold text-white mb-4">
+                        {match.player1_score} - {match.player2_score}
+                      </div>
+                      <div className="space-y-2 text-white/70 text-sm">
+                        <div className="flex items-center justify-center">
+                          <Calendar className="w-4 h-4 mr-1" />
+                          {new Date(match.game_date).toLocaleDateString("es-ES")}
+                        </div>
+                        <div className="flex items-center justify-center">
+                          <MapPin className="w-4 h-4 mr-1" />
+                          {match.venue} - {match.field}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Participantes */}
+        <section className="mb-16">
+          <div className="text-center mb-8">
+            <h2 className="text-4xl font-bold text-white mb-4 flex items-center justify-center">
+              <Users className="w-10 h-10 mr-3 text-purple-400" />
+              Participantes Registrados
+            </h2>
+            <p className="text-white/80 text-lg">{participants.filter((p) => p.paid).length} jugadores confirmados</p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {participants
+              .filter((p) => p.paid)
+              .map((participant) => (
+                <Card key={participant.id} className="bg-white/10 backdrop-blur-sm border-white/20">
+                  <CardContent className="p-4 text-center">
+                    <div className="w-12 h-12 bg-gradient-to-r from-orange-400 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-lg mx-auto mb-3">
+                      {participant.player_name.charAt(0)}
+                    </div>
+                    <h4 className="text-white font-semibold">{participant.player_name}</h4>
+                    <Badge className="mt-2" variant={participant.category === "varonil" ? "default" : "secondary"}>
+                      {participant.category === "varonil" ? "Varonil" : "Femenil"}
+                    </Badge>
+                  </CardContent>
+                </Card>
+              ))}
+          </div>
+        </section>
+
+        {/* Información del Torneo */}
+        <section className="mb-16">
+          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+            <CardHeader>
+              <CardTitle className="text-white text-center text-2xl">Información del Torneo</CardTitle>
+            </CardHeader>
+            <CardContent className="grid md:grid-cols-2 gap-8">
+              <div>
+                <h3 className="text-white font-bold text-lg mb-4">Formato del Torneo</h3>
+                <ul className="text-white/80 space-y-2">
+                  <li>• Eliminación directa</li>
+                  <li>• Partidos de 10 minutos</li>
+                  <li>• Campo reducido</li>
+                  <li>• Categorías: Varonil y Femenil</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-lg mb-4">Premiación</h3>
+                <ul className="text-white/80 space-y-2">
+                  <li>🥇 Campeón: Trofeo + Premio</li>
+                  <li>🥈 Subcampeón: Medalla</li>
+                  <li>🥉 3er Lugar: Medalla</li>
+                  <li>⭐ Reconocimientos especiales</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
       </div>
     </div>
   )

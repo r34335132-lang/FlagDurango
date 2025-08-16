@@ -1,49 +1,162 @@
-import { NextRequest, NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase-admin"
+import { type NextRequest, NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const season = searchParams.get("season") || "2025"
     const category = searchParams.get("category")
-    const week = searchParams.get("week") ? Number(searchParams.get("week")) : undefined
-    const type = searchParams.get("type") || "weekly"
 
-    let query = supabase.from("mvps").select("id, player_id, season, category, week_number, mvp_type, notes, created_at")
-      .eq("season", season)
-      .eq("mvp_type", type)
+    console.log("MVPs API - Category filter:", category)
 
-    if (category) query = query.eq("category", category)
-    if (week !== undefined) query = query.eq("week_number", week)
+    let query = supabase
+      .from("mvps")
+      .select(`
+        *,
+        players!mvps_player_id_fkey (
+          id,
+          name,
+          photo_url,
+          team_id,
+          teams!players_team_id_fkey (
+            id,
+            name,
+            logo_url,
+            color1,
+            color2,
+            category
+          )
+        )
+      `)
+      .order("created_at", { ascending: false })
 
-    const { data, error } = await query.order("created_at", { ascending: false })
-    if (error) throw error
+    if (category && category !== "all") {
+      query = query.eq("category", category)
+    }
 
-    return NextResponse.json({ success: true, data: data || [] })
-  } catch (error: any) {
-    console.error("GET /api/mvps error:", error)
-    return NextResponse.json({ success: false, message: error.message || "Error interno" }, { status: 500 })
+    const { data, error } = await query
+
+    if (error) {
+      console.error("Error fetching MVPs:", error)
+      return NextResponse.json({ success: false, message: error.message }, { status: 500 })
+    }
+
+    console.log("MVPs fetched:", data?.length || 0)
+
+    return NextResponse.json({
+      success: true,
+      data: data || [],
+    })
+  } catch (error) {
+    console.error("Error in MVPs API:", error)
+    return NextResponse.json({ success: false, message: "Error interno del servidor" }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { player_id, season = "2025", category, week_number, mvp_type = "weekly", notes } = await request.json()
+    const body = await request.json()
+    const { player_id, mvp_type, category, week_number, season, notes } = body
 
-    if (!player_id || !category) {
-      return NextResponse.json({ success: false, message: "player_id y category son requeridos" }, { status: 400 })
+    console.log("Creating MVP:", body)
+
+    // Validaciones
+    if (!player_id || !mvp_type || !category) {
+      return NextResponse.json({ success: false, message: "Faltan campos requeridos" }, { status: 400 })
     }
 
+    // Verificar si ya existe un MVP semanal para esta categoría y semana
+    if (mvp_type === "weekly" && week_number) {
+      const { data: existingMvp } = await supabase
+        .from("mvps")
+        .select("id")
+        .eq("mvp_type", "weekly")
+        .eq("category", category)
+        .eq("week_number", week_number)
+        .eq("season", season || "2025")
+        .single()
+
+      if (existingMvp) {
+        return NextResponse.json(
+          { success: false, message: "Ya existe un MVP semanal para esta categoría y semana" },
+          { status: 400 },
+        )
+      }
+    }
+
+    // Crear el MVP
     const { data, error } = await supabase
       .from("mvps")
-      .insert([{ player_id, season, category, week_number: week_number || null, mvp_type, notes: notes || null }])
-      .select()
+      .insert({
+        player_id,
+        mvp_type,
+        category,
+        week_number: mvp_type === "weekly" ? week_number : null,
+        season: season || "2025",
+        notes,
+      })
+      .select(`
+        *,
+        players!mvps_player_id_fkey (
+          id,
+          name,
+          photo_url,
+          team_id,
+          teams!players_team_id_fkey (
+            id,
+            name,
+            logo_url,
+            color1,
+            color2,
+            category
+          )
+        )
+      `)
       .single()
 
-    if (error) throw error
-    return NextResponse.json({ success: true, data })
-  } catch (error: any) {
-    console.error("POST /api/mvps error:", error)
-    return NextResponse.json({ success: false, message: error.message || "Error interno" }, { status: 500 })
+    if (error) {
+      console.error("Error creating MVP:", error)
+      return NextResponse.json({ success: false, message: error.message }, { status: 500 })
+    }
+
+    console.log("MVP created successfully:", data)
+
+    return NextResponse.json({
+      success: true,
+      data,
+      message: "MVP creado exitosamente",
+    })
+  } catch (error) {
+    console.error("Error in MVP creation:", error)
+    return NextResponse.json({ success: false, message: "Error interno del servidor" }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get("id")
+
+    if (!id) {
+      return NextResponse.json({ success: false, message: "ID requerido" }, { status: 400 })
+    }
+
+    const { error } = await supabase.from("mvps").delete().eq("id", id)
+
+    if (error) {
+      console.error("Error deleting MVP:", error)
+      return NextResponse.json({ success: false, message: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "MVP eliminado exitosamente",
+    })
+  } catch (error) {
+    console.error("Error in MVP deletion:", error)
+    return NextResponse.json({ success: false, message: "Error interno del servidor" }, { status: 500 })
   }
 }

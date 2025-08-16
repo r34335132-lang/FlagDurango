@@ -56,4 +56,83 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* ✅ ARREGLO DEL PROBLEMA DE VISIBILIDAD */
+  /* Asegurar que todos los elementos sean visibles por defecto */
+  select,
+  option,
+  input,
+  button,
+  label,
+  div,
+  span,
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    opacity: 1 !important;
+    visibility: visible !important;
+    color: inherit !important;
+  }
+
+  /* Arreglar específicamente los selects que se ven blancos */
+  select {
+    background-color: inherit !important;
+    color: inherit !important;
+  }
+
+  select option {
+    background-color: rgb(30 41 59) !important; /* slate-800 */
+    color: white !important;
+    opacity: 1 !important;
+  }
+
+  /* Arreglar inputs que se ven blancos */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  input[type="color"] {
+    background-color: inherit !important;
+    color: inherit !important;
+    opacity: 1 !important;
+  }
+
+  /* Arreglar placeholders */
+  ::placeholder {
+    opacity: 0.7 !important;
+    color: inherit !important;
+  }
+
+  /* Arreglar botones */
+  button {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  /* Arreglar texto en general */
+  .text-white {
+    color: white !important;
+    opacity: 1 !important;
+  }
+
+  .text-white\/70 {
+    color: rgba(255, 255, 255, 0.7) !important;
+    opacity: 1 !important;
+  }
+
+  .text-white\/80 {
+    color: rgba(255, 255, 255, 0.8) !important;
+    opacity: 1 !important;
+  }
+
+  .text-white\/50 {
+    color: rgba(255, 255, 255, 0.5) !important;
+    opacity: 1 !important;
+  }
 }

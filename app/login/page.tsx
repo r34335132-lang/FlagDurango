@@ -1,6 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import type React from "react"
+
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -9,47 +11,76 @@ import { Label } from "@/components/ui/label"
 
 export default function LoginPage() {
   const router = useRouter()
-  const [identifier, setIdentifier] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  function routeByRole(role?: string | null) {
-    switch (role) {
-      case "admin":
-        return "/admin"
-      case "coach":
-        return "/coach-dashboard"
-      case "staff":
-        return "/admin"
-      case "referee":
-        return "/referee-dashboard"
-      default:
-        return "/coach-dashboard"
+  // Verificar si ya está logueado
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem("user")
+      if (userStr) {
+        const user = JSON.parse(userStr)
+        if (user.role === "admin") {
+          router.push("/admin")
+        } else {
+          router.push("/coach-dashboard")
+        }
+      }
+    } catch (e) {
+      // Ignorar errores de parsing
     }
-  }
+  }, [router])
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
+
     try {
+      console.log("Enviando login para:", email)
+
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password }),
+        body: JSON.stringify({ email, password }),
       })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok || !data?.success || !data?.user) {
+
+      const data = await res.json()
+      console.log("Respuesta del login:", data)
+
+      if (!data?.success || !data?.user) {
         setError(data?.message || "Credenciales inválidas")
         return
       }
+
       const user = data.user
+      console.log("Usuario logueado:", user)
+
+      // Guardar en localStorage
       try {
         localStorage.setItem("user", JSON.stringify(user))
-      } catch {}
-      router.push(routeByRole(user.role))
-    } catch {
+        console.log("Usuario guardado en localStorage")
+      } catch (storageError) {
+        console.error("Error guardando en localStorage:", storageError)
+      }
+
+      // Crear cookie para el middleware
+      document.cookie = `user=${JSON.stringify(user)}; path=/; max-age=${60 * 60 * 24 * 7}` // 7 días
+
+      console.log("Cookie creada, redirigiendo...")
+
+      // Redireccionar según el rol
+      if (user.role === "admin" || user.role === "staff") {
+        console.log("Redirigiendo a admin")
+        router.push("/admin")
+      } else {
+        console.log("Redirigiendo a coach-dashboard")
+        router.push("/coach-dashboard")
+      }
+    } catch (error) {
+      console.error("Error en login:", error)
       setError("Error de red")
     } finally {
       setLoading(false)
@@ -66,14 +97,14 @@ export default function LoginPage() {
           <CardContent>
             <form onSubmit={onSubmit} className="space-y-4">
               <div>
-                <Label>Correo o usuario</Label>
+                <Label>Correo o Usuario</Label>
                 <Input
                   type="text"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="username"
-                  placeholder="tu@correo.com o tu_usuario"
+                  placeholder="correo@ejemplo.com o usuario"
                 />
               </div>
               <div>
@@ -84,7 +115,6 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
-                  placeholder="••••••••"
                 />
               </div>
               {error && (
