@@ -168,10 +168,11 @@ export default function WildBrowlPage() {
             <Target className="w-24 h-24 text-white/80 mx-auto mb-8" />
             <h1 className="text-6xl font-black text-white mb-6">WildBrowl 1v1</h1>
             <h2 className="text-3xl font-bold text-white/90 mb-8">Próximamente</h2>
-            <p className="text-xl text-white/80 mb-12 leading-relaxed">
-              El torneo más emocionante de flag football 1 contra 1 está en desarrollo.
-              <br />
-              Prepárate para la acción más intensa y competitiva.
+            <p className="text-xl text-white font-bold italic mb-2 drop-shadow-lg">
+              "¡Ni el ring es tan salvaje como este juego!"
+            </p>
+            <p className="text-lg text-white font-semibold mb-8 drop-shadow-lg">
+              Un duelo, un balón, un solo sobreviviente.
             </p>
 
             <Card className="bg-white/10 backdrop-blur-sm border-white/20 max-w-2xl mx-auto">
@@ -234,9 +235,11 @@ export default function WildBrowlPage() {
                 Browl
               </span>
             </h1>
-            <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
-              El torneo más emocionante de flag football 1 contra 1.
-              <span className="block mt-2 text-orange-300 font-semibold">¡Demuestra tu habilidad individual!</span>
+            <p className="text-xl md:text-2xl text-white font-bold italic mb-2 drop-shadow-lg">
+              "¡Ni el ring es tan salvaje como este juego!"
+            </p>
+            <p className="text-lg md:text-xl text-white font-semibold mb-8 drop-shadow-lg">
+              Un duelo, un balón, un solo sobreviviente.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button

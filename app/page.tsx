@@ -796,17 +796,17 @@ export default function HomePage() {
           <h2 className="text-3xl font-bold text-center text-gray-600 mb-12 tracking-wider">NUESTROS SPONSORS</h2>
           <div className="flex justify-center items-center gap-8 flex-wrap">
             <img
-              src="/images/wildsports.png"
+              src="/images/Wildsports.png"
               alt="Wild Sports"
               className="h-14 w-auto filter grayscale-20 hover:grayscale-0 transition-all"
             />
             <img
-              src="/images/wildstudio.png"
+              src="/images/Wildstudio.png"
               alt="Wild Studio"
               className="h-14 w-auto filter grayscale-20 hover:grayscale-0 transition-all"
             />
             <img
-              src="/images/axis.png"
+              src="/images/Axis.png"
               alt="Axis Flag Football"
               className="h-14 w-auto filter grayscale-20 hover:grayscale-0 transition-all"
             />
