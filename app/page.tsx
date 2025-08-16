@@ -801,7 +801,7 @@ export default function HomePage() {
               className="h-14 w-auto filter grayscale-20 hover:grayscale-0 transition-all"
             />
             <img
-              src="/images/Wildstudio.png"
+              src="/images/WildStudio.png"
               alt="Wild Studio"
               className="h-14 w-auto filter grayscale-20 hover:grayscale-0 transition-all"
             />
