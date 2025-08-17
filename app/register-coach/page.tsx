@@ -23,13 +23,6 @@ export default function RegisterCoachPage() {
     username: "",
     email: "",
     password: "",
-    team_id: "",
-    team_name: "",
-    category: "varonil-gold",
-    captain_name: "",
-    captain_phone: "",
-    coordinator_name: "",
-    coordinator_phone: "",
   })
 
   useEffect(() => {
@@ -58,10 +51,7 @@ export default function RegisterCoachPage() {
       const res = await fetch("/api/auth/register-coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          team_id: form.team_id ? Number.parseInt(form.team_id) : undefined,
-        }),
+        body: JSON.stringify(form),
       })
 
       const data = await res.json()
@@ -73,13 +63,6 @@ export default function RegisterCoachPage() {
           username: "",
           email: "",
           password: "",
-          team_id: "",
-          team_name: "",
-          category: "varonil-gold",
-          captain_name: "",
-          captain_phone: "",
-          coordinator_name: "",
-          coordinator_phone: "",
         })
       } else {
         setMessage(data.message || "Error al registrar")
@@ -105,7 +88,7 @@ export default function RegisterCoachPage() {
               <div className="text-center py-8">Cargando...</div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Datos de Usuario */}
+                {/* Solo Datos de Usuario */}
                 <div className="border rounded-lg p-4">
                   <h3 className="font-semibold mb-4">Datos de Usuario</h3>
                   <div className="grid md:grid-cols-2 gap-4">
@@ -141,120 +124,13 @@ export default function RegisterCoachPage() {
                   </div>
                 </div>
 
-                {/* Equipo */}
-                <div className="border rounded-lg p-4">
-                  <h3 className="font-semibold mb-4">Equipo</h3>
-
-                  <div className="mb-4">
-                    <Label>Seleccionar equipo existente (opcional)</Label>
-                    <select
-                      value={form.team_id}
-                      onChange={(e) => setForm({ ...form, team_id: e.target.value, team_name: "" })}
-                      className="w-full p-2 border rounded"
-                    >
-                      <option value="">— Seleccionar equipo existente —</option>
-                      {teams.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name} ({t.category})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="text-center text-gray-500 mb-4">— O —</div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Crear equipo nuevo</Label>
-                      <Input
-                        placeholder="Nombre del equipo"
-                        value={form.team_name}
-                        onChange={(e) => setForm({ ...form, team_name: e.target.value, team_id: "" })}
-                        disabled={!!form.team_id}
-                      />
-                    </div>
-                    <div>
-                      <Label>Categoría</Label>
-                      <select
-                        value={form.category}
-                        onChange={(e) => setForm({ ...form, category: e.target.value })}
-                        className="w-full p-2 border rounded"
-                        disabled={!!form.team_id}
-                      >
-                        <option value="varonil-gold">Varonil Gold</option>
-                        <option value="varonil-silver">Varonil Silver</option>
-                        <option value="femenil-gold">Femenil Gold</option>
-                        <option value="femenil-silver">Femenil Silver</option>
-                        <option value="mixto-gold">Mixto Gold</option>
-                        <option value="mixto-silver">Mixto Silver</option>
-                        <option value="femenil-cooper">Femenil Cooper</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Staff del Equipo */}
-                {form.team_name && (
-                  <div className="border rounded-lg p-4">
-                    <h3 className="font-semibold mb-4">Staff del Equipo</h3>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <Label>Nombre del Capitán</Label>
-                        <Input
-                          value={form.captain_name}
-                          onChange={(e) => setForm({ ...form, captain_name: e.target.value })}
-                          placeholder="Nombre completo"
-                        />
-                      </div>
-                      <div>
-                        <Label>Teléfono del Capitán</Label>
-                        <Input
-                          value={form.captain_phone}
-                          onChange={(e) => setForm({ ...form, captain_phone: e.target.value })}
-                          placeholder="618-123-4567"
-                        />
-                      </div>
-                      <div>
-                        <Label>Nombre del Coordinador</Label>
-                        <Input
-                          value={form.coordinator_name}
-                          onChange={(e) => setForm({ ...form, coordinator_name: e.target.value })}
-                          placeholder="Nombre completo"
-                        />
-                      </div>
-                      <div>
-                        <Label>Teléfono del Coordinador</Label>
-                        <Input
-                          value={form.coordinator_phone}
-                          onChange={(e) => setForm({ ...form, coordinator_phone: e.target.value })}
-                          placeholder="618-123-4567"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {message && (
-                  <div
-                    className={`p-4 rounded ${
-                      message.includes("exitoso")
-                        ? "bg-green-50 border border-green-200 text-green-800"
-                        : "bg-red-50 border border-red-200 text-red-800"
-                    }`}
-                  >
-                    {message}
-                  </div>
-                )}
-
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <h4 className="font-semibold text-blue-900 mb-2">Proceso de Registro:</h4>
                   <ol className="list-decimal list-inside text-sm text-blue-800 space-y-1">
-                    <li>Completa este formulario</li>
+                    <li>Completa este formulario básico</li>
                     <li>Haz login con tu cuenta</li>
-                    <li>
-                      Paga la inscripción de <strong>$1,900 MXN</strong> (incluye fianza)
-                    </li>
-                    <li>Espera aprobación del administrador</li>
+                    <li>Realiza el pago de inscripción</li>
+                    <li>El administrador creará tu equipo</li>
                     <li>¡Comienza a administrar tu equipo!</li>
                   </ol>
                 </div>
@@ -262,13 +138,6 @@ export default function RegisterCoachPage() {
                 <Button type="submit" disabled={submitting} className="w-full text-lg py-3">
                   {submitting ? "Registrando..." : "Crear Cuenta"}
                 </Button>
-
-                <div className="text-center text-sm text-gray-600">
-                  ¿Ya tienes cuenta?{" "}
-                  <a href="/login" className="text-blue-600 hover:underline">
-                    Inicia sesión aquí
-                  </a>
-                </div>
               </form>
             )}
           </CardContent>
