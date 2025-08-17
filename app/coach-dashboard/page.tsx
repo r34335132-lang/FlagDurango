@@ -520,12 +520,19 @@ export default function CoachDashboard() {
 
   const getCategoryLabel = (category: string) => {
     const labels: { [key: string]: string } = {
+      varonil_gold: "Varonil Gold",
       "varonil-gold": "Varonil Gold",
+      varonil_silver: "Varonil Silver",
       "varonil-silver": "Varonil Silver",
+      femenil_gold: "Femenil Gold",
       "femenil-gold": "Femenil Gold",
+      femenil_silver: "Femenil Silver",
       "femenil-silver": "Femenil Silver",
+      femenil_cooper: "Femenil Cooper",
       "femenil-cooper": "Femenil Cooper",
+      mixto_gold: "Mixto Gold",
       "mixto-gold": "Mixto Gold",
+      mixto_silver: "Mixto Silver",
       "mixto-silver": "Mixto Silver",
     }
     return labels[category] || category
