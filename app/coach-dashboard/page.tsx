@@ -612,7 +612,7 @@ export default function CoachDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900">
       {/* Hero Section - Responsive */}
       <section className="relative py-12 md:py-20 overflow-hidden bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500">
-        <div className="absolute inset-0 bg-black/40"></div>
+        {/* ✅ REMOVIDO: <div className="absolute inset-0 bg-black/40"></div> */}
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center max-w-4xl mx-auto">
             <div className="inline-block bg-green-400/95 backdrop-blur-sm text-gray-900 px-4 md:px-6 py-2 rounded-full font-bold mb-4 md:mb-6 text-sm md:text-base">
