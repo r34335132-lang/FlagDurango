@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
         email,
         password_hash: hashedPassword,
         role: "coach",
-        status: "pending", // Pendiente hasta que admin lo apruebe
+        status: "active", // ✅ CAMBIADO: de "pending" a "active"
         created_at: new Date().toISOString(),
       })
       .select()
