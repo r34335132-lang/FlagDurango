@@ -99,24 +99,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: "Nombre y categoría son requeridos" }, { status: 400 })
     }
 
-    const normalizedCategory = normalizeCategory(category)
-
+    // ✅ Mapear categorías a valores válidos del constraint
     const categoryMap: { [key: string]: string } = {
-      "varonil-gold": "VG",
-      "varonil-silver": "VS",
-      "femenil-gold": "FG",
-      "femenil-silver": "FS",
-      "femenil-cooper": "FC",
-      "mixto-gold": "MG",
-      "mixto-silver": "MS",
+      "varonil-gold": "varonil_gold",
+      "varonil-silver": "varonil_silver",
+      "femenil-gold": "femenil_gold",
+      "femenil-silver": "femenil_silver",
+      "femenil-cooper": "femenil_cooper",
+      "mixto-gold": "mixto_gold",
+      "mixto-silver": "mixto_silver",
     }
 
-    const suffix = categoryMap[normalizedCategory] || ""
+    const normalizedCategory = normalizeCategory(category)
+    const validCategory = categoryMap[normalizedCategory] || normalizedCategory
+
+    console.log("📝 Categoría original:", category)
+    console.log("📝 Categoría normalizada:", normalizedCategory)
+    console.log("📝 Categoría válida:", validCategory)
+
+    const suffixMap: { [key: string]: string } = {
+      varonil_gold: "VG",
+      varonil_silver: "VS",
+      femenil_gold: "FG",
+      femenil_silver: "FS",
+      femenil_cooper: "FC",
+      mixto_gold: "MG",
+      mixto_silver: "MS",
+    }
+
+    const suffix = suffixMap[validCategory] || ""
     const teamName = suffix ? `${name} ${suffix}` : name
 
     const base: any = {
       name: teamName,
-      category: normalizedCategory,
+      category: validCategory, // ✅ Usar categoría válida
       color1: color1 || "#3B82F6",
       color2: color2 || "#1E40AF",
       logo_url: logo_url || null,
@@ -134,11 +150,19 @@ export async function POST(req: NextRequest) {
     if (coach_photo_url !== undefined) base.coach_photo_url = coach_photo_url
     if (coach_id !== undefined) base.coach_id = coach_id
 
+    console.log("📤 Datos a insertar:", base)
+
     const { data, error } = await supabase.from("teams").insert([base]).select().single()
 
-    if (error) return NextResponse.json({ success: false, message: error.message }, { status: 500 })
+    if (error) {
+      console.error("❌ Error insertando equipo:", error)
+      return NextResponse.json({ success: false, message: error.message }, { status: 500 })
+    }
+
+    console.log("✅ Equipo creado:", data)
     return NextResponse.json({ success: true, data }, { status: 201 })
   } catch (e) {
+    console.error("💥 Error en POST teams:", e)
     return NextResponse.json({ success: false, message: "Error interno" }, { status: 500 })
   }
 }
@@ -153,7 +177,18 @@ export async function PUT(req: NextRequest) {
     }
 
     if (updateData.category) {
-      updateData.category = normalizeCategory(updateData.category)
+      const categoryMap: { [key: string]: string } = {
+        "varonil-gold": "varonil_gold",
+        "varonil-silver": "varonil_silver",
+        "femenil-gold": "femenil_gold",
+        "femenil-silver": "femenil_silver",
+        "femenil-cooper": "femenil_cooper",
+        "mixto-gold": "mixto_gold",
+        "mixto-silver": "mixto_silver",
+      }
+
+      const normalizedCategory = normalizeCategory(updateData.category)
+      updateData.category = categoryMap[normalizedCategory] || normalizedCategory
     }
 
     const { data, error } = await supabase.from("teams").update(updateData).eq("id", id).select().single()
