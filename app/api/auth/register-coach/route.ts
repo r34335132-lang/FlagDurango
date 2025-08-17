@@ -45,13 +45,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: "El usuario o email ya existe" }, { status: 400 })
     }
 
-    let usedTeamId = team_id
-    let createdTeam: any = null
+    const usedTeamId = team_id
+    const createdTeam: any = null
 
+    // Comentar toda esta sección de creación de equipo
+    /*
     // Crear equipo si viene team_name
     if (!usedTeamId && team_name) {
       console.log("Creando equipo:", team_name)
-
+      
       const { data: team, error: teamError } = await supabase
         .from("teams")
         .insert([
@@ -86,6 +88,7 @@ export async function POST(req: NextRequest) {
       createdTeam = team
       console.log("Equipo creado:", team)
     }
+    */
 
     // Hash de la contraseña
     let passwordHash: string
@@ -158,9 +161,9 @@ export async function POST(req: NextRequest) {
       data: {
         user,
         permissions: perm,
-        team: createdTeam,
+        team: null, // Ya no se crea equipo aquí
       },
-      message: "Registro exitoso. Ahora puedes hacer login y pagar la inscripción ($1,900 MXN).",
+      message: "Registro exitoso. Ahora puedes hacer login. El administrador creará tu equipo después del pago.",
     })
   } catch (error: any) {
     console.error("Error en register-coach:", error)
