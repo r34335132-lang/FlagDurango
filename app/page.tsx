@@ -703,52 +703,15 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* Noticias */}
-        {news.length > 0 && (
-          <section className="mb-16">
-            <div className="text-center mb-8">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4 flex items-center justify-center">
-                <Newspaper className="w-10 h-10 mr-3 text-purple-600" />
-                Últimas Noticias
-              </h2>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6">
-              {news.map((item) => (
-                <Card
-                  key={item.id}
-                  className="bg-white border-gray-200 hover:shadow-lg transition-all transform hover:scale-105"
-                >
-                  <CardContent className="p-6">
-                    {item.image_url && (
-                      <img
-                        src={item.image_url || "/placeholder.svg?height=300&width=600&query=noticia%20liga%20flag"}
-                        alt={item.title}
-                        className="w-full h-48 object-cover rounded-lg mb-4"
-                      />
-                    )}
-                    <h3 className="text-gray-900 font-bold text-lg mb-2">{item.title}</h3>
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-3">{item.content}</p>
-                    <div className="flex justify-between items-center text-xs text-gray-500">
-                      <span>
-                        {"Por: "}
-                        {item.author}
-                      </span>
-                      <span>{new Date(item.created_at).toLocaleDateString("es-ES")}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-        )}
+       
 
         {/* Liga en números */}
-        <section className="mb-16">
+ <section className="mb-16">
           <div className="text-center mb-8">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Liga en Números</h2>
             <p className="text-gray-600 text-lg">Estadísticas generales de la temporada actual</p>
           </div>
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
             <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
               <CardContent className="p-6 text-center">
                 <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
@@ -770,27 +733,9 @@ export default function HomePage() {
                 <p className="text-gray-600">Partidos Finalizados</p>
               </CardContent>
             </Card>
-            <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
-              <CardContent className="p-6 text-center">
-                {isWildBrowlEnabled ? (
-                  <>
-                    <Target className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-                    <h3 className="text-3xl font-bold text-gray-900">1v1</h3>
-                    <p className="text-gray-600">Torneo WildBrowl</p>
-                  </>
-                ) : (
-                  <>
-                    <Newspaper className="w-12 h-12 text-purple-500 mx-auto mb-4" />
-                    <h3 className="text-3xl font-bold text-gray-900">{news.length}</h3>
-                    <p className="text-gray-600">Noticias Publicadas</p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
           </div>
         </section>
       </div>
-
       {/* Sponsors */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
