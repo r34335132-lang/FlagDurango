@@ -16,6 +16,7 @@ import {
   ArrowRight,
   Target,
   UserPlus,
+  Facebook, Instagram, Phone, Mail,MessageCircle 
 } from "lucide-react"
 
 interface Game {
@@ -829,63 +830,76 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-700 text-white">
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div className="flex flex-col items-start">
-              <img src="/images/20.png" alt="20 Años de Flag" className="w-48 h-auto mb-4" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold mb-4">CONTACTO</h3>
-              <ul className="space-y-2 text-gray-300">
-                <li>• TELEFONO</li>
-                <li>• CORREO</li>
-                <li>• OFICINAS</li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-bold mb-4">LINKS</h3>
-              <ul className="space-y-2 text-gray-300">
-                <li>• WILDSTUDIO</li>
-                <li>• WILDSPORTS</li>
-                <li>• AXIS FLAG FOOTBALL</li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-bold mb-4">SIGUENOS</h3>
-              <div className="flex gap-3">
-                <a
-                  href="https://wa.me/526183288280"
-                  className="w-9 h-9 bg-gray-600 rounded flex items-center justify-center hover:bg-blue-600 transition-colors"
-                >
-                  <span className="text-sm">📱</span>
-                </a>
-                <a
-                  href="https://www.facebook.com/share/1AfHDmwRku/?mibextid=wwXIfr"
-                  className="w-9 h-9 bg-gray-600 rounded flex items-center justify-center hover:bg-blue-600 transition-colors"
-                >
-                  <span className="text-sm">📘</span>
-                </a>
-                <a
-                  href="https://www.instagram.com/flag.durango?igsh=aW5jNzVlZTU1YXFy"
-                  className="w-9 h-9 bg-gray-600 rounded flex items-center justify-center hover:bg-blue-600 transition-colors"
-                >
-                  <span className="text-sm">📷</span>
-                </a>
-              </div>
-            </div>
-          </div>
-          <div className="mt-8">
-            <div
-              className="text-white text-center py-4 rounded-lg"
-              style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
-            >
-              <p className="font-semibold">FLAGDURANGO.COM / CREADO POR WILDSTUDIO</p>
-            </div>
-          </div>
+     {/* Footer */}
+<footer className="bg-gray-800 text-gray-300">
+  <div className="container mx-auto px-6 py-12">
+    <div className="grid md:grid-cols-4 gap-12">
+      {/* Logo */}
+      <div className="flex flex-col items-start">
+        <img src="/images/20.png" alt="20 Años de Flag" className="w-40 h-auto mb-4" />
+        <p className="text-sm text-gray-400">20 años haciendo historia en el Flag Football.</p>
+      </div>
+
+      {/* Contacto */}
+      <div>
+        <h3 className="text-lg font-bold text-white mb-4">CONTACTO</h3>
+        <ul className="space-y-2">
+          <li className="flex items-center gap-2"><Phone className="w-4 h-4" /> (618) 328 8280</li>
+          <li className="flex items-center gap-2"><Mail className="w-4 h-4" /> contacto@flagdurango.com</li>
+          <li className="flex items-center gap-2"><MapPin className="w-4 h-4" /> Oficinas Durango, MX</li>
+        </ul>
+      </div>
+
+      {/* Links */}
+      <div>
+        <h3 className="text-lg font-bold text-white mb-4">LINKS</h3>
+        <ul className="space-y-2">
+          <li><a href="https://wild-studio.mx/" target="_blank" className="hover:text-white">• WildStudio</a></li>
+          <li><a href="https://www.facebook.com/profile.php?id=61576406477003" target="_blank" className="hover:text-white">• WildSports</a></li>
+          <li><a href="https://www.facebook.com/axisflagfootball" target="_blank" className="hover:text-white">• Axis Flag Football</a></li>
+        </ul>
+      </div>
+
+      {/* Redes */}
+      <div>
+        <h3 className="text-lg font-bold text-white mb-4">SÍGUENOS</h3>
+        <div className="flex gap-3">
+          <a
+            href="https://wa.me/526183288280"
+            target="_blank"
+            className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-green-500 transition-colors"
+          >
+            <MessageCircle className="w-5 h-5" />
+          </a>
+          <a
+            href="https://www.facebook.com/share/1AfHDmwRku/?mibextid=wwXIfr"
+            target="_blank"
+            className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors"
+          >
+            <Facebook className="w-5 h-5" />
+          </a>
+          <a
+            href="https://www.instagram.com/flag.durango?igsh=aW5jNzVlZTU1YXFy"
+            target="_blank"
+            className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-pink-500 transition-colors"
+          >
+            <Instagram className="w-5 h-5" />
+          </a>
         </div>
-      </footer>
+      </div>
+    </div>
+
+    {/* Copyright */}
+    <div className="mt-10">
+      <div
+        className="text-white text-center py-4 rounded-lg text-sm"
+        style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
+      >
+        <p className="font-semibold">FLAGDURANGO.COM / CREADO POR WILDSTUDIO</p>
+      </div>
+    </div>
+  </div>
+</footer>
     </div>
   )
 }
