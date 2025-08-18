@@ -170,134 +170,155 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Hero Section (NAV removida para evitar doble barra) */}
-      {!isSeasonStarted ? (
-        <>
-          {/* Pre-temporada */}
-          <section
-            className="relative min-h-screen flex items-center justify-center overflow-hidden"
-            style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
-          >
-            <div className="container mx-auto px-4 relative z-10 text-center">
-              <div className="inline-block bg-yellow-400/95 backdrop-blur-sm text-gray-900 px-8 py-3 rounded-full font-bold mb-8 border border-black/10 shadow-lg">
-                {"🏆 Temporada Otoño 2025 - ¡Inscripciones Abiertas!"}
-              </div>
-              <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight">
-                <span className="block">Temporada</span>
-                <span className="block text-white">Otoño 2025</span>
-              </h1>
-              {/* Countdown */}
-              <div className="mb-12">
-                <h3 className="text-xl md:text-2xl font-bold text-white mb-6 flex items-center justify-center">
-                  <Clock className="w-6 h-6 mr-2" />
-                  Cierre de inscripciones en:
-                </h3>
-                <div className="grid grid-cols-4 gap-4 max-w-lg mx-auto">
-                  <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
-                    <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.days}</div>
-                    <div className="text-sm text-gray-600 capitalize">Días</div>
-                  </div>
-                  <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
-                    <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.hours}</div>
-                    <div className="text-sm text-gray-600 capitalize">Horas</div>
-                  </div>
-                  <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
-                    <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.minutes}</div>
-                    <div className="text-sm text-gray-600 capitalize">Min</div>
-                  </div>
-                  <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
-                    <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.seconds}</div>
-                    <div className="text-sm text-gray-600 capitalize">Seg</div>
-                  </div>
-                </div>
-              </div>
+<div className="min-h-screen bg-white">
+  {/* Hero Section (NAV removida para evitar doble barra) */}
+  {!isSeasonStarted ? (
+    <>
+      {/* Pre-temporada */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        {/* Video de fondo */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="images/video.mp4" type="video/mp4" />
+          Tu navegador no soporta videos.
+        </video>
+        {/* Overlay oscuro para legibilidad */}
+        <div className="absolute inset-0 bg-black/50" />
 
-              {/* Botones de Registro */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-                <Button
-                  size="lg"
-                  className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-lg px-8 py-4"
-                  onClick={() => (window.location.href = "/register-team")}
-                >
-                  <UserPlus className="w-6 h-6 mr-2" />
-                  Registrar Equipo
-                </Button>
-                <Button
-                  size="lg"
-                  className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold text-lg px-8 py-4"
-                  onClick={() => (window.location.href = "/register-coach")}
-                >
-                  <Trophy className="w-6 h-6 mr-2" />
-                  Registrar Coach
-                </Button>
-              </div>
+        <div className="container mx-auto px-4 relative z-10 text-center">
+          <div className="inline-block bg-yellow-400/95 backdrop-blur-sm text-gray-900 px-8 py-3 rounded-full font-bold mb-8 border border-black/10 shadow-lg">
+            {"🏆 Temporada Otoño 2025 - ¡Inscripciones Abiertas!"}
+          </div>
+          <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight">
+            <span className="block">Temporada</span>
+            <span className="block text-white">Otoño 2025</span>
+          </h1>
 
-              <p className="text-white/90 text-lg mb-4">
-                ¿Ya tienes cuenta?
-                <a href="/login" className="text-yellow-300 hover:text-yellow-200 font-semibold ml-2 underline">
-                  Inicia sesión aquí
-                </a>
-              </p>
-            </div>
-          </section>
-        </>
-      ) : (
-        <>
-          {/* Temporada iniciada */}
-          <section
-            className="relative py-20 overflow-hidden"
-            style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
-          >
-            <div className="container mx-auto px-4 relative z-10">
-              <div className="text-center max-w-4xl mx-auto">
-                <div className="inline-block bg-green-400/95 backdrop-blur-sm text-gray-900 px-6 py-2 rounded-full font-bold mb-6">
-                  {"🏈 Temporada en Curso - ¡Sigue la Acción!"}
-                </div>
-                <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
-                  Liga Flag
-                  <span className="block bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-                    Durango
-                  </span>
-                </h1>
-                <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
-                  20 años haciendo historia en el flag football de Durango.
-                  <span className="block mt-2 text-yellow-300 font-semibold">¡La temporada 2025 está en marcha!</span>
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button
-                    size="lg"
-                    className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold"
-                    onClick={() => (window.location.href = "/partidos")}
-                  >
-                    <Play className="w-5 h-5 mr-2" />
-                    Ver Partidos
-                  </Button>
-                  {isWildBrowlEnabled && (
-                    <Button
-                      size="lg"
-                      className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-bold"
-                      onClick={() => (window.location.href = "/wildbrowl")}
-                    >
-                      <Target className="w-5 h-5 mr-2" />
-                      WildBrowl 1v1
-                    </Button>
-                  )}
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent"
-                    onClick={() => (window.location.href = "/estadisticas")}
-                  >
-                    Ver Estadísticas
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </Button>
-                </div>
+          {/* Countdown */}
+          <div className="mb-12">
+            <h3 className="text-xl md:text-2xl font-bold text-white mb-6 flex items-center justify-center">
+              <Clock className="w-6 h-6 mr-2" /> Cierre de inscripciones en:
+            </h3>
+            <div className="grid grid-cols-4 gap-4 max-w-lg mx-auto">
+              <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
+                <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.days}</div>
+                <div className="text-sm text-gray-600 capitalize">Días</div>
+              </div>
+              <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
+                <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.hours}</div>
+                <div className="text-sm text-gray-600 capitalize">Horas</div>
+              </div>
+              <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
+                <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.minutes}</div>
+                <div className="text-sm text-gray-600 capitalize">Min</div>
+              </div>
+              <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
+                <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.seconds}</div>
+                <div className="text-sm text-gray-600 capitalize">Seg</div>
               </div>
             </div>
-          </section>
-        </>
-      )}
+          </div>
+
+          {/* Botones de Registro */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+            <Button
+              size="lg"
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-lg px-8 py-4"
+              onClick={() => (window.location.href = "/register-team")}
+            >
+              <UserPlus className="w-6 h-6 mr-2" /> Registrar Equipo
+            </Button>
+            <Button
+              size="lg"
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold text-lg px-8 py-4"
+              onClick={() => (window.location.href = "/register-coach")}
+            >
+              <Trophy className="w-6 h-6 mr-2" /> Registrar Coach
+            </Button>
+          </div>
+
+          <p className="text-white/90 text-lg mb-4">
+            ¿Ya tienes cuenta?
+            <a
+              href="/login"
+              className="text-yellow-300 hover:text-yellow-200 font-semibold ml-2 underline"
+            >
+              Inicia sesión aquí
+            </a>
+          </p>
+        </div>
+      </section>
+    </>
+  ) : (
+    <>
+      {/* Temporada iniciada */}
+      <section className="relative py-20 overflow-hidden min-h-screen flex items-center">
+        {/* Video de fondo */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="images/video.mp4" type="video/mp4" />
+        </video>
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-black/60" />
+
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="text-center max-w-4xl mx-auto">
+            <div className="inline-block bg-green-400/95 backdrop-blur-sm text-gray-900 px-6 py-2 rounded-full font-bold mb-6">
+              {"🏈 Temporada en Curso - ¡Sigue la Acción!"}
+            </div>
+            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
+              Liga Flag
+              <span className="block bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+                Durango
+              </span>
+            </h1>
+            <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
+              20 años haciendo historia en el flag football de Durango.
+              <span className="block mt-2 text-yellow-300 font-semibold">
+                ¡La temporada 2025 está en marcha!
+              </span>
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold"
+                onClick={() => (window.location.href = "/partidos")}
+              >
+                <Play className="w-5 h-5 mr-2" /> Ver Partidos
+              </Button>
+              {isWildBrowlEnabled && (
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-bold"
+                  onClick={() => (window.location.href = "/wildbrowl")}
+                >
+                  <Target className="w-5 h-5 mr-2" /> WildBrowl 1v1
+                </Button>
+              )}
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent"
+                onClick={() => (window.location.href = "/estadisticas")}
+              >
+                Ver Estadísticas <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </>
+  )}
 
       {/* 20 Años Section */}
       <section className="py-16" style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}>
