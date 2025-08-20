@@ -97,8 +97,8 @@ export function Navigation() {
               <Image
                 src="/images/logo-flag-durango.png"
                 alt="Liga Flag Durango"
-                width={100}
-                height={50}
+                width={200}
+                height={80}
                 className="h-12 md:h-16 w-auto"
               />
               <p className="text-neutral-500 text-sm mt-1">Temporada Otoño 2025</p>
@@ -124,6 +124,11 @@ export function Navigation() {
                 {user.role === "admin" && (
                   <Link href="/admin" className="text-yellow-500 hover:text-yellow-600 font-medium">
                     Admin
+                  </Link>
+                )}
+                {user.role === "coach" && (
+                  <Link href="/coach-dashboard" className="text-blue-500 hover:text-blue-600 font-medium">
+                    Dashboard
                   </Link>
                 )}
                 <div className="flex items-center space-x-2">
@@ -175,6 +180,15 @@ export function Navigation() {
                   {user.role === "admin" && (
                     <Link href="/admin" className="text-yellow-600 font-medium" onClick={() => setIsMenuOpen(false)}>
                       Admin
+                    </Link>
+                  )}
+                  {user.role === "coach" && (
+                    <Link
+                      href="/coach-dashboard"
+                      className="text-blue-600 font-medium"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Dashboard
                     </Link>
                   )}
                   <Button
