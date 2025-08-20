@@ -10,13 +10,16 @@ import {
   Clock,
   Trophy,
   Users,
-  Newspaper,
   Star,
   Play,
   ArrowRight,
   Target,
   UserPlus,
-  Facebook, Instagram, Phone, Mail,MessageCircle 
+  Facebook,
+  Instagram,
+  Phone,
+  Mail,
+  MessageCircle,
 } from "lucide-react"
 
 interface Game {
@@ -151,6 +154,7 @@ export default function HomePage() {
       "femenil-cooper": "Femenil Cooper",
       "mixto-gold": "Mixto Gold",
       "mixto-silver": "Mixto Silver",
+      "1v1": "1v1",
     }
     return labels[category] || category
   }
@@ -170,155 +174,138 @@ export default function HomePage() {
   }
 
   return (
-<div className="min-h-screen bg-white">
-  {/* Hero Section (NAV removida para evitar doble barra) */}
-  {!isSeasonStarted ? (
-    <>
-      {/* Pre-temporada */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Video de fondo */}
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-        >
-          <source src="images/video.mp4" type="video/mp4" />
-          Tu navegador no soporta videos.
-        </video>
-        {/* Overlay oscuro para legibilidad */}
-        <div className="absolute inset-0 bg-black/50" />
+    <div className="min-h-screen bg-white">
+      {/* Hero Section (NAV removida para evitar doble barra) */}
+      {!isSeasonStarted ? (
+        <>
+          {/* Pre-temporada */}
+          <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+            {/* Video de fondo */}
+            <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover">
+              <source src="images/video.mp4" type="video/mp4" />
+              Tu navegador no soporta videos.
+            </video>
+            {/* Overlay oscuro para legibilidad */}
+            <div className="absolute inset-0 bg-black/50" />
 
-        <div className="container mx-auto px-4 relative z-10 text-center">
-          <div className="inline-block bg-yellow-400/95 backdrop-blur-sm text-gray-900 px-8 py-3 rounded-full font-bold mb-8 border border-black/10 shadow-lg">
-            {"🏆 Temporada Otoño 2025 - ¡Inscripciones Abiertas!"}
-          </div>
-          <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight">
-            <span className="block">Temporada</span>
-            <span className="block text-white">Otoño 2025</span>
-          </h1>
-
-          {/* Countdown */}
-          <div className="mb-12">
-            <h3 className="text-xl md:text-2xl font-bold text-white mb-6 flex items-center justify-center">
-              <Clock className="w-6 h-6 mr-2" /> Cierre de inscripciones en:
-            </h3>
-            <div className="grid grid-cols-4 gap-4 max-w-lg mx-auto">
-              <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
-                <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.days}</div>
-                <div className="text-sm text-gray-600 capitalize">Días</div>
+            <div className="container mx-auto px-4 relative z-10 text-center">
+              <div className="inline-block bg-yellow-400/95 backdrop-blur-sm text-gray-900 px-8 py-3 rounded-full font-bold mb-8 border border-black/10 shadow-lg">
+                {"🏆 Temporada Otoño 2025 - ¡Inscripciones Abiertas!"}
               </div>
-              <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
-                <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.hours}</div>
-                <div className="text-sm text-gray-600 capitalize">Horas</div>
-              </div>
-              <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
-                <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.minutes}</div>
-                <div className="text-sm text-gray-600 capitalize">Min</div>
-              </div>
-              <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
-                <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.seconds}</div>
-                <div className="text-sm text-gray-600 capitalize">Seg</div>
-              </div>
-            </div>
-          </div>
+              <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight">
+                <span className="block">Temporada</span>
+                <span className="block text-white">Otoño 2025</span>
+              </h1>
 
-          {/* Botones de Registro */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-lg px-8 py-4"
-              onClick={() => (window.location.href = "/register-team")}
-            >
-              <UserPlus className="w-6 h-6 mr-2" /> Registrar Equipo
-            </Button>
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold text-lg px-8 py-4"
-              onClick={() => (window.location.href = "/register-coach")}
-            >
-              <Trophy className="w-6 h-6 mr-2" /> Registrar Coach
-            </Button>
-          </div>
+              {/* Countdown */}
+              <div className="mb-12">
+                <h3 className="text-xl md:text-2xl font-bold text-white mb-6 flex items-center justify-center">
+                  <Clock className="w-6 h-6 mr-2" /> Cierre de inscripciones en:
+                </h3>
+                <div className="grid grid-cols-4 gap-4 max-w-lg mx-auto">
+                  <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
+                    <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.days}</div>
+                    <div className="text-sm text-gray-600 capitalize">Días</div>
+                  </div>
+                  <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
+                    <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.hours}</div>
+                    <div className="text-sm text-gray-600 capitalize">Horas</div>
+                  </div>
+                  <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
+                    <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.minutes}</div>
+                    <div className="text-sm text-gray-600 capitalize">Min</div>
+                  </div>
+                  <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
+                    <div className="text-2xl md:text-3xl font-black text-gray-900">{countdown.seconds}</div>
+                    <div className="text-sm text-gray-600 capitalize">Seg</div>
+                  </div>
+                </div>
+              </div>
 
-          <p className="text-white/90 text-lg mb-4">
-            ¿Ya tienes cuenta?
-            <a
-              href="/login"
-              className="text-yellow-300 hover:text-yellow-200 font-semibold ml-2 underline"
-            >
-              Inicia sesión aquí
-            </a>
-          </p>
-        </div>
-      </section>
-    </>
-  ) : (
-    <>
-      {/* Temporada iniciada */}
-      <section className="relative py-20 overflow-hidden min-h-screen flex items-center">
-        {/* Video de fondo */}
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-        >
-          <source src="images/video.mp4" type="video/mp4" />
-        </video>
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-black/60" />
-
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-block bg-green-400/95 backdrop-blur-sm text-gray-900 px-6 py-2 rounded-full font-bold mb-6">
-              {"🏈 Temporada en Curso - ¡Sigue la Acción!"}
-            </div>
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
-              Liga Flag
-              <span className="block bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-                Durango
-              </span>
-            </h1>
-            <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
-              20 años haciendo historia en el flag football de Durango.
-              <span className="block mt-2 text-yellow-300 font-semibold">
-                ¡La temporada 2025 está en marcha!
-              </span>
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold"
-                onClick={() => (window.location.href = "/partidos")}
-              >
-                <Play className="w-5 h-5 mr-2" /> Ver Partidos
-              </Button>
-              {isWildBrowlEnabled && (
+              {/* Botones de Registro */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                 <Button
                   size="lg"
-                  className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-bold"
-                  onClick={() => (window.location.href = "/wildbrowl")}
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-lg px-8 py-4"
+                  onClick={() => (window.location.href = "/register-team")}
                 >
-                  <Target className="w-5 h-5 mr-2" /> WildBrowl 1v1
+                  <UserPlus className="w-6 h-6 mr-2" /> Registrar Equipo
                 </Button>
-              )}
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent"
-                onClick={() => (window.location.href = "/estadisticas")}
-              >
-                Ver Estadísticas <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold text-lg px-8 py-4"
+                  onClick={() => (window.location.href = "/register-coach")}
+                >
+                  <Trophy className="w-6 h-6 mr-2" /> Registrar Coach
+                </Button>
+              </div>
+
+              <p className="text-white/90 text-lg mb-4">
+                ¿Ya tienes cuenta?
+                <a href="/login" className="text-yellow-300 hover:text-yellow-200 font-semibold ml-2 underline">
+                  Inicia sesión aquí
+                </a>
+              </p>
             </div>
-          </div>
-        </div>
-      </section>
-    </>
-  )}
+          </section>
+        </>
+      ) : (
+        <>
+          {/* Temporada iniciada */}
+          <section className="relative py-20 overflow-hidden min-h-screen flex items-center">
+            {/* Video de fondo */}
+            <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover">
+              <source src="images/video.mp4" type="video/mp4" />
+            </video>
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-black/60" />
+
+            <div className="container mx-auto px-4 relative z-10">
+              <div className="text-center max-w-4xl mx-auto">
+                <div className="inline-block bg-green-400/95 backdrop-blur-sm text-gray-900 px-6 py-2 rounded-full font-bold mb-6">
+                  {"🏈 Temporada en Curso - ¡Sigue la Acción!"}
+                </div>
+                <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
+                  Liga Flag
+                  <span className="block bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+                    Durango
+                  </span>
+                </h1>
+                <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
+                  20 años haciendo historia en el flag football de Durango.
+                  <span className="block mt-2 text-yellow-300 font-semibold">¡La temporada 2025 está en marcha!</span>
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold"
+                    onClick={() => (window.location.href = "/partidos")}
+                  >
+                    <Play className="w-5 h-5 mr-2" /> Ver Partidos
+                  </Button>
+                  {isWildBrowlEnabled && (
+                    <Button
+                      size="lg"
+                      className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-bold"
+                      onClick={() => (window.location.href = "/wildbrowl")}
+                    >
+                      <Target className="w-5 h-5 mr-2" /> WildBrowl 1v1
+                    </Button>
+                  )}
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent"
+                    onClick={() => (window.location.href = "/estadisticas")}
+                  >
+                    Ver Estadísticas <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
 
       {/* 20 Años Section */}
       <section className="py-16" style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}>
@@ -396,6 +383,21 @@ export default function HomePage() {
                     <p className="text-gray-600 leading-relaxed flex-grow">
                       Contamos con paramédicos profesionales durante cada jornada, listos para atender cualquier
                       eventualidad. Porque tu seguridad es prioridad.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105 h-full">
+                  <CardContent className="p-8 text-center h-full flex flex-col">
+                    <img
+                      src="/images/arbitro.png"
+                      alt="Seguridad y arbitraje profesional"
+                      className="w-16 h-16 mx-auto mb-6"
+                    />
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Seguridad y arbitraje profesional</h3>
+                    <p className="text-gray-600 leading-relaxed flex-grow">
+                      Nos tomamos en serio la seguridad y la imparcialidad. Árbitros expertos, protocolos confiables y
+                      un entorno donde lo más importante es disfrutar del juego con respeto y equidad.
                     </p>
                   </CardContent>
                 </Card>
@@ -542,6 +544,16 @@ export default function HomePage() {
                   <CardContent className="p-6 text-center">
                     <img src="/images/femenilcopper.png" alt="Cooper Femenil" className="w-16 h-16 mx-auto mb-4" />
                     <h4 className="font-bold text-gray-900">Cooper Femenil</h4>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105 relative">
+                  <div className="absolute -top-2 -right-2 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse shadow-lg">
+                    {"¡NUEVO!"}
+                  </div>
+                  <CardContent className="p-6 text-center">
+                    <img src="/images/1vs1.png" alt="1v1" className="w-16 h-16 mx-auto mb-4" />
+                    <h4 className="font-bold text-gray-900">1v1</h4>
                   </CardContent>
                 </Card>
               </div>
@@ -724,10 +736,8 @@ export default function HomePage() {
           </section>
         )}
 
-       
-
         {/* Liga en números */}
- <section className="mb-16">
+        <section className="mb-16">
           <div className="text-center mb-8">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Liga en Números</h2>
             <p className="text-gray-600 text-lg">Estadísticas generales de la temporada actual</p>
@@ -796,76 +806,107 @@ export default function HomePage() {
         </div>
       </section>
 
-     {/* Footer */}
-<footer className="bg-gray-800 text-gray-300">
-  <div className="container mx-auto px-6 py-12">
-    <div className="grid md:grid-cols-4 gap-12">
-      {/* Logo */}
-      <div className="flex flex-col items-start">
-        <img src="/images/20.png" alt="20 Años de Flag" className="w-40 h-auto mb-4" />
-        <p className="text-sm text-gray-400">20 años haciendo historia en el Flag Football.</p>
-      </div>
+      {/* Footer */}
+      <footer className="bg-gray-800 text-gray-300">
+        <div className="container mx-auto px-6 py-12">
+          <div className="grid md:grid-cols-4 gap-12">
+            {/* Logo */}
+            <div className="flex flex-col items-start">
+              <img src="/images/20.png" alt="20 Años de Flag" className="w-40 h-auto mb-4" />
+              <p className="text-sm text-gray-400">20 años haciendo historia en el Flag Football.</p>
+            </div>
 
-      {/* Contacto */}
-      <div>
-        <h3 className="text-lg font-bold text-white mb-4">CONTACTO</h3>
-        <ul className="space-y-2">
-          <li className="flex items-center gap-2"><Phone className="w-4 h-4" /> (618) 328 8280</li>
-          <li className="flex items-center gap-2"><Mail className="w-4 h-4" /> contacto@flagdurango.com</li>
-          <li className="flex items-center gap-2"><MapPin className="w-4 h-4" /> Oficinas Durango, MX</li>
-        </ul>
-      </div>
+            {/* Contacto */}
+            <div>
+              <h3 className="text-lg font-bold text-white mb-4">CONTACTO</h3>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" /> (618) 328 8280
+                </li>
+                <li className="flex items-center gap-2">
+                  <Mail className="w-4 h-4" /> contacto@flagdurango.com
+                </li>
+                <li className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" /> Oficinas Durango, MX
+                </li>
+              </ul>
+            </div>
 
-      {/* Links */}
-      <div>
-        <h3 className="text-lg font-bold text-white mb-4">LINKS</h3>
-        <ul className="space-y-2">
-          <li><a href="https://wild-studio.mx/" target="_blank" className="hover:text-white">• WildStudio</a></li>
-          <li><a href="https://www.facebook.com/profile.php?id=61576406477003" target="_blank" className="hover:text-white">• WildSports</a></li>
-          <li><a href="https://www.facebook.com/axisflagfootball" target="_blank" className="hover:text-white">• Axis Flag Football</a></li>
-        </ul>
-      </div>
+            {/* Links */}
+            <div>
+              <h3 className="text-lg font-bold text-white mb-4">LINKS</h3>
+              <ul className="space-y-2">
+                <li>
+                  <a href="https://wild-studio.mx/" target="_blank" className="hover:text-white" rel="noreferrer">
+                    • WildStudio
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://www.facebook.com/profile.php?id=61576406477003"
+                    target="_blank"
+                    className="hover:text-white"
+                    rel="noreferrer"
+                  >
+                    • WildSports
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://www.facebook.com/axisflagfootball"
+                    target="_blank"
+                    className="hover:text-white"
+                    rel="noreferrer"
+                  >
+                    • Axis Flag Football
+                  </a>
+                </li>
+              </ul>
+            </div>
 
-      {/* Redes */}
-      <div>
-        <h3 className="text-lg font-bold text-white mb-4">SÍGUENOS</h3>
-        <div className="flex gap-3">
-          <a
-            href="https://wa.me/526183288280"
-            target="_blank"
-            className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-green-500 transition-colors"
-          >
-            <MessageCircle className="w-5 h-5" />
-          </a>
-          <a
-            href="https://www.facebook.com/share/1AfHDmwRku/?mibextid=wwXIfr"
-            target="_blank"
-            className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors"
-          >
-            <Facebook className="w-5 h-5" />
-          </a>
-          <a
-            href="https://www.instagram.com/flag.durango?igsh=aW5jNzVlZTU1YXFy"
-            target="_blank"
-            className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-pink-500 transition-colors"
-          >
-            <Instagram className="w-5 h-5" />
-          </a>
+            {/* Redes */}
+            <div>
+              <h3 className="text-lg font-bold text-white mb-4">SÍGUENOS</h3>
+              <div className="flex gap-3">
+                <a
+                  href="https://wa.me/526183288280"
+                  target="_blank"
+                  className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-green-500 transition-colors"
+                  rel="noreferrer"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                </a>
+                <a
+                  href="https://www.facebook.com/share/1AfHDmwRku/?mibextid=wwXIfr"
+                  target="_blank"
+                  className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors"
+                  rel="noreferrer"
+                >
+                  <Facebook className="w-5 h-5" />
+                </a>
+                <a
+                  href="https://www.instagram.com/flag.durango?igsh=aW5jNzVlZTU1YXFy"
+                  target="_blank"
+                  className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-pink-500 transition-colors"
+                  rel="noreferrer"
+                >
+                  <Instagram className="w-5 h-5" />
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Copyright */}
+          <div className="mt-10">
+            <div
+              className="text-white text-center py-4 rounded-lg text-sm"
+              style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
+            >
+              <p className="font-semibold">FLAGDURANGO.COM / CREADO POR WILDSTUDIO</p>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-
-    {/* Copyright */}
-    <div className="mt-10">
-      <div
-        className="text-white text-center py-4 rounded-lg text-sm"
-        style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
-      >
-        <p className="font-semibold">FLAGDURANGO.COM / CREADO POR WILDSTUDIO</p>
-      </div>
-    </div>
-  </div>
-</footer>
+      </footer>
     </div>
   )
 }
