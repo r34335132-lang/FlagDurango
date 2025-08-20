@@ -553,7 +553,7 @@ export default function HomePage() {
                   </div>
                   <CardContent className="p-6 text-center">
                     <img src="/images/1vs1.png" alt="1v1" className="w-16 h-16 mx-auto mb-4" />
-                    <h4 className="font-bold text-gray-900">1v1</h4>
+                    <h4 className="font-bold text-gray-900">1 vs 1</h4>
                   </CardContent>
                 </Card>
               </div>
@@ -824,10 +824,10 @@ export default function HomePage() {
                   <Phone className="w-4 h-4" /> (618) 328 8280
                 </li>
                 <li className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" /> contacto@flagdurango.com
+                  <Mail className="w-4 h-4" /> flagdurango@gmail.com
                 </li>
                 <li className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4" /> Oficinas Durango, MX
+                  <MapPin className="w-4 h-4" /> C. Guadalupe 749, Zona Centro, 34000. Durango, Dgo
                 </li>
               </ul>
             </div>
