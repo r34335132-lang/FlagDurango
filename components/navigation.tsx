@@ -6,6 +6,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { LogOut, Menu, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
 
 interface User {
   id: number
@@ -92,8 +93,16 @@ export function Navigation() {
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center py-4">
           <Link href="/" className="text-center">
-            <h1 className="text-xl md:text-2xl font-bold text-neutral-900">Liga Flag Durango</h1>
-            <p className="text-neutral-500 text-sm">Temporada Otoño 2025</p>
+            <div className="flex flex-col items-center">
+              <Image
+                src="/images/logo-flag-durango.png"
+                alt="Liga Flag Durango"
+                width={100}
+                height={50}
+                className="h-12 md:h-16 w-auto"
+              />
+              <p className="text-neutral-500 text-sm mt-1">Temporada Otoño 2025</p>
+            </div>
           </Link>
 
           <nav aria-label="Principal" className="hidden md:flex items-center gap-6">
@@ -115,11 +124,6 @@ export function Navigation() {
                 {user.role === "admin" && (
                   <Link href="/admin" className="text-yellow-500 hover:text-yellow-600 font-medium">
                     Admin
-                  </Link>
-                )}
-                {user.role === "coach" && (
-                  <Link href="/coach-dashboard" className="text-blue-500 hover:text-blue-600 font-medium">
-                    Coach
                   </Link>
                 )}
                 <div className="flex items-center space-x-2">
@@ -171,15 +175,6 @@ export function Navigation() {
                   {user.role === "admin" && (
                     <Link href="/admin" className="text-yellow-600 font-medium" onClick={() => setIsMenuOpen(false)}>
                       Admin
-                    </Link>
-                  )}
-                  {user.role === "coach" && (
-                    <Link
-                      href="/coach-dashboard"
-                      className="text-blue-600 font-medium"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Coach
                     </Link>
                   )}
                   <Button
