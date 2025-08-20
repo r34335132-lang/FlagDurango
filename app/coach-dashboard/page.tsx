@@ -28,7 +28,11 @@ import {
   CreditCard,
   Filter,
   ImageIcon,
+  Edit,
+  Trash2,
 } from "lucide-react"
+
+import { toast } from "@/components/ui/use-toast"
 
 interface Team {
   id: number
@@ -106,6 +110,8 @@ export default function CoachDashboard() {
   const [success, setSuccess] = useState<string | null>(null)
   const [autoAssigning, setAutoAssigning] = useState(false)
   const [payingTeam, setPayingTeam] = useState<number | null>(null)
+  const [editingPlayer, setEditingPlayer] = useState<any>(null)
+  const [showPlayerForm, setShowPlayerForm] = useState(false)
 
   // Filtros para juegos
   const [gameFilter, setGameFilter] = useState({
@@ -400,10 +406,15 @@ export default function CoachDashboard() {
     e.preventDefault()
 
     try {
-      const response = await fetch("/api/players", {
-        method: "POST",
+      const isEditing = editingPlayer !== null
+      const method = isEditing ? "PUT" : "POST"
+      const url = "/api/players"
+
+      const response = await fetch(url, {
+        method: method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          ...(isEditing && { id: editingPlayer.id }),
           ...playerForm,
           jersey_number: Number.parseInt(playerForm.jersey_number),
           team_id: Number.parseInt(playerForm.team_id),
@@ -414,13 +425,20 @@ export default function CoachDashboard() {
       if (data.success) {
         await loadData()
         setPlayerForm({ name: "", jersey_number: "", position: "", photo_url: "", team_id: "" })
+        setEditingPlayer(null)
+        setShowPlayerForm(false)
         setError(null)
-        setSuccess("Jugador agregado exitosamente")
+        setSuccess(isEditing ? "Jugador editado exitosamente" : "Jugador agregado exitosamente")
       } else {
         setError(data.message)
       }
     } catch (error) {
-      setError("Error al crear jugador: " + (error instanceof Error ? error.message : "Error desconocido"))
+      setError(
+        "Error al " +
+          (editingPlayer ? "editar" : "crear") +
+          " jugador: " +
+          (error instanceof Error ? error.message : "Error desconocido"),
+      )
     }
   }
 
@@ -529,6 +547,54 @@ export default function CoachDashboard() {
   const getMyPlayers = () => {
     const myTeamIds = teams.map((t) => t.id)
     return players.filter((p) => myTeamIds.includes(p.team_id))
+  }
+
+  const handleEditPlayer = (player: any) => {
+    setEditingPlayer(player)
+    setPlayerForm({
+      name: player.name,
+      jersey_number: player.jersey_number?.toString() || "",
+      position: player.position || "",
+      team_id: player.team_id?.toString() || "",
+      photo_url: player.photo_url || "",
+    })
+    setShowPlayerForm(true)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const handleDeletePlayer = async (playerId: number) => {
+    if (!confirm("¿Estás seguro de que quieres eliminar este jugador?")) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/players?id=${playerId}`, {
+        method: "DELETE",
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setPlayers(players.filter((p) => p.id !== playerId))
+        toast({
+          title: "Éxito",
+          description: "Jugador eliminado correctamente",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: result.message || "Error al eliminar jugador",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      console.error("Error deleting player:", error)
+      toast({
+        title: "Error",
+        description: "Error al eliminar jugador",
+        variant: "destructive",
+      })
+    }
   }
 
   if (loading) {
@@ -1254,6 +1320,25 @@ export default function CoachDashboard() {
                         <h3 className="text-lg font-semibold text-white mb-2">{player.name}</h3>
                         <Badge className="bg-blue-600 text-white mb-2">{player.position}</Badge>
                         <p className="text-white/70 text-sm">{team?.name}</p>
+
+                        <div className="flex justify-center gap-2 mt-4">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="bg-blue-600/20 border-blue-400 text-blue-200 hover:bg-blue-600/40"
+                            onClick={() => handleEditPlayer(player)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="bg-red-600/20 border-red-400 text-red-200 hover:bg-red-600/40"
+                            onClick={() => handleDeletePlayer(player.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
