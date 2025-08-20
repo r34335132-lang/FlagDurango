@@ -465,10 +465,9 @@ export default function CoachDashboard() {
       console.log("💳 Respuesta MercadoPago:", data)
 
       if (data.success) {
-        // Redirigir a MercadoPago
         const paymentUrl = data.data.init_point || data.data.sandbox_init_point
         if (paymentUrl) {
-          window.open(paymentUrl, "_blank")
+          window.location.href = paymentUrl
           setSuccess("Redirigiendo a MercadoPago para completar el pago...")
         } else {
           setError("No se pudo obtener la URL de pago")
