@@ -1242,10 +1242,11 @@ export default function CoachDashboard() {
                         <option value="RB">Running Back (RB)</option>
                         <option value="WR">Wide Receiver (WR)</option>
                         <option value="TE">Tight End (TE)</option>
-                        <option value="RU">Rush (RU)</option>
+                        <option value="RU">Rusher (RU)</option>
                         <option value="LB">Linebacker (LB)</option>
                         <option value="DB">Defensive Back (DB)</option>
                         <option value="CB">Corner Back (CB)</option>
+                        <option value="CB">Center (C)</option>
                       </select>
                     </div>
                     <div>
