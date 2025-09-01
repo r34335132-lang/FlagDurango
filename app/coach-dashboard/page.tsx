@@ -1249,7 +1249,7 @@ export default function CoachDashboard() {
                         <option value="LB">Linebacker (LB)</option>
                         <option value="DB">Defensive Back (DB)</option>
                         <option value="CB">Corner Back (CB)</option>
-                        <option value="CB">Center (C)</option>
+                        <option value="C">Center (C)</option>
                       </select>
                     </div>
                     <div>
