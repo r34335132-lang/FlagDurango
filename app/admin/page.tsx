@@ -1142,6 +1142,7 @@ export default function AdminPage() {
                         <option value="mixto-gold">Mixto Gold (MG)</option>
                         <option value="mixto-silver">Mixto Silver (MS)</option>
                         <option value="femenil-cooper">Femenil Cooper (FC)</option>
+                        <option value="teens">Teens (T)</option>
                       </select>
                     </div>
                     <div>
@@ -1455,6 +1456,7 @@ export default function AdminPage() {
                         <option value="mixto-gold">Mixto Gold</option>
                         <option value="mixto-silver">Mixto Silver</option>
                         <option value="femenil-cooper">Femenil Cooper</option>
+                        <option value="teens">Teens</option>
                       </select>
                     </div>
                     <div>
@@ -1611,6 +1613,7 @@ export default function AdminPage() {
                       <option value="femenil-cooper">Femenil Cooper</option>
                       <option value="mixto-gold">Mixto Gold</option>
                       <option value="mixto-silver">Mixto Silver</option>
+                      <option value="teens">Teens</option>
                     </select>
                   </div>
                 </CardHeader>
