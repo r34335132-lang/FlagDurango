@@ -105,6 +105,7 @@ export default function TeamPage() {
       "femenil-cooper": "Femenil Cooper",
       "mixto-gold": "Mixto Gold",
       "mixto-silver": "Mixto Silver",
+      teens: "Teens",
     }
     return labels[category] || category
   }

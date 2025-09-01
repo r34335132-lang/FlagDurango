@@ -86,6 +86,7 @@ export default function EstadisticasPage() {
     { value: "femenil-cooper", label: "Femenil Cooper" },
     { value: "mixto-gold", label: "Mixto Gold" },
     { value: "mixto-silver", label: "Mixto Silver" },
+    { value: "teens", label: "Teens" },
   ]
 
   useEffect(() => {
@@ -176,6 +177,7 @@ export default function EstadisticasPage() {
   const getCategoryColor = (category: string) => {
     if (category.includes("femenil")) return "bg-pink-500"
     if (category.includes("mixto")) return "bg-orange-500"
+    if (category === "teens") return "bg-green-500"
     return "bg-blue-500"
   }
 
@@ -306,6 +308,7 @@ export default function EstadisticasPage() {
                             filteredLatestMvp.players?.photo_url ||
                             "/placeholder.svg?height=128&width=128&query=foto-de-jugador-mvp" ||
                             "/placeholder.svg" ||
+                            "/placeholder.svg" ||
                             "/placeholder.svg"
                           }
                           alt={filteredLatestMvp.players?.name || "MVP"}
@@ -334,6 +337,7 @@ export default function EstadisticasPage() {
                               src={
                                 mvp.players?.photo_url ||
                                 "/placeholder.svg?height=128&width=128&query=foto-de-jugador-mvp" ||
+                                "/placeholder.svg" ||
                                 "/placeholder.svg" ||
                                 "/placeholder.svg"
                               }

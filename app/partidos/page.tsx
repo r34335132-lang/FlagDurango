@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Calendar, Clock, MapPin, Users, Trophy, ArrowRight, BellIcon as Whistle, Search, Filter } from "lucide-react"
+import { Calendar, Clock, MapPin, Users, Trophy, ArrowRight, Castle as Whistle, Search, Filter } from "lucide-react"
 
 interface Game {
   id: number
@@ -88,6 +88,7 @@ export default function GamesPage() {
       "varonil-gold": "bg-blue-500",
       "mixto-silver": "bg-orange-400",
       "mixto-gold": "bg-orange-500",
+      teens: "bg-green-500",
     }
     return colors[category] || "bg-gray-500"
   }
@@ -101,6 +102,7 @@ export default function GamesPage() {
       "varonil-gold": "Varonil Gold",
       "mixto-silver": "Mixto Silver",
       "mixto-gold": "Mixto Gold",
+      teens: "Teens",
     }
     return labels[category] || category
   }
@@ -303,6 +305,7 @@ export default function GamesPage() {
                 <option value="femenil-cooper">Femenil Cooper</option>
                 <option value="mixto-gold">Mixto Gold</option>
                 <option value="mixto-silver">Mixto Silver</option>
+                <option value="teens">Teens</option>
               </select>
               <select
                 value={statusFilter}

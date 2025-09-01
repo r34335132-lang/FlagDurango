@@ -94,6 +94,7 @@ export default function TeamsPage() {
       "femenil-cooper": "Femenil Cooper",
       "mixto-gold": "Mixto Gold",
       "mixto-silver": "Mixto Silver",
+      teens: "Teens",
     }
     return labels[category] || category
   }
@@ -107,6 +108,7 @@ export default function TeamsPage() {
       "femenil-cooper": "bg-pink-600",
       "mixto-gold": "bg-orange-500",
       "mixto-silver": "bg-orange-400",
+      teens: "bg-green-500",
     }
     return colors[category] || "bg-gray-500"
   }
