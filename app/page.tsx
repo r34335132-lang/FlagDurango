@@ -10,12 +10,16 @@ import {
   Clock,
   Trophy,
   Users,
-  Newspaper,
   Star,
   Play,
   ArrowRight,
   Target,
   UserPlus,
+  Facebook,
+  Instagram,
+  Phone,
+  Mail,
+  MessageCircle,
 } from "lucide-react"
 
 interface Game {
@@ -150,6 +154,7 @@ export default function HomePage() {
       "femenil-cooper": "Femenil Cooper",
       "mixto-gold": "Mixto Gold",
       "mixto-silver": "Mixto Silver",
+      "1v1": "1v1",
     }
     return labels[category] || category
   }
@@ -174,10 +179,15 @@ export default function HomePage() {
       {!isSeasonStarted ? (
         <>
           {/* Pre-temporada */}
-          <section
-            className="relative min-h-screen flex items-center justify-center overflow-hidden"
-            style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
-          >
+          <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+            {/* Video de fondo */}
+            <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover">
+              <source src="images/video.mp4" type="video/mp4" />
+              Tu navegador no soporta videos.
+            </video>
+            {/* Overlay oscuro para legibilidad */}
+            <div className="absolute inset-0 bg-black/50" />
+
             <div className="container mx-auto px-4 relative z-10 text-center">
               <div className="inline-block bg-yellow-400/95 backdrop-blur-sm text-gray-900 px-8 py-3 rounded-full font-bold mb-8 border border-black/10 shadow-lg">
                 {"🏆 Temporada Otoño 2025 - ¡Inscripciones Abiertas!"}
@@ -186,11 +196,11 @@ export default function HomePage() {
                 <span className="block">Temporada</span>
                 <span className="block text-white">Otoño 2025</span>
               </h1>
+
               {/* Countdown */}
               <div className="mb-12">
                 <h3 className="text-xl md:text-2xl font-bold text-white mb-6 flex items-center justify-center">
-                  <Clock className="w-6 h-6 mr-2" />
-                  Cierre de inscripciones en:
+                  <Clock className="w-6 h-6 mr-2" /> Cierre de inscripciones en:
                 </h3>
                 <div className="grid grid-cols-4 gap-4 max-w-lg mx-auto">
                   <div className="bg-white/95 backdrop-blur-sm border border-black/10 rounded-2xl p-4 text-center shadow-lg">
@@ -219,16 +229,14 @@ export default function HomePage() {
                   className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-lg px-8 py-4"
                   onClick={() => (window.location.href = "/register-team")}
                 >
-                  <UserPlus className="w-6 h-6 mr-2" />
-                  Registrar Equipo
+                  <UserPlus className="w-6 h-6 mr-2" /> Registrar Equipo
                 </Button>
                 <Button
                   size="lg"
                   className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold text-lg px-8 py-4"
                   onClick={() => (window.location.href = "/register-coach")}
                 >
-                  <Trophy className="w-6 h-6 mr-2" />
-                  Registrar Coach
+                  <Trophy className="w-6 h-6 mr-2" /> Registrar Coach
                 </Button>
               </div>
 
@@ -244,10 +252,14 @@ export default function HomePage() {
       ) : (
         <>
           {/* Temporada iniciada */}
-          <section
-            className="relative py-20 overflow-hidden"
-            style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
-          >
+          <section className="relative py-20 overflow-hidden min-h-screen flex items-center">
+            {/* Video de fondo */}
+            <video autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover">
+              <source src="images/video.mp4" type="video/mp4" />
+            </video>
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-black/60" />
+
             <div className="container mx-auto px-4 relative z-10">
               <div className="text-center max-w-4xl mx-auto">
                 <div className="inline-block bg-green-400/95 backdrop-blur-sm text-gray-900 px-6 py-2 rounded-full font-bold mb-6">
@@ -269,8 +281,7 @@ export default function HomePage() {
                     className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold"
                     onClick={() => (window.location.href = "/partidos")}
                   >
-                    <Play className="w-5 h-5 mr-2" />
-                    Ver Partidos
+                    <Play className="w-5 h-5 mr-2" /> Ver Partidos
                   </Button>
                   {isWildBrowlEnabled && (
                     <Button
@@ -278,8 +289,7 @@ export default function HomePage() {
                       className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-bold"
                       onClick={() => (window.location.href = "/wildbrowl")}
                     >
-                      <Target className="w-5 h-5 mr-2" />
-                      WildBrowl 1v1
+                      <Target className="w-5 h-5 mr-2" /> WildBrowl 1v1
                     </Button>
                   )}
                   <Button
@@ -288,8 +298,7 @@ export default function HomePage() {
                     className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent"
                     onClick={() => (window.location.href = "/estadisticas")}
                   >
-                    Ver Estadísticas
-                    <ArrowRight className="w-5 h-5 ml-2" />
+                    Ver Estadísticas <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
                 </div>
               </div>
@@ -374,6 +383,21 @@ export default function HomePage() {
                     <p className="text-gray-600 leading-relaxed flex-grow">
                       Contamos con paramédicos profesionales durante cada jornada, listos para atender cualquier
                       eventualidad. Porque tu seguridad es prioridad.
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105 h-full">
+                  <CardContent className="p-8 text-center h-full flex flex-col">
+                    <img
+                      src="/images/arbitro.png"
+                      alt="Seguridad y arbitraje profesional"
+                      className="w-16 h-16 mx-auto mb-6"
+                    />
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Seguridad y arbitraje profesional</h3>
+                    <p className="text-gray-600 leading-relaxed flex-grow">
+                      Nos tomamos en serio la seguridad y la imparcialidad. Árbitros expertos, protocolos confiables y
+                      un entorno donde lo más importante es disfrutar del juego con respeto y equidad.
                     </p>
                   </CardContent>
                 </Card>
@@ -520,6 +544,16 @@ export default function HomePage() {
                   <CardContent className="p-6 text-center">
                     <img src="/images/femenilcopper.png" alt="Cooper Femenil" className="w-16 h-16 mx-auto mb-4" />
                     <h4 className="font-bold text-gray-900">Cooper Femenil</h4>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105 relative">
+                  <div className="absolute -top-2 -right-2 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse shadow-lg">
+                    {"¡NUEVO!"}
+                  </div>
+                  <CardContent className="p-6 text-center">
+                    <img src="/images/1vs1.png" alt="1v1" className="w-16 h-16 mx-auto mb-4" />
+                    <h4 className="font-bold text-gray-900">1 vs 1</h4>
                   </CardContent>
                 </Card>
               </div>
@@ -702,52 +736,13 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* Noticias */}
-        {news.length > 0 && (
-          <section className="mb-16">
-            <div className="text-center mb-8">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4 flex items-center justify-center">
-                <Newspaper className="w-10 h-10 mr-3 text-purple-600" />
-                Últimas Noticias
-              </h2>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6">
-              {news.map((item) => (
-                <Card
-                  key={item.id}
-                  className="bg-white border-gray-200 hover:shadow-lg transition-all transform hover:scale-105"
-                >
-                  <CardContent className="p-6">
-                    {item.image_url && (
-                      <img
-                        src={item.image_url || "/placeholder.svg?height=300&width=600&query=noticia%20liga%20flag"}
-                        alt={item.title}
-                        className="w-full h-48 object-cover rounded-lg mb-4"
-                      />
-                    )}
-                    <h3 className="text-gray-900 font-bold text-lg mb-2">{item.title}</h3>
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-3">{item.content}</p>
-                    <div className="flex justify-between items-center text-xs text-gray-500">
-                      <span>
-                        {"Por: "}
-                        {item.author}
-                      </span>
-                      <span>{new Date(item.created_at).toLocaleDateString("es-ES")}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-        )}
-
         {/* Liga en números */}
         <section className="mb-16">
           <div className="text-center mb-8">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">Liga en Números</h2>
             <p className="text-gray-600 text-lg">Estadísticas generales de la temporada actual</p>
           </div>
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
             <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
               <CardContent className="p-6 text-center">
                 <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
@@ -769,27 +764,9 @@ export default function HomePage() {
                 <p className="text-gray-600">Partidos Finalizados</p>
               </CardContent>
             </Card>
-            <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
-              <CardContent className="p-6 text-center">
-                {isWildBrowlEnabled ? (
-                  <>
-                    <Target className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-                    <h3 className="text-3xl font-bold text-gray-900">1v1</h3>
-                    <p className="text-gray-600">Torneo WildBrowl</p>
-                  </>
-                ) : (
-                  <>
-                    <Newspaper className="w-12 h-12 text-purple-500 mx-auto mb-4" />
-                    <h3 className="text-3xl font-bold text-gray-900">{news.length}</h3>
-                    <p className="text-gray-600">Noticias Publicadas</p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
           </div>
         </section>
       </div>
-
       {/* Sponsors */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
@@ -830,55 +807,99 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-700 text-white">
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid md:grid-cols-4 gap-8">
+      <footer className="bg-gray-800 text-gray-300">
+        <div className="container mx-auto px-6 py-12">
+          <div className="grid md:grid-cols-4 gap-12">
+            {/* Logo */}
             <div className="flex flex-col items-start">
-              <img src="/images/20.png" alt="20 Años de Flag" className="w-48 h-auto mb-4" />
+              <img src="/images/20.png" alt="20 Años de Flag" className="w-40 h-auto mb-4" />
+              <p className="text-sm text-gray-400">20 años haciendo historia en el Flag Football.</p>
             </div>
+
+            {/* Contacto */}
             <div>
-              <h3 className="text-lg font-bold mb-4">CONTACTO</h3>
-              <ul className="space-y-2 text-gray-300">
-                <li>• TELEFONO</li>
-                <li>• CORREO</li>
-                <li>• OFICINAS</li>
+              <h3 className="text-lg font-bold text-white mb-4">CONTACTO</h3>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2">
+                  <Phone className="w-4 h-4" /> (618) 328 8280
+                </li>
+                <li className="flex items-center gap-2">
+                  <Mail className="w-4 h-4" /> flagdurango@gmail.com
+                </li>
+                <li className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" /> C. Guadalupe 749, Zona Centro, 34000. Durango, Dgo
+                </li>
               </ul>
             </div>
+
+            {/* Links */}
             <div>
-              <h3 className="text-lg font-bold mb-4">LINKS</h3>
-              <ul className="space-y-2 text-gray-300">
-                <li>• WILDSTUDIO</li>
-                <li>• WILDSPORTS</li>
-                <li>• AXIS FLAG FOOTBALL</li>
+              <h3 className="text-lg font-bold text-white mb-4">LINKS</h3>
+              <ul className="space-y-2">
+                <li>
+                  <a href="https://wild-studio.mx/" target="_blank" className="hover:text-white" rel="noreferrer">
+                    • WildStudio
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://www.facebook.com/profile.php?id=61576406477003"
+                    target="_blank"
+                    className="hover:text-white"
+                    rel="noreferrer"
+                  >
+                    • WildSports
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://www.facebook.com/axisflagfootball"
+                    target="_blank"
+                    className="hover:text-white"
+                    rel="noreferrer"
+                  >
+                    • Axis Flag Football
+                  </a>
+                </li>
               </ul>
             </div>
+
+            {/* Redes */}
             <div>
-              <h3 className="text-lg font-bold mb-4">SIGUENOS</h3>
+              <h3 className="text-lg font-bold text-white mb-4">SÍGUENOS</h3>
               <div className="flex gap-3">
                 <a
                   href="https://wa.me/526183288280"
-                  className="w-9 h-9 bg-gray-600 rounded flex items-center justify-center hover:bg-blue-600 transition-colors"
+                  target="_blank"
+                  className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-green-500 transition-colors"
+                  rel="noreferrer"
                 >
-                  <span className="text-sm">📱</span>
+                  <MessageCircle className="w-5 h-5" />
                 </a>
                 <a
                   href="https://www.facebook.com/share/1AfHDmwRku/?mibextid=wwXIfr"
-                  className="w-9 h-9 bg-gray-600 rounded flex items-center justify-center hover:bg-blue-600 transition-colors"
+                  target="_blank"
+                  className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-blue-600 transition-colors"
+                  rel="noreferrer"
                 >
-                  <span className="text-sm">📘</span>
+                  <Facebook className="w-5 h-5" />
                 </a>
                 <a
                   href="https://www.instagram.com/flag.durango?igsh=aW5jNzVlZTU1YXFy"
-                  className="w-9 h-9 bg-gray-600 rounded flex items-center justify-center hover:bg-blue-600 transition-colors"
+                  target="_blank"
+                  className="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-pink-500 transition-colors"
+                  rel="noreferrer"
                 >
-                  <span className="text-sm">📷</span>
+                  <Instagram className="w-5 h-5" />
                 </a>
               </div>
             </div>
           </div>
-          <div className="mt-8">
+
+          {/* Copyright */}
+          <div className="mt-10">
             <div
-              className="text-white text-center py-4 rounded-lg"
+              className="text-white text-center py-4 rounded-lg text-sm"
               style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
             >
               <p className="font-semibold">FLAGDURANGO.COM / CREADO POR WILDSTUDIO</p>

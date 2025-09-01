@@ -4,8 +4,9 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { LogOut, Menu, X } from 'lucide-react'
+import { LogOut, Menu, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
 
 interface User {
   id: number
@@ -80,16 +81,28 @@ export function Navigation() {
     { href: "/equipos", label: "Equipos" },
     ...(wildbrowlEnabled ? [{ href: "/wildbrowl", label: "WildBrowl 1v1" } as const] : []),
     { href: "/estadisticas", label: "Estadísticas" },
-    
   ]
 
   return (
-    <header id="main-nav" className="w-full border-b bg-white sticky top-0 z-50" role="banner" aria-label="Navegación principal">
+    <header
+      id="main-nav"
+      className="w-full border-b bg-white sticky top-0 z-50"
+      role="banner"
+      aria-label="Navegación principal"
+    >
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center py-4">
           <Link href="/" className="text-center">
-            <h1 className="text-xl md:text-2xl font-bold text-neutral-900">Liga Flag Durango</h1>
-            <p className="text-neutral-500 text-sm">Temporada Otoño 2025</p>
+            <div className="flex flex-col items-center">
+              <Image
+                src="/images/logo-flag-durango.png"
+                alt="Liga Flag Durango"
+                width={200}
+                height={80}
+                className="h-12 md:h-16 w-auto"
+              />
+              <p className="text-neutral-500 text-sm mt-1">Temporada Otoño 2025</p>
+            </div>
           </Link>
 
           <nav aria-label="Principal" className="hidden md:flex items-center gap-6">
@@ -113,9 +126,19 @@ export function Navigation() {
                     Admin
                   </Link>
                 )}
+                {user.role === "coach" && (
+                  <Link href="/coach-dashboard" className="text-blue-500 hover:text-blue-600 font-medium">
+                    Dashboard
+                  </Link>
+                )}
                 <div className="flex items-center space-x-2">
                   <span className="text-neutral-800 text-sm">Hola, {user.username}</span>
-                  <Button onClick={handleLogout} variant="ghost" size="sm" className="text-neutral-900 hover:text-red-500">
+                  <Button
+                    onClick={handleLogout}
+                    variant="ghost"
+                    size="sm"
+                    className="text-neutral-900 hover:text-red-500"
+                  >
                     <LogOut className="w-4 h-4" />
                   </Button>
                 </div>
@@ -143,7 +166,7 @@ export function Navigation() {
                     href={l.href}
                     className={cn(
                       "rounded-md px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100",
-                      active && "bg-neutral-900 text-white hover:bg-neutral-900"
+                      active && "bg-neutral-900 text-white hover:bg-neutral-900",
                     )}
                     onClick={() => setIsMenuOpen(false)}
                   >
@@ -157,6 +180,15 @@ export function Navigation() {
                   {user.role === "admin" && (
                     <Link href="/admin" className="text-yellow-600 font-medium" onClick={() => setIsMenuOpen(false)}>
                       Admin
+                    </Link>
+                  )}
+                  {user.role === "coach" && (
+                    <Link
+                      href="/coach-dashboard"
+                      className="text-blue-600 font-medium"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Dashboard
                     </Link>
                   )}
                   <Button
