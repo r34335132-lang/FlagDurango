@@ -112,6 +112,7 @@ export default function CoachDashboard() {
   const [payingTeam, setPayingTeam] = useState<number | null>(null)
   const [editingPlayer, setEditingPlayer] = useState<any>(null)
   const [showPlayerForm, setShowPlayerForm] = useState(false)
+  const [activeTab, setActiveTab] = useState("teams")
 
   // Filtros para juegos
   const [gameFilter, setGameFilter] = useState({
@@ -429,6 +430,7 @@ export default function CoachDashboard() {
         setShowPlayerForm(false)
         setError(null)
         setSuccess(isEditing ? "Jugador editado exitosamente" : "Jugador agregado exitosamente")
+        setActiveTab("players")
       } else {
         setError(data.message)
       }
@@ -772,7 +774,7 @@ export default function CoachDashboard() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="teams" className="space-y-6">
+        <Tabs defaultValue="teams" className="space-y-6" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-white/10 border-white/20">
             <TabsTrigger
               value="teams"
@@ -1292,59 +1294,78 @@ export default function CoachDashboard() {
             )}
 
             {/* Lista de Jugadores */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {getMyPlayers().map((player) => {
-                const team = teams.find((t) => t.id === player.team_id)
-                return (
-                  <Card key={player.id} className="bg-white/10 backdrop-blur-sm border-white/20">
-                    <CardContent className="p-6">
-                      <div className="text-center">
-                        <div className="w-16 h-16 mx-auto mb-4 rounded-full overflow-hidden">
-                          {player.photo_url ? (
-                            <img
-                              src={player.photo_url || "/placeholder.svg"}
-                              alt={player.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement
-                                target.style.display = "none"
-                                const parent = target.parentElement
-                                if (parent) {
-                                  parent.innerHTML = `<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl">#${player.jersey_number}</div>`
-                                }
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                              #{player.jersey_number}
-                            </div>
-                          )}
-                        </div>
-                        <h3 className="text-lg font-semibold text-white mb-2">{player.name}</h3>
-                        <Badge className="bg-blue-600 text-white mb-2">{player.position}</Badge>
-                        <p className="text-white/70 text-sm">{team?.name}</p>
+            <div className="space-y-8">
+              {teams.map((team) => {
+                const teamPlayers = getMyPlayers().filter((player) => player.team_id === team.id)
 
-                        <div className="flex justify-center gap-2 mt-4">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-blue-600/20 border-blue-400 text-blue-200 hover:bg-blue-600/40"
-                            onClick={() => handleEditPlayer(player)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-red-600/20 border-red-400 text-red-200 hover:bg-red-600/40"
-                            onClick={() => handleDeletePlayer(player.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                if (teamPlayers.length === 0) return null
+
+                return (
+                  <div key={team.id} className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                        <Users className="w-4 h-4 text-white" />
                       </div>
-                    </CardContent>
-                  </Card>
+                      <h3 className="text-xl font-bold text-white">{team.name}</h3>
+                      <Badge className="bg-blue-600/20 text-blue-200 border-blue-400">
+                        {teamPlayers.length} jugador{teamPlayers.length !== 1 ? "es" : ""}
+                      </Badge>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {teamPlayers.map((player) => (
+                        <Card key={player.id} className="bg-white/10 backdrop-blur-sm border-white/20">
+                          <CardContent className="p-6">
+                            <div className="text-center">
+                              <div className="w-16 h-16 mx-auto mb-4 rounded-full overflow-hidden">
+                                {player.photo_url ? (
+                                  <img
+                                    src={player.photo_url || "/placeholder.svg"}
+                                    alt={player.name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement
+                                      target.style.display = "none"
+                                      const parent = target.parentElement
+                                      if (parent) {
+                                        parent.innerHTML = `<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl">#${player.jersey_number}</div>`
+                                      }
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                                    #{player.jersey_number}
+                                  </div>
+                                )}
+                              </div>
+                              <h3 className="text-lg font-semibold text-white mb-2">{player.name}</h3>
+                              <Badge className="bg-blue-600 text-white mb-2">{player.position}</Badge>
+                              <p className="text-white/70 text-sm">#{player.jersey_number}</p>
+
+                              <div className="flex justify-center gap-2 mt-4">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="bg-blue-600/20 border-blue-400 text-blue-200 hover:bg-blue-600/40"
+                                  onClick={() => handleEditPlayer(player)}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="bg-red-600/20 border-red-400 text-red-200 hover:bg-red-600/40"
+                                  onClick={() => handleDeletePlayer(player.id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
                 )
               })}
             </div>
