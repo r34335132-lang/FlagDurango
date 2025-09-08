@@ -110,7 +110,7 @@ export default function HomePage() {
   // Countdown timer
   useEffect(() => {
     const updateCountdown = () => {
-      const deadlineDate = systemConfig.registration_deadline || "2025-09-15"
+      const deadlineDate = systemConfig.registration_deadline || "2025-09-16"
       const targetDate = new Date(`${deadlineDate}T23:59:59`).getTime()
       const now = new Date().getTime()
       const distance = targetDate - now
