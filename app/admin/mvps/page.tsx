@@ -13,7 +13,7 @@ import { Star, Trophy, Target, Users, Plus, Trash2, RefreshCw, ArrowLeft, Award,
 interface Player {
   id: number
   name: string
-  number?: number
+  jersey_number?: number
   photo_url?: string
   team_id: number
   teams?: {
@@ -38,7 +38,7 @@ interface MVP {
   players?: {
     id: number
     name: string
-    number?: number
+    jersey_number?: number
     photo_url?: string
     teams?: {
       id: number
@@ -345,7 +345,7 @@ export default function AdminMVPsPage() {
                     <option value="">Seleccionar jugador</option>
                     {filteredPlayers.map((player) => (
                       <option key={player.id} value={player.id}>
-                        #{player.number || "S/N"} {player.name} - {player.teams?.name}
+                        #{player.jersey_number || "S/N"} {player.name} - {player.teams?.name}
                       </option>
                     ))}
                   </select>
@@ -433,6 +433,7 @@ export default function AdminMVPsPage() {
                             src={
                               mvp.players?.photo_url ||
                               "/placeholder.svg?height=40&width=40&query=foto-jugador" ||
+                              "/placeholder.svg" ||
                               "/placeholder.svg" ||
                               "/placeholder.svg"
                             }
