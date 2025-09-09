@@ -601,15 +601,15 @@ export default function CoachDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900 flex items-center justify-center">
-        <div className="text-white text-xl">Cargando dashboard...</div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-gray-900 text-xl">Cargando dashboard...</div>
       </div>
     )
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
@@ -623,46 +623,66 @@ export default function CoachDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8 flex justify-between items-start">
-          <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Dashboard del Coach</h1>
-            <div className="flex items-center gap-4 text-white/80">
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                <span>{user.username}</span>
-              </div>
+    <div className="min-h-screen bg-white">
+      <section
+        className="relative py-20 overflow-hidden"
+        style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
+      >
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="text-center max-w-4xl mx-auto">
+            <div className="inline-block bg-green-400/95 backdrop-blur-sm text-gray-900 px-6 py-2 rounded-full font-bold mb-6">
+              {"🏈 Dashboard del Coach"}
+            </div>
+            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
+              Bienvenido
+              <span className="block bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+                {user.username}
+              </span>
+            </h1>
+            <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
+              Gestiona tus equipos, jugadores y partidos desde un solo lugar.
+              <span className="block mt-2 text-yellow-300 font-semibold">
+                ¡{teams.length} equipos bajo tu dirección!
+              </span>
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button
+                onClick={loadData}
+                size="lg"
+                className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold"
+              >
+                <RefreshCw className="w-5 h-5 mr-2" />
+                Recargar Datos
+              </Button>
+              <Button
+                onClick={() => router.push("/")}
+                size="lg"
+                className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-bold"
+              >
+                <Trophy className="w-5 h-5 mr-2" />
+                Ver Liga
+              </Button>
+              <Button
+                onClick={logout}
+                size="lg"
+                variant="outline"
+                className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent"
+              >
+                <LogOut className="w-5 h-5 mr-2" />
+                Cerrar Sesión
+              </Button>
+            </div>
+            <div className="flex items-center justify-center gap-6 mt-8 text-white/80">
               <div className="flex items-center gap-2">
                 <Mail className="w-5 h-5" />
                 <span>{user.email}</span>
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={loadData}
-              variant="outline"
-              className="text-white border-white/20 bg-transparent hover:bg-white/10"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Recargar
-            </Button>
-            <Button
-              onClick={() => router.push("/")}
-              variant="outline"
-              className="text-white border-white/20 hover:bg-white/10"
-            >
-              Ver Sitio
-            </Button>
-            <Button onClick={logout} variant="destructive" className="bg-red-600 hover:bg-red-700 text-white">
-              <LogOut className="w-4 h-4 mr-2" />
-              Cerrar Sesión
-            </Button>
-          </div>
         </div>
+      </section>
 
+      <div className="container mx-auto px-4 py-8">
         {/* Auto-assign section */}
         {potentialMatches.length > 0 && teams.length === 0 && (
           <Card className="mb-8 bg-gradient-to-r from-green-500 to-blue-500 border-0 text-white">
@@ -743,54 +763,54 @@ export default function CoachDashboard() {
 
         {/* Stats Cards */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
             <CardContent className="p-6 text-center">
-              <Users className="w-12 h-12 text-blue-400 mx-auto mb-4" />
-              <h3 className="text-3xl font-bold text-white">{teams.length}</h3>
-              <p className="text-white/70">Mis Equipos</p>
+              <Users className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+              <h3 className="text-3xl font-bold text-gray-900">{teams.length}</h3>
+              <p className="text-gray-600">Mis Equipos</p>
             </CardContent>
           </Card>
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
             <CardContent className="p-6 text-center">
-              <Trophy className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-              <h3 className="text-3xl font-bold text-white">{getUpcomingGames().length}</h3>
-              <p className="text-white/70">Próximos Partidos</p>
+              <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+              <h3 className="text-3xl font-bold text-gray-900">{getUpcomingGames().length}</h3>
+              <p className="text-gray-600">Próximos Partidos</p>
             </CardContent>
           </Card>
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
             <CardContent className="p-6 text-center">
-              <Users className="w-12 h-12 text-green-400 mx-auto mb-4" />
-              <h3 className="text-3xl font-bold text-white">{getMyPlayers().length}</h3>
-              <p className="text-white/70">Mis Jugadores</p>
+              <Users className="w-12 h-12 text-green-500 mx-auto mb-4" />
+              <h3 className="text-3xl font-bold text-gray-900">{getMyPlayers().length}</h3>
+              <p className="text-gray-600">Mis Jugadores</p>
             </CardContent>
           </Card>
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
             <CardContent className="p-6 text-center">
-              <CheckCircle className="w-12 h-12 text-purple-400 mx-auto mb-4" />
-              <h3 className="text-3xl font-bold text-white">{teams.filter((t) => t.paid).length}</h3>
-              <p className="text-white/70">Equipos Pagados</p>
+              <CheckCircle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+              <h3 className="text-3xl font-bold text-gray-900">{teams.filter((t) => t.paid).length}</h3>
+              <p className="text-gray-600">Equipos Pagados</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Tabs */}
         <Tabs defaultValue="teams" className="space-y-6" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-white/10 border-white/20">
+          <TabsList className="bg-white border border-gray-200">
             <TabsTrigger
               value="teams"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900 text-white"
+              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-700"
             >
               Equipos ({teams.length})
             </TabsTrigger>
             <TabsTrigger
               value="games"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900 text-white"
+              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-700"
             >
               Mis Partidos ({getMyGames().length})
             </TabsTrigger>
             <TabsTrigger
               value="players"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900 text-white"
+              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-700"
             >
               Jugadores ({getMyPlayers().length})
             </TabsTrigger>
@@ -799,9 +819,9 @@ export default function CoachDashboard() {
           {/* Equipos Tab */}
           <TabsContent value="teams" className="space-y-6">
             {/* Crear Equipo */}
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+            <Card className="bg-white border-gray-200">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-gray-900 flex items-center gap-2">
                   <Plus className="w-5 h-5" />
                   Crear Nuevo Equipo
                 </CardTitle>
@@ -809,79 +829,60 @@ export default function CoachDashboard() {
               <CardContent>
                 <form onSubmit={createTeam} className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-white">Nombre del Equipo (sin sufijo)</Label>
+                    <Label className="text-gray-700">Nombre del Equipo (sin sufijo)</Label>
                     <Input
                       value={teamForm.name}
                       onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                       placeholder="Ej: Wildcats (se agregará VG automáticamente)"
                       required
                     />
-                    <p className="text-white/60 text-xs mt-1">
+                    <p className="text-gray-500 text-xs mt-1">
                       Se agregará automáticamente el sufijo según la categoría (VG, VS, FG, etc.)
                     </p>
                   </div>
                   <div>
-                    <Label className="text-white">Categoría</Label>
-                    <select
-                      value={teamForm.category}
-                      onChange={(e) => setTeamForm({ ...teamForm, category: e.target.value })}
-                      className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
-                      required
-                    >
-                      <option value="">Seleccionar categoría</option>
-                      <option value="varonil-gold">Varonil Gold (VG)</option>
-                      <option value="varonil-silver">Varonil Silver (VS)</option>
-                      <option value="femenil-gold">Femenil Gold (FG)</option>
-                      <option value="femenil-silver">Femenil Silver (FS)</option>
-                      <option value="femenil-cooper">Femenil Cooper (FC)</option>
-                      <option value="mixto-gold">Mixto Gold (MG)</option>
-                      <option value="mixto-silver">Mixto Silver (MS)</option>
-                      <option value="teens">Teens (T)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label className="text-white">Nombre del Capitán</Label>
+                    <Label className="text-gray-700">Nombre del Capitán</Label>
                     <Input
                       value={teamForm.captain_name}
                       onChange={(e) => setTeamForm({ ...teamForm, captain_name: e.target.value })}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                       placeholder="Nombre del capitán"
                     />
                   </div>
                   <div>
-                    <Label className="text-white">Teléfono del Capitán</Label>
+                    <Label className="text-gray-700">Teléfono del Capitán</Label>
                     <Input
                       value={teamForm.captain_phone}
                       onChange={(e) => setTeamForm({ ...teamForm, captain_phone: e.target.value })}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                       placeholder="(618) 123-4567"
                     />
                   </div>
                   <div>
-                    <Label className="text-white">Color Primario</Label>
+                    <Label className="text-gray-700">Color Primario</Label>
                     <Input
                       type="color"
                       value={teamForm.color1}
                       onChange={(e) => setTeamForm({ ...teamForm, color1: e.target.value })}
-                      className="bg-white/10 border-white/20 h-10"
+                      className="bg-white border-gray-300 h-10"
                     />
                   </div>
                   <div>
-                    <Label className="text-white">Color Secundario</Label>
+                    <Label className="text-gray-700">Color Secundario</Label>
                     <Input
                       type="color"
                       value={teamForm.color2}
                       onChange={(e) => setTeamForm({ ...teamForm, color2: e.target.value })}
-                      className="bg-white/10 border-white/20 h-10"
+                      className="bg-white border-gray-300 h-10"
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <Label className="text-white">URL del Logo (opcional)</Label>
+                    <Label className="text-gray-700">URL del Logo (opcional)</Label>
                     <Input
                       value={teamForm.logo_url}
                       onChange={(e) => setTeamForm({ ...teamForm, logo_url: e.target.value })}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                       placeholder="https://ejemplo.com/logo.png"
                     />
                   </div>
@@ -898,7 +899,10 @@ export default function CoachDashboard() {
             {/* Lista de Equipos */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {teams.map((team) => (
-                <Card key={team.id} className="bg-white/10 backdrop-blur-sm border-white/20">
+                <Card
+                  key={team.id}
+                  className="bg-white border-gray-200 hover:shadow-lg transition-all transform hover:scale-105"
+                >
                   <CardHeader>
                     <div className="flex items-center gap-4">
                       <div
@@ -926,19 +930,19 @@ export default function CoachDashboard() {
                         )}
                       </div>
                       <div>
-                        <CardTitle className="text-white text-lg">{team.name}</CardTitle>
+                        <CardTitle className="text-gray-900 text-lg">{team.name}</CardTitle>
                         <Badge className="bg-blue-600 text-white">{getCategoryLabel(team.category)}</Badge>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {team.captain_name && (
-                      <div className="text-white/80 text-sm">
+                      <div className="text-gray-700/80 text-sm">
                         <strong>Capitán:</strong> {team.captain_name}
                       </div>
                     )}
                     {team.captain_phone && (
-                      <div className="text-white/80 text-sm flex items-center gap-2">
+                      <div className="text-gray-700/80 text-sm flex items-center gap-2">
                         <Phone className="w-4 h-4" />
                         {team.captain_phone}
                       </div>
@@ -947,7 +951,7 @@ export default function CoachDashboard() {
                       <Badge className={team.paid ? "bg-green-600" : "bg-red-600"}>
                         {team.paid ? "Pagado" : "Pendiente"}
                       </Badge>
-                      <Badge variant="outline" className="text-white border-white/20">
+                      <Badge variant="outline" className="text-gray-700 border-gray-300">
                         ID: {team.id}
                       </Badge>
                     </div>
@@ -961,9 +965,9 @@ export default function CoachDashboard() {
                         {payingTeam === team.id ? "Procesando..." : "Pagar Inscripción ($1,600)"}
                       </Button>
                     )}
-                    <div className="text-white/60 text-xs">💡 Los $300 de fianza se pagan en efectivo al Staff</div>
+                    <div className="text-gray-700/60 text-xs">💡 Los $300 de fianza se pagan en efectivo al Staff</div>
                     {team.stats && (
-                      <div className="bg-white/5 rounded p-3 text-sm text-white/80">
+                      <div className="bg-gray-50 rounded p-3 text-sm text-gray-700/80">
                         <div className="grid grid-cols-2 gap-2">
                           <div>Partidos: {team.stats.games_played}</div>
                           <div>Puntos: {team.stats.points}</div>
@@ -978,11 +982,11 @@ export default function CoachDashboard() {
             </div>
 
             {teams.length === 0 && (
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+              <Card className="bg-white border-gray-200">
                 <CardContent className="p-12 text-center">
-                  <Users className="w-16 h-16 text-white/50 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">No tienes equipos asignados</h3>
-                  <p className="text-white/70 mb-4">
+                  <Users className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No tienes equipos asignados</h3>
+                  <p className="text-gray-700 mb-4">
                     {potentialMatches.length > 0
                       ? "Revisa las sugerencias automáticas arriba o crea un nuevo equipo."
                       : "Crea tu primer equipo usando el formulario de arriba."}
@@ -995,9 +999,9 @@ export default function CoachDashboard() {
           {/* Partidos Tab */}
           <TabsContent value="games" className="space-y-6">
             {/* Filtros */}
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+            <Card className="bg-white border-gray-200">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-gray-900 flex items-center gap-2">
                   <Filter className="w-5 h-5" />
                   Filtros de Partidos
                 </CardTitle>
@@ -1005,11 +1009,11 @@ export default function CoachDashboard() {
               <CardContent>
                 <div className="grid md:grid-cols-3 gap-4">
                   <div>
-                    <Label className="text-white">Estado</Label>
+                    <Label className="text-gray-700">Estado</Label>
                     <select
                       value={gameFilter.status}
                       onChange={(e) => setGameFilter({ ...gameFilter, status: e.target.value })}
-                      className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+                      className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                     >
                       <option value="all">Todos</option>
                       <option value="programado">Programados</option>
@@ -1018,11 +1022,11 @@ export default function CoachDashboard() {
                     </select>
                   </div>
                   <div>
-                    <Label className="text-white">Categoría</Label>
+                    <Label className="text-gray-700">Categoría</Label>
                     <select
                       value={gameFilter.category}
                       onChange={(e) => setGameFilter({ ...gameFilter, category: e.target.value })}
-                      className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+                      className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                     >
                       <option value="all">Todas</option>
                       <option value="varonil-gold">Varonil Gold</option>
@@ -1036,11 +1040,11 @@ export default function CoachDashboard() {
                     </select>
                   </div>
                   <div>
-                    <Label className="text-white">Equipo</Label>
+                    <Label className="text-gray-700">Equipo</Label>
                     <select
                       value={gameFilter.team}
                       onChange={(e) => setGameFilter({ ...gameFilter, team: e.target.value })}
-                      className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+                      className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                     >
                       <option value="all">Todos mis equipos</option>
                       {teams.map((team) => (
@@ -1056,9 +1060,9 @@ export default function CoachDashboard() {
 
             {/* Próximos Partidos */}
             {getUpcomingGames().length > 0 && (
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+              <Card className="bg-white border-gray-200">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
+                  <CardTitle className="text-gray-900 flex items-center gap-2">
                     <Calendar className="w-5 h-5" />
                     Próximos Partidos
                   </CardTitle>
@@ -1066,14 +1070,14 @@ export default function CoachDashboard() {
                 <CardContent>
                   <div className="space-y-4">
                     {getUpcomingGames().map((game) => (
-                      <div key={game.id} className="bg-white/5 rounded-lg p-4">
+                      <div key={game.id} className="bg-gray-50 rounded-lg p-4">
                         <div className="flex justify-between items-start mb-2">
-                          <h4 className="text-white font-semibold">
+                          <h4 className="text-gray-900 font-semibold">
                             {game.home_team} vs {game.away_team}
                           </h4>
                           <Badge className="bg-blue-600 text-white">{getCategoryLabel(game.category)}</Badge>
                         </div>
-                        <div className="text-white/80 text-sm space-y-1">
+                        <div className="text-gray-600 text-sm space-y-1">
                           <div className="flex items-center gap-2">
                             <Calendar className="w-4 h-4" />
                             {new Date(game.game_date).toLocaleDateString("es-ES")}
@@ -1096,9 +1100,9 @@ export default function CoachDashboard() {
 
             {/* Resultados Recientes */}
             {getRecentResults().length > 0 && (
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+              <Card className="bg-white border-gray-200">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
+                  <CardTitle className="text-gray-900 flex items-center gap-2">
                     <Trophy className="w-5 h-5" />
                     Resultados Recientes
                   </CardTitle>
@@ -1106,19 +1110,19 @@ export default function CoachDashboard() {
                 <CardContent>
                   <div className="space-y-4">
                     {getRecentResults().map((game) => (
-                      <div key={game.id} className="bg-white/5 rounded-lg p-4">
+                      <div key={game.id} className="bg-gray-50 rounded-lg p-4">
                         <div className="flex justify-between items-start mb-2">
-                          <h4 className="text-white font-semibold">
+                          <h4 className="text-gray-900 font-semibold">
                             {game.home_team} vs {game.away_team}
                           </h4>
                           <Badge className="bg-green-600 text-white">Finalizado</Badge>
                         </div>
                         <div className="text-center mb-2">
-                          <div className="text-2xl font-bold text-white">
+                          <div className="text-2xl font-bold text-gray-900">
                             {game.home_score} - {game.away_score}
                           </div>
                         </div>
-                        <div className="text-white/80 text-sm text-center">
+                        <div className="text-gray-600 text-sm text-center">
                           {new Date(game.game_date).toLocaleDateString("es-ES")} - {game.venue}
                         </div>
                       </div>
@@ -1131,9 +1135,9 @@ export default function CoachDashboard() {
             {/* Todos los Partidos Filtrados */}
             <div className="grid md:grid-cols-2 gap-6">
               {getMyGames().map((game) => (
-                <Card key={game.id} className="bg-white/10 backdrop-blur-sm border-white/20">
+                <Card key={game.id} className="bg-white border-gray-200">
                   <CardHeader>
-                    <CardTitle className="text-white text-lg">
+                    <CardTitle className="text-gray-900 text-lg">
                       {game.home_team} vs {game.away_team}
                     </CardTitle>
                     <div className="flex gap-2 flex-wrap">
@@ -1160,12 +1164,12 @@ export default function CoachDashboard() {
                   <CardContent className="space-y-3">
                     {game.home_score !== null && game.away_score !== null && (
                       <div className="text-center">
-                        <div className="text-3xl font-bold text-white">
+                        <div className="text-3xl font-bold text-gray-900">
                           {game.home_score} - {game.away_score}
                         </div>
                       </div>
                     )}
-                    <div className="text-white/80 text-sm space-y-1">
+                    <div className="text-gray-600 text-sm space-y-1">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
                         {new Date(game.game_date).toLocaleDateString("es-ES")}
@@ -1185,11 +1189,11 @@ export default function CoachDashboard() {
             </div>
 
             {getMyGames().length === 0 && (
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+              <Card className="bg-white border-gray-200">
                 <CardContent className="p-12 text-center">
-                  <Trophy className="w-16 h-16 text-white/50 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">No hay partidos</h3>
-                  <p className="text-white/70">
+                  <Trophy className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay partidos</h3>
+                  <p className="text-gray-700">
                     {teams.length === 0
                       ? "Primero asigna o crea un equipo para ver sus partidos."
                       : "No hay partidos que coincidan con los filtros seleccionados."}
@@ -1203,9 +1207,9 @@ export default function CoachDashboard() {
           <TabsContent value="players" className="space-y-6">
             {/* Crear Jugador */}
             {teams.length > 0 && (
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+              <Card className="bg-white border-gray-200">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
+                  <CardTitle className="text-gray-900 flex items-center gap-2">
                     <Plus className="w-5 h-5" />
                     Agregar Nuevo Jugador
                   </CardTitle>
@@ -1213,33 +1217,33 @@ export default function CoachDashboard() {
                 <CardContent>
                   <form onSubmit={createPlayer} className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-white">Nombre del Jugador</Label>
+                      <Label className="text-gray-700">Nombre del Jugador</Label>
                       <Input
                         value={playerForm.name}
                         onChange={(e) => setPlayerForm({ ...playerForm, name: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                         placeholder="Nombre completo"
                         required
                       />
                     </div>
                     <div>
-                      <Label className="text-white">Número de Jersey</Label>
+                      <Label className="text-gray-700">Número de Jersey</Label>
                       <Input
                         type="number"
                         value={playerForm.jersey_number}
                         onChange={(e) => setPlayerForm({ ...playerForm, jersey_number: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white"
+                        className="bg-white border-gray-300 text-gray-900"
                         min="0"
                         max="99"
                         required
                       />
                     </div>
                     <div>
-                      <Label className="text-white">Posición</Label>
+                      <Label className="text-gray-700">Posición</Label>
                       <select
                         value={playerForm.position}
                         onChange={(e) => setPlayerForm({ ...playerForm, position: e.target.value })}
-                        className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+                        className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                         required
                       >
                         <option value="">Seleccionar posición</option>
@@ -1255,11 +1259,11 @@ export default function CoachDashboard() {
                       </select>
                     </div>
                     <div>
-                      <Label className="text-white">Equipo</Label>
+                      <Label className="text-gray-700">Equipo</Label>
                       <select
                         value={playerForm.team_id}
                         onChange={(e) => setPlayerForm({ ...playerForm, team_id: e.target.value })}
-                        className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+                        className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                         required
                       >
                         <option value="">Seleccionar equipo</option>
@@ -1271,19 +1275,19 @@ export default function CoachDashboard() {
                       </select>
                     </div>
                     <div className="md:col-span-2">
-                      <Label className="text-white flex items-center gap-2">
+                      <Label className="text-gray-700 flex items-center gap-2">
                         <ImageIcon className="w-4 h-4" />
                         URL de la Foto del Jugador (opcional)
                       </Label>
                       <Input
                         value={playerForm.photo_url}
                         onChange={(e) => setPlayerForm({ ...playerForm, photo_url: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                         placeholder="https://ejemplo.com/foto-jugador.jpg"
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white">
+                      <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                         <Plus className="w-4 h-4 mr-2" />
                         Agregar Jugador
                       </Button>
@@ -1298,84 +1302,89 @@ export default function CoachDashboard() {
               {teams.map((team) => {
                 const teamPlayers = getMyPlayers().filter((player) => player.team_id === team.id)
 
-                if (teamPlayers.length === 0) return null
-
                 return (
-                  <div key={team.id} className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-                        <Users className="w-4 h-4 text-white" />
+                  <div key={team.id}>
+                    <div className="mb-4">
+                      <div
+                        className="rounded-lg p-4 text-white"
+                        style={{ background: `linear-gradient(to right, ${team.color1}, ${team.color2})` }}
+                      >
+                        <h3 className="text-xl font-bold flex items-center gap-2">
+                          <Users className="w-6 h-6" />
+                          {team.name}
+                          <Badge className="bg-white/20 text-white ml-2">{teamPlayers.length} jugadores</Badge>
+                        </h3>
                       </div>
-                      <h3 className="text-xl font-bold text-white">{team.name}</h3>
-                      <Badge className="bg-blue-600/20 text-blue-200 border-blue-400">
-                        {teamPlayers.length} jugador{teamPlayers.length !== 1 ? "es" : ""}
-                      </Badge>
                     </div>
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {teamPlayers.map((player) => (
-                        <Card key={player.id} className="bg-white/10 backdrop-blur-sm border-white/20">
-                          <CardContent className="p-6">
-                            <div className="text-center">
-                              <div className="w-16 h-16 mx-auto mb-4 rounded-full overflow-hidden">
-                                {player.photo_url ? (
-                                  <img
-                                    src={player.photo_url || "/placeholder.svg"}
-                                    alt={player.name}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement
-                                      target.style.display = "none"
-                                      const parent = target.parentElement
-                                      if (parent) {
-                                        parent.innerHTML = `<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl">#${player.jersey_number}</div>`
-                                      }
-                                    }}
-                                  />
-                                ) : (
-                                  <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                                    #{player.jersey_number}
-                                  </div>
-                                )}
-                              </div>
-                              <h3 className="text-lg font-semibold text-white mb-2">{player.name}</h3>
-                              <Badge className="bg-blue-600 text-white mb-2">{player.position}</Badge>
-                              <p className="text-white/70 text-sm">#{player.jersey_number}</p>
+                    {teamPlayers.length > 0 ? (
+                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {teamPlayers.map((player) => (
+                          <Card key={player.id} className="bg-white border-gray-200 hover:shadow-lg transition-all">
+                            <CardContent className="p-6">
+                              <div className="text-center">
+                                <div className="w-16 h-16 mx-auto mb-4 rounded-full overflow-hidden">
+                                  {player.photo_url ? (
+                                    <img
+                                      src={player.photo_url || "/placeholder.svg"}
+                                      alt={player.name}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement
+                                        target.style.display = "none"
+                                        const parent = target.parentElement
+                                        if (parent) {
+                                          parent.innerHTML = `<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl">#${player.jersey_number}</div>`
+                                        }
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                                      #{player.jersey_number}
+                                    </div>
+                                  )}
+                                </div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">{player.name}</h3>
+                                <Badge className="bg-blue-600 text-white mb-2">{player.position}</Badge>
+                                <p className="text-gray-600 text-sm">#{player.jersey_number}</p>
 
-                              <div className="flex justify-center gap-2 mt-4">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="bg-blue-600/20 border-blue-400 text-blue-200 hover:bg-blue-600/40"
-                                  onClick={() => handleEditPlayer(player)}
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="bg-red-600/20 border-red-400 text-red-200 hover:bg-red-600/40"
-                                  onClick={() => handleDeletePlayer(player.id)}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
+                                <div className="flex justify-center gap-2 mt-4">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="bg-blue-600/20 border-blue-400 text-blue-200 hover:bg-blue-600/40"
+                                    onClick={() => handleEditPlayer(player)}
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="bg-red-600/20 border-red-400 text-red-200 hover:bg-red-600/40"
+                                    onClick={() => handleDeletePlayer(player.id)}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
                               </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center p-4">No hay jugadores en este equipo.</div>
+                    )}
                   </div>
                 )
               })}
             </div>
 
             {getMyPlayers().length === 0 && (
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+              <Card className="bg-white border-gray-200">
                 <CardContent className="p-12 text-center">
-                  <Users className="w-16 h-16 text-white/50 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">No tienes jugadores</h3>
-                  <p className="text-white/70">
+                  <Users className="w-16 h-16 text-gray-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No tienes jugadores</h3>
+                  <p className="text-gray-700">
                     {teams.length === 0
                       ? "Primero asigna o crea un equipo para poder agregar jugadores."
                       : "Agrega jugadores a tus equipos usando el formulario de arriba."}
