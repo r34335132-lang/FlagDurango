@@ -842,6 +842,25 @@ export default function CoachDashboard() {
                     </p>
                   </div>
                   <div>
+                    <Label className="text-gray-700">Categoría</Label>
+                    <select
+                      value={teamForm.category}
+                      onChange={(e) => setTeamForm({ ...teamForm, category: e.target.value })}
+                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Seleccionar categoría</option>
+                      <option value="varonil-gold">Varonil Gold</option>
+                      <option value="varonil-silver">Varonil Silver</option>
+                      <option value="femenil-gold">Femenil Gold</option>
+                      <option value="femenil-silver">Femenil Silver</option>
+                      <option value="femenil-cooper">Femenil Cooper</option>
+                      <option value="mixto-gold">Mixto Gold</option>
+                      <option value="mixto-silver">Mixto Silver</option>
+                      <option value="teens">Teens</option>
+                    </select>
+                  </div>
+                  <div>
                     <Label className="text-gray-700">Nombre del Capitán</Label>
                     <Input
                       value={teamForm.captain_name}
