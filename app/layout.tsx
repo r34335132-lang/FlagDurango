@@ -1,26 +1,68 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
 import { Navigation } from "@/components/navigation"
 import { NavGuard } from "@/components/nav-guard"
-import { PWAInstall } from "@/components/pwa-install"
-import Script from "next/script"
-
-const inter = Inter({ subsets: ["latin"] })
+import PWAInstall from "@/components/pwa-install"
+import NotificationManager from "@/components/notification-manager"
 
 export const metadata: Metadata = {
-  title: "Liga Flag Durango",
-  description: "Liga oficial de flag football en Durango - 20 años haciendo historia",
+  title: "Liga Flag Durango - 20 Años Haciendo Historia",
+  description: "Liga oficial de flag football en Durango. 20 años promoviendo el deporte y la competencia sana.",
+  keywords: ["flag football", "durango", "liga", "deporte", "competencia"],
+  authors: [{ name: "Liga Flag Durango" }],
+  creator: "Liga Flag Durango",
+  publisher: "Liga Flag Durango",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL("https://ligaflagdurango.com"),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Liga Flag Durango - 20 Años Haciendo Historia",
+    description: "Liga oficial de flag football en Durango. 20 años promoviendo el deporte y la competencia sana.",
+    url: "https://ligaflagdurango.com",
+    siteName: "Liga Flag Durango",
+    images: [
+      {
+        url: "/icons/icon-512x512.png",
+        width: 512,
+        height: 512,
+        alt: "Liga Flag Durango Logo",
+      },
+    ],
+    locale: "es_MX",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Liga Flag Durango - 20 Años Haciendo Historia",
+    description: "Liga oficial de flag football en Durango. 20 años promoviendo el deporte y la competencia sana.",
+    images: ["/icons/icon-512x512.png"],
+  },
   manifest: "/manifest.json",
   icons: {
     icon: [
-      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.ico" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/icons/icon-192x192.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Liga Flag Durango",
+  },
+  applicationName: "Liga Flag Durango",
+  category: "sports",
+  generator: "v0.dev",
 }
 
 export const viewport: Viewport = {
@@ -28,62 +70,55 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#3b82f6",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#3b82f6" },
+    { media: "(prefers-color-scheme: dark)", color: "#1e40af" },
+  ],
+  colorScheme: "light",
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
       <head>
         <link rel="manifest" href="/manifest.json" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Liga Flag Durango" />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <meta name="application-name" content="Liga Flag Durango" />
         <meta name="msapplication-TileColor" content="#3b82f6" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
-      <body className={inter.className}>
+      <body className="min-h-screen bg-white antialiased">
+        {/* Navbar global blanca. NavGuard la oculta en dashboards */}
         <NavGuard>
           <Navigation />
-          {children}
-          <PWAInstall />
         </NavGuard>
+        <main>{children}</main>
 
-        <Script id="pwa-init" strategy="afterInteractive">
-          {`
-            if ('serviceWorker' in navigator) {
-              window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js')
-                  .then(function(registration) {
-                    console.log('SW registered: ', registration);
-                  })
-                  .catch(function(registrationError) {
-                    console.log('SW registration failed: ', registrationError);
-                  });
-              });
-            }
-          `}
-        </Script>
+        {/* PWA Components */}
+        <PWAInstall />
+        <NotificationManager />
 
-        <Script id="notification-init" strategy="afterInteractive">
-          {`
-            window.addEventListener('load', async function() {
-              if ('Notification' in window && 'serviceWorker' in navigator) {
-                try {
-                  const { notificationService } = await import('/lib/notifications.js');
-                  await notificationService.init();
-                } catch (error) {
-                  console.error('Failed to initialize notifications:', error);
-                }
+        {/* Service Worker Registration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                      console.log('SW registered: ', registration);
+                    })
+                    .catch(function(registrationError) {
+                      console.log('SW registration failed: ', registrationError);
+                    });
+                });
               }
-            });
-          `}
-        </Script>
+            `,
+          }}
+        />
       </body>
     </html>
   )

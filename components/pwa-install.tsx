@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Download, X } from "lucide-react"
+import { X, Download, Smartphone } from "lucide-react"
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[]
@@ -14,40 +13,40 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>
 }
 
-export function PWAInstall() {
+function PWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
-  const [showInstallBanner, setShowInstallBanner] = useState(false)
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [isIOS, setIsIOS] = useState(false)
   const [isStandalone, setIsStandalone] = useState(false)
 
   useEffect(() => {
-    // Check if running in standalone mode
-    const isStandaloneMode = window.matchMedia("(display-mode: standalone)").matches
-    setIsStandalone(isStandaloneMode)
-
-    // Check if iOS
+    // Check if it's iOS
     const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
     setIsIOS(iOS)
 
-    // Listen for beforeinstallprompt event
+    // Check if app is already installed
+    const standalone = window.matchMedia("(display-mode: standalone)").matches
+    setIsStandalone(standalone)
+
+    // Listen for the beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
-      setShowInstallBanner(true)
+      setShowInstallPrompt(true)
     }
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
 
-    // Show banner for iOS users (since they don't get beforeinstallprompt)
-    if (iOS && !isStandaloneMode) {
-      const hasSeenIOSPrompt = localStorage.getItem("ios-install-prompt-seen")
-      if (!hasSeenIOSPrompt) {
-        setShowInstallBanner(true)
+    // Show install prompt after 30 seconds if not installed
+    const timer = setTimeout(() => {
+      if (!standalone && !iOS) {
+        setShowInstallPrompt(true)
       }
-    }
+    }, 30000)
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
+      clearTimeout(timer)
     }
   }, [])
 
@@ -63,56 +62,71 @@ export function PWAInstall() {
       }
 
       setDeferredPrompt(null)
-      setShowInstallBanner(false)
+      setShowInstallPrompt(false)
     }
   }
 
   const handleDismiss = () => {
-    setShowInstallBanner(false)
-    if (isIOS) {
-      localStorage.setItem("ios-install-prompt-seen", "true")
-    }
+    setShowInstallPrompt(false)
+    // Don't show again for 24 hours
+    localStorage.setItem("pwa-install-dismissed", Date.now().toString())
   }
 
-  // Don't show if already installed or not supported
-  if (isStandalone || !showInstallBanner) {
+  // Don't show if already installed or dismissed recently
+  if (isStandalone) return null
+
+  const dismissedTime = localStorage.getItem("pwa-install-dismissed")
+  if (dismissedTime && Date.now() - Number.parseInt(dismissedTime) < 24 * 60 * 60 * 1000) {
     return null
   }
 
+  if (!showInstallPrompt) return null
+
   return (
     <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:max-w-sm">
-      <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0 shadow-lg">
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h3 className="font-bold text-sm mb-1">¡Instala Liga Flag Durango!</h3>
-              <p className="text-xs text-blue-100 mb-3">
-                {isIOS
-                  ? "Toca el botón de compartir y selecciona 'Añadir a pantalla de inicio'"
-                  : "Accede más rápido y recibe notificaciones de partidos"}
-              </p>
-              {!isIOS && (
-                <Button
-                  onClick={handleInstallClick}
-                  size="sm"
-                  className="bg-white text-blue-600 hover:bg-blue-50 text-xs"
-                >
-                  <Download className="w-3 h-3 mr-1" />
-                  Instalar App
-                </Button>
-              )}
-            </div>
-            <Button
-              onClick={handleDismiss}
-              size="sm"
-              variant="ghost"
-              className="text-white hover:bg-white/20 p-1 h-auto"
-            >
-              <X className="w-4 h-4" />
+      <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center space-x-2">
+            <Smartphone className="w-5 h-5 text-blue-600" />
+            <h3 className="font-semibold text-gray-900">Instalar App</h3>
+          </div>
+          <button onClick={handleDismiss} className="text-gray-400 hover:text-gray-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <p className="text-sm text-gray-600 mb-4">
+          {isIOS
+            ? "Instala Liga Flag Durango en tu pantalla de inicio para acceso rápido."
+            : "Instala nuestra app para una mejor experiencia y acceso offline."}
+        </p>
+
+        {isIOS ? (
+          <div className="text-sm text-gray-600">
+            <p className="mb-2">Para instalar:</p>
+            <ol className="list-decimal list-inside space-y-1">
+              <li>
+                Toca el botón de compartir <span className="inline-block">⎋</span>
+              </li>
+              <li>
+                Selecciona "Añadir a pantalla de inicio" <span className="inline-block">➕</span>
+              </li>
+            </ol>
+          </div>
+        ) : (
+          <div className="flex space-x-2">
+            <Button onClick={handleInstallClick} className="flex-1 bg-blue-600 hover:bg-blue-700" size="sm">
+              <Download className="w-4 h-4 mr-2" />
+              Instalar
+            </Button>
+            <Button onClick={handleDismiss} variant="outline" size="sm">
+              Ahora no
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
     </div>
   )
 }
+
+export default PWAInstall
