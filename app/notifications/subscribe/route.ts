@@ -1,31 +1,32 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { supabase } from "@/lib/supabase-admin"
 
 export async function POST(request: NextRequest) {
   try {
-    const { subscription } = await request.json()
+    const subscription = await request.json()
 
-    if (!subscription) {
-      return NextResponse.json({ success: false, message: "Subscription is required" }, { status: 400 })
+    // Save subscription to database
+    const { error } = await supabase.from("push_subscriptions").upsert(
+      {
+        endpoint: subscription.endpoint,
+        p256dh: subscription.keys.p256dh,
+        auth: subscription.keys.auth,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      {
+        onConflict: "endpoint",
+      },
+    )
+
+    if (error) {
+      console.error("Error saving subscription:", error)
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
 
-    // In a real application, you would save this subscription to your database
-    // For now, we'll just log it and return success
-    console.log("New push subscription received:", {
-      endpoint: subscription.endpoint,
-      keys: subscription.keys,
-    })
-
-    // Here you would typically:
-    // 1. Save the subscription to your database
-    // 2. Associate it with a user if authenticated
-    // 3. Store metadata like creation date, user agent, etc.
-
-    return NextResponse.json({
-      success: true,
-      message: "Successfully subscribed to notifications",
-    })
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error subscribing to notifications:", error)
-    return NextResponse.json({ success: false, message: "Internal server error" }, { status: 500 })
+    console.error("Error in subscribe route:", error)
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 })
   }
 }

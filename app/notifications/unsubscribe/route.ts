@@ -1,29 +1,25 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { supabase } from "@/lib/supabase-admin"
 
 export async function POST(request: NextRequest) {
   try {
-    const { subscription } = await request.json()
+    const { endpoint } = await request.json()
 
-    if (!subscription) {
-      return NextResponse.json({ success: false, message: "Subscription is required" }, { status: 400 })
+    if (!endpoint) {
+      return NextResponse.json({ success: false, error: "Endpoint is required" }, { status: 400 })
     }
 
-    // In a real application, you would remove this subscription from your database
-    console.log("Unsubscribing from notifications:", {
-      endpoint: subscription.endpoint,
-    })
+    // Remove subscription from database
+    const { error } = await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint)
 
-    // Here you would typically:
-    // 1. Find the subscription in your database by endpoint
-    // 2. Remove it or mark it as inactive
-    // 3. Clean up any associated data
+    if (error) {
+      console.error("Error removing subscription:", error)
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    }
 
-    return NextResponse.json({
-      success: true,
-      message: "Successfully unsubscribed from notifications",
-    })
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error unsubscribing from notifications:", error)
-    return NextResponse.json({ success: false, message: "Internal server error" }, { status: 500 })
+    console.error("Error in unsubscribe route:", error)
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 })
   }
 }
