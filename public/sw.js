@@ -52,7 +52,7 @@ self.addEventListener("push", (event) => {
   const options = {
     body: event.data ? event.data.text() : "Nueva notificación de Liga Flag Durango",
     icon: "/icons/icon-192x192.png",
-    badge: "/icons/icon-96x96.png",
+    badge: "/icons/icon-72x72.png",
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -62,12 +62,12 @@ self.addEventListener("push", (event) => {
       {
         action: "explore",
         title: "Ver más",
-        icon: "/icons/icon-96x96.png",
+        icon: "/icons/icon-192x192.png",
       },
       {
         action: "close",
         title: "Cerrar",
-        icon: "/icons/icon-96x96.png",
+        icon: "/icons/icon-192x192.png",
       },
     ],
   }
@@ -80,13 +80,10 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close()
 
   if (event.action === "explore") {
-    // Open the app
-    event.waitUntil(clients.openWindow("/"))
+    event.waitUntil(clients.openWindow("/partidos"))
   } else if (event.action === "close") {
-    // Just close the notification
     event.notification.close()
   } else {
-    // Default action - open the app
     event.waitUntil(clients.openWindow("/"))
   }
 })
@@ -101,12 +98,9 @@ self.addEventListener("sync", (event) => {
 function doBackgroundSync() {
   return fetch("/api/sync")
     .then((response) => {
-      return response.json()
-    })
-    .then((data) => {
-      console.log("Background sync completed:", data)
+      console.log("Background sync completed")
     })
     .catch((error) => {
-      console.error("Background sync failed:", error)
+      console.log("Background sync failed:", error)
     })
 }

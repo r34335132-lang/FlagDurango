@@ -1,6 +1,6 @@
 {
   "name": "Liga Flag Durango",
-  "short_name": "Liga Flag",
+  "short_name": "Flag Durango",
   "description": "Liga oficial de flag football en Durango. 20 años promoviendo el deporte y la competencia sana.",
   "start_url": "/",
   "display": "standalone",
@@ -100,12 +100,10 @@
     },
     {
       "src": "/images/screenshot-narrow.png",
-      "sizes": "720x1280",
+      "sizes": "750x1334",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Liga Flag Durango - Vista móvil"
     }
-  ],
-  "related_applications": [],
-  "prefer_related_applications": false
+  ]
 }
