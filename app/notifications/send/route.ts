@@ -7,17 +7,24 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env
 // Configure web-push with VAPID keys
 webpush.setVapidDetails(
   "mailto:admin@ligaflagdurango.com",
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-    "BEl62iUYgUivxIkv69yViEuiBIa40HI80NM9f53NlqKOYWsSBhjuXPiQfzuVAl9Hs4HcKSVdJiKz0g5JwQw5Y8g",
-  process.env.VAPID_PRIVATE_KEY || "your-private-key-here",
+  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+  process.env.VAPID_PRIVATE_KEY!,
 )
 
 export async function POST(request: NextRequest) {
   try {
     const { title, body, url, gameId } = await request.json()
 
+    console.log("Send notification request:", { title, body, url, gameId })
+
     if (!title || !body) {
       return NextResponse.json({ success: false, error: "Title and body are required" }, { status: 400 })
+    }
+
+    // Verificar configuración VAPID
+    if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+      console.error("VAPID keys not configured")
+      return NextResponse.json({ success: false, error: "VAPID keys not configured" }, { status: 500 })
     }
 
     // Get all active subscriptions
@@ -28,8 +35,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
 
+    console.log(`Found ${subscriptions?.length || 0} subscriptions`)
+
     if (!subscriptions || subscriptions.length === 0) {
-      return NextResponse.json({ success: true, message: "No active subscriptions" })
+      return NextResponse.json({
+        success: true,
+        message: "No active subscriptions found",
+      })
     }
 
     // Prepare notification payload
@@ -51,8 +63,10 @@ export async function POST(request: NextRequest) {
         },
       ],
       requireInteraction: true,
-      tag: `game-${gameId}`,
+      tag: gameId ? `game-${gameId}` : "notification",
     })
+
+    console.log("Notification payload:", payload)
 
     // Send notifications to all subscriptions
     const sendPromises = subscriptions.map(async (subscription) => {
@@ -65,13 +79,16 @@ export async function POST(request: NextRequest) {
           },
         }
 
+        console.log("Sending to endpoint:", subscription.endpoint.substring(0, 50) + "...")
+
         await webpush.sendNotification(pushSubscription, payload)
         return { success: true, endpoint: subscription.endpoint }
-      } catch (error) {
+      } catch (error: any) {
         console.error(`Failed to send notification to ${subscription.endpoint}:`, error)
 
         // If subscription is invalid, remove it from database
         if (error.statusCode === 410 || error.statusCode === 404) {
+          console.log("Removing invalid subscription:", subscription.endpoint)
           await supabase.from("push_subscriptions").delete().eq("endpoint", subscription.endpoint)
         }
 
@@ -82,6 +99,8 @@ export async function POST(request: NextRequest) {
     const results = await Promise.all(sendPromises)
     const successful = results.filter((r) => r.success).length
     const failed = results.filter((r) => !r.success).length
+
+    console.log(`Notification results: ${successful} successful, ${failed} failed`)
 
     return NextResponse.json({
       success: true,

@@ -2,46 +2,172 @@
 
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Bell, BellOff, X } from "lucide-react"
+import { Bell, BellOff, AlertCircle } from "lucide-react"
 
-export default function NotificationManager() {
-  const [permission, setPermission] = useState<NotificationPermission>("default")
-  const [isSubscribed, setIsSubscribed] = useState(false)
-  const [showPrompt, setShowPrompt] = useState(false)
+export function NotificationManager() {
+  const [isSupported, setIsSupported] = useState(false)
+  const [subscription, setSubscription] = useState<PushSubscription | null>(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Check if running in browser
-    if (typeof window === "undefined" || !("Notification" in window)) return
-
-    // Check current permission
-    setPermission(Notification.permission)
-
-    // Check if already subscribed
-    checkSubscription()
-
-    // Show prompt if permission is default and not dismissed recently
-    if (Notification.permission === "default") {
-      const dismissed = localStorage.getItem("notification-prompt-dismissed")
-      const dismissedTime = dismissed ? Number.parseInt(dismissed) : 0
-      const daysSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60 * 24)
-
-      if (daysSinceDismissed > 1) {
-        setTimeout(() => setShowPrompt(true), 3000) // Show after 3 seconds
-      }
+    if (typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window) {
+      setIsSupported(true)
+      checkSubscription()
+      registerServiceWorker()
     }
   }, [])
 
-  const checkSubscription = async () => {
-    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return
+  const registerServiceWorker = async () => {
+    try {
+      const registration = await navigator.serviceWorker.register("/sw.js")
+      console.log("Service Worker registered:", registration)
+    } catch (error) {
+      console.error("Service Worker registration failed:", error)
+    }
+  }
 
+  const checkSubscription = async () => {
     try {
       const registration = await navigator.serviceWorker.ready
-      const subscription = await registration.pushManager.getSubscription()
-      setIsSubscribed(!!subscription)
+      const sub = await registration.pushManager.getSubscription()
+      setSubscription(sub)
+      console.log("Current subscription:", sub)
     } catch (error) {
       console.error("Error checking subscription:", error)
+      setError("Error al verificar suscripción")
+    }
+  }
+
+  const subscribeUser = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Solicitar permiso para notificaciones
+      const permission = await Notification.requestPermission()
+      console.log("Notification permission:", permission)
+
+      if (permission !== "granted") {
+        throw new Error("Permiso de notificaciones denegado")
+      }
+
+      const registration = await navigator.serviceWorker.ready
+      console.log("Service Worker ready:", registration)
+
+      const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+      console.log("VAPID Public Key:", publicKey)
+
+      if (!publicKey) {
+        throw new Error("VAPID public key no configurada")
+      }
+
+      const sub = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      })
+
+      console.log("New subscription:", sub)
+
+      const response = await fetch("/api/notifications/subscribe", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(sub.toJSON()),
+      })
+
+      const data = await response.json()
+      console.log("Subscribe response:", data)
+
+      if (data.success) {
+        setSubscription(sub)
+
+        // Enviar notificación de bienvenida
+        await fetch("/api/notifications/send", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            title: "🏈 Liga Flag Durango",
+            body: "¡Notificaciones activadas! Te avisaremos de partidos en vivo y resultados.",
+            url: "/",
+          }),
+        })
+
+        alert("¡Notificaciones activadas correctamente!")
+      } else {
+        throw new Error(data.error || "Error al activar notificaciones")
+      }
+    } catch (error: any) {
+      console.error("Error subscribing:", error)
+      setError(error.message)
+      alert(`Error: ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const unsubscribeUser = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      if (subscription) {
+        await subscription.unsubscribe()
+
+        const response = await fetch("/api/notifications/unsubscribe", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ endpoint: subscription.endpoint }),
+        })
+
+        const data = await response.json()
+
+        if (data.success) {
+          setSubscription(null)
+          alert("Notificaciones desactivadas correctamente.")
+        } else {
+          throw new Error(data.error || "Error al desactivar notificaciones")
+        }
+      }
+    } catch (error: any) {
+      console.error("Error unsubscribing:", error)
+      setError(error.message)
+      alert(`Error: ${error.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const testNotification = async () => {
+    try {
+      const response = await fetch("/api/notifications/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: "🧪 Notificación de Prueba",
+          body: "Esta es una notificación de prueba del sistema Liga Flag Durango",
+          url: "/partidos",
+        }),
+      })
+
+      const data = await response.json()
+      console.log("Test notification response:", data)
+
+      if (data.success) {
+        alert("Notificación de prueba enviada!")
+      } else {
+        alert(`Error enviando notificación: ${data.error}`)
+      }
+    } catch (error) {
+      console.error("Error sending test notification:", error)
+      alert("Error enviando notificación de prueba")
     }
   }
 
@@ -56,178 +182,52 @@ export default function NotificationManager() {
     return outputArray
   }
 
-  const subscribeToNotifications = async () => {
-    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return
-
-    setLoading(true)
-    try {
-      // Request permission first
-      const permission = await Notification.requestPermission()
-      setPermission(permission)
-
-      if (permission !== "granted") {
-        alert("Para recibir notificaciones, necesitas permitir las notificaciones en tu navegador.")
-        setLoading(false)
-        return
-      }
-
-      // Get service worker registration
-      const registration = await navigator.serviceWorker.ready
-
-      // Subscribe to push notifications
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(
-          "BEl62iUYgUivxIkv69yViEuiBIa40HI80NM9f53NlqKOYWsSBhjuXPiQfzuVAl9Hs4HcKSVdJiKz0g5JwQw5Y8g",
-        ),
-      })
-
-      // Send subscription to server
-      const response = await fetch("/api/notifications/subscribe", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(subscription),
-      })
-
-      const result = await response.json()
-
-      if (response.ok && result.success) {
-        setIsSubscribed(true)
-        setShowPrompt(false)
-
-        // Show test notification
-        new Notification("¡Notificaciones activadas!", {
-          body: "Ahora recibirás notificaciones de partidos en vivo y resultados.",
-          icon: "/icons/icon-192x192.png",
-          tag: "welcome-notification",
-        })
-      } else {
-        console.error("Failed to subscribe:", result)
-        alert("Error al activar notificaciones. Inténtalo de nuevo.")
-      }
-    } catch (error) {
-      console.error("Error subscribing to notifications:", error)
-      alert("Error al activar notificaciones. Verifica tu conexión e inténtalo de nuevo.")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const unsubscribeFromNotifications = async () => {
-    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return
-
-    setLoading(true)
-    try {
-      const registration = await navigator.serviceWorker.ready
-      const subscription = await registration.pushManager.getSubscription()
-
-      if (subscription) {
-        // Unsubscribe from push notifications
-        const unsubscribed = await subscription.unsubscribe()
-
-        if (unsubscribed) {
-          // Remove subscription from server
-          const response = await fetch("/api/notifications/unsubscribe", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ endpoint: subscription.endpoint }),
-          })
-
-          const result = await response.json()
-
-          if (response.ok && result.success) {
-            setIsSubscribed(false)
-            alert("Notificaciones desactivadas correctamente.")
-          } else {
-            console.error("Failed to unsubscribe from server:", result)
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error unsubscribing from notifications:", error)
-      alert("Error al desactivar notificaciones.")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleDismiss = () => {
-    setShowPrompt(false)
-    localStorage.setItem("notification-prompt-dismissed", Date.now().toString())
-  }
-
-  // Don't render on server or if notifications not supported
-  if (typeof window === "undefined" || !("Notification" in window)) {
-    return null
-  }
-
-  // Show permission prompt
-  if (showPrompt && permission === "default") {
+  if (!isSupported) {
     return (
-      <div className="fixed top-4 left-4 right-4 z-50 md:left-auto md:right-4 md:max-w-sm">
-        <Card className="bg-gradient-to-r from-orange-500 to-red-500 text-white border-0 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <h3 className="font-bold">¡Mantente al día!</h3>
-                <p className="text-sm text-orange-100">Recibe notificaciones de partidos en vivo y resultados</p>
-              </div>
-              <Button variant="ghost" size="sm" onClick={handleDismiss} className="text-white hover:bg-white/20">
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={subscribeToNotifications}
-                disabled={loading}
-                className="flex-1 bg-white text-orange-600 hover:bg-orange-50"
-              >
-                <Bell className="w-4 h-4 mr-2" />
-                {loading ? "Activando..." : "Activar"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="fixed bottom-4 right-4 z-50">
+        <div className="bg-gray-500 text-white px-4 py-2 rounded-lg text-sm">Notificaciones no soportadas</div>
       </div>
     )
   }
 
-  // Show subscription status in bottom corner (small)
-  if (permission === "granted") {
-    return (
-      <div className="fixed bottom-20 right-4 z-40">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={isSubscribed ? unsubscribeFromNotifications : subscribeToNotifications}
-          disabled={loading}
-          className={`bg-white/90 backdrop-blur-sm ${
-            isSubscribed
-              ? "text-green-600 border-green-200 hover:bg-green-50"
-              : "text-gray-600 border-gray-200 hover:bg-gray-50"
-          }`}
-        >
-          {loading ? (
-            "..."
-          ) : isSubscribed ? (
-            <>
-              <Bell className="w-4 h-4 mr-1" />
-              Activas
-            </>
-          ) : (
-            <>
-              <BellOff className="w-4 h-4 mr-1" />
-              Inactivas
-            </>
-          )}
-        </Button>
-      </div>
-    )
-  }
+  return (
+    <div className="fixed bottom-4 right-4 z-50 space-y-2">
+      {error && (
+        <div className="bg-red-500 text-white px-3 py-2 rounded-lg text-sm flex items-center">
+          <AlertCircle className="w-4 h-4 mr-2" />
+          {error}
+        </div>
+      )}
 
-  return null
+      <div className="flex flex-col space-y-2">
+        {subscription ? (
+          <>
+            <Button
+              onClick={unsubscribeUser}
+              disabled={loading}
+              variant="outline"
+              size="sm"
+              className="bg-red-500 hover:bg-red-600 text-white border-red-500"
+            >
+              <BellOff className="w-4 h-4 mr-2" />
+              {loading ? "..." : "Desactivar"}
+            </Button>
+            <Button onClick={testNotification} size="sm" className="bg-blue-500 hover:bg-blue-600 text-white">
+              🧪 Probar
+            </Button>
+          </>
+        ) : (
+          <Button
+            onClick={subscribeUser}
+            disabled={loading}
+            size="sm"
+            className="bg-green-500 hover:bg-green-600 text-white"
+          >
+            <Bell className="w-4 h-4 mr-2" />
+            {loading ? "Activando..." : "Activar Notificaciones"}
+          </Button>
+        )}
+      </div>
+    </div>
+  )
 }

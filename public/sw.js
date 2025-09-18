@@ -1,193 +1,125 @@
+// Service Worker para notificaciones push
 const CACHE_NAME = "liga-flag-durango-v1"
-const STATIC_CACHE_URLS = [
+const urlsToCache = [
   "/",
   "/partidos",
   "/estadisticas",
   "/equipos",
-  "/wildbrowl",
   "/icons/icon-192x192.png",
   "/icons/icon-512x512.png",
-  "/imagenes/20años.png",
 ]
 
-// Install event
+// Instalar Service Worker
 self.addEventListener("install", (event) => {
+  console.log("Service Worker installing...")
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache
-        .addAll(
-          STATIC_CACHE_URLS.map((url) => {
-            return new Request(url, { cache: "reload" })
-          }),
-        )
-        .catch((error) => {
-          console.error("Failed to cache resources during install:", error)
-          // Continue installation even if some resources fail to cache
-          return Promise.resolve()
-        })
+      console.log("Opened cache")
+      return cache.addAll(urlsToCache)
     }),
   )
-  self.skipWaiting()
 })
 
-// Activate event
+// Activar Service Worker
 self.addEventListener("activate", (event) => {
+  console.log("Service Worker activating...")
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
+            console.log("Deleting old cache:", cacheName)
             return caches.delete(cacheName)
           }
         }),
       )
     }),
   )
-  self.clients.claim()
 })
 
-// Fetch event
+// Interceptar requests
 self.addEventListener("fetch", (event) => {
-  // Skip non-GET requests
-  if (event.request.method !== "GET") {
-    return
-  }
-
-  // Skip chrome-extension and other non-http requests
-  if (!event.request.url.startsWith("http")) {
-    return
-  }
-
   event.respondWith(
     caches.match(event.request).then((response) => {
-      // Return cached version or fetch from network
-      return (
-        response ||
-        fetch(event.request)
-          .then((fetchResponse) => {
-            // Don't cache API responses or non-successful responses
-            if (event.request.url.includes("/api/") || !fetchResponse.ok) {
-              return fetchResponse
-            }
-
-            // Clone the response before caching
-            const responseToCache = fetchResponse.clone()
-            caches
-              .open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache)
-              })
-              .catch((error) => {
-                console.error("Failed to cache response:", error)
-              })
-
-            return fetchResponse
-          })
-          .catch((error) => {
-            console.error("Fetch failed:", error)
-            // Return a basic offline page for navigation requests
-            if (event.request.mode === "navigate") {
-              return caches.match("/") || new Response("Offline", { status: 503 })
-            }
-            throw error
-          })
-      )
+      // Cache hit - return response
+      if (response) {
+        return response
+      }
+      return fetch(event.request)
     }),
   )
 })
 
-// Push event
+// Manejar notificaciones push
 self.addEventListener("push", (event) => {
-  if (!event.data) {
-    return
+  console.log("Push event received:", event)
+
+  let notificationData = {
+    title: "Liga Flag Durango",
+    body: "Nueva notificación",
+    icon: "/icons/icon-192x192.png",
+    badge: "/icons/icon-72x72.png",
+    data: { url: "/" },
   }
 
-  try {
-    const data = event.data.json()
-    const options = {
-      body: data.body,
-      icon: data.icon || "/icons/icon-192x192.png",
-      badge: data.badge || "/icons/icon-72x72.png",
-      image: data.image,
-      data: data.data,
-      actions: data.actions || [],
-      tag: data.tag,
-      requireInteraction: data.requireInteraction || false,
-      silent: false,
-      vibrate: [200, 100, 200],
+  if (event.data) {
+    try {
+      notificationData = event.data.json()
+      console.log("Notification data:", notificationData)
+    } catch (error) {
+      console.error("Error parsing notification data:", error)
+      notificationData.body = event.data.text()
     }
-
-    event.waitUntil(self.registration.showNotification(data.title, options))
-  } catch (error) {
-    console.error("Error showing notification:", error)
-    // Show a basic notification if parsing fails
-    event.waitUntil(
-      self.registration.showNotification("Liga Flag Durango", {
-        body: "Nueva actualización disponible",
-        icon: "/icons/icon-192x192.png",
-      }),
-    )
   }
+
+  const notificationOptions = {
+    body: notificationData.body,
+    icon: notificationData.icon || "/icons/icon-192x192.png",
+    badge: notificationData.badge || "/icons/icon-72x72.png",
+    image: notificationData.image,
+    data: notificationData.data || { url: "/" },
+    actions: notificationData.actions || [
+      {
+        action: "view",
+        title: "Ver",
+        icon: "/icons/icon-96x96.png",
+      },
+    ],
+    tag: notificationData.tag || "default",
+    requireInteraction: notificationData.requireInteraction || false,
+    vibrate: [200, 100, 200],
+    timestamp: Date.now(),
+  }
+
+  event.waitUntil(self.registration.showNotification(notificationData.title, notificationOptions))
 })
 
-// Notification click event
+// Manejar clicks en notificaciones
 self.addEventListener("notificationclick", (event) => {
+  console.log("Notification click received:", event)
+
   event.notification.close()
 
-  const action = event.action
-  const data = event.notification.data || {}
-
-  let url = "/"
-
-  if (action === "view" && data.url) {
-    url = data.url
-  } else if (data.url) {
-    url = data.url
-  }
+  const urlToOpen = event.notification.data?.url || "/"
 
   event.waitUntil(
-    clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then((clientList) => {
-        // Check if there's already a window/tab open with the target URL
-        for (const client of clientList) {
-          if (client.url.includes(url) && "focus" in client) {
-            return client.focus()
-          }
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      // Si ya hay una ventana abierta, enfocarla
+      for (const client of clientList) {
+        if (client.url === urlToOpen && "focus" in client) {
+          return client.focus()
         }
+      }
 
-        // If no existing window, open a new one
-        if (clients.openWindow) {
-          return clients.openWindow(url)
-        }
-      })
-      .catch((error) => {
-        console.error("Error handling notification click:", error)
-      }),
+      // Si no hay ventana abierta, abrir una nueva
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen)
+      }
+    }),
   )
 })
 
-// Background sync event
-self.addEventListener("sync", (event) => {
-  if (event.tag === "background-sync") {
-    event.waitUntil(
-      // Perform background sync operations
-      fetch("/api/sync")
-        .then((response) => {
-          if (response.ok) {
-            console.log("Background sync completed")
-          }
-        })
-        .catch((error) => {
-          console.error("Background sync failed:", error)
-        }),
-    )
-  }
-})
-
-// Message event (for communication with main thread)
-self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") {
-    self.skipWaiting()
-  }
+// Manejar cierre de notificaciones
+self.addEventListener("notificationclose", (event) => {
+  console.log("Notification closed:", event)
 })

@@ -7,6 +7,8 @@ export async function POST(request: NextRequest) {
   try {
     const { endpoint } = await request.json()
 
+    console.log("Unsubscribe request for endpoint:", endpoint?.substring(0, 50) + "...")
+
     if (!endpoint) {
       return NextResponse.json({ success: false, error: "Endpoint is required" }, { status: 400 })
     }
@@ -19,7 +21,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, message: "Subscription removed successfully" })
+    console.log("Subscription removed successfully")
+    return NextResponse.json({
+      success: true,
+      message: "Subscription removed successfully",
+    })
   } catch (error) {
     console.error("Error in unsubscribe route:", error)
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 })
