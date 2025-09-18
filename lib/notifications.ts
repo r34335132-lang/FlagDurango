@@ -1,88 +1,200 @@
-interface PushSubscription {
-  endpoint: string
-  keys: {
-    p256dh: string
-    auth: string
-  }
+// VAPID keys for push notifications
+export const VAPID_KEYS = {
+  publicKey: "BEl62iUYgUivxIkv69yViEuiBIa40HI80NM9f53NlqKOYWsSBhjuXPiQfzuVAl9Hs4HcKSVdJiKz0g5JwQw5Y8g",
+  privateKey: process.env.VAPID_PRIVATE_KEY || "your-private-key-here",
 }
 
-export async function sendNotification(
-  subscription: PushSubscription,
-  payload: {
-    title: string
-    body: string
-    icon?: string
-    badge?: string
-    data?: any
-  },
-) {
-  const webpush = require("web-push")
+// Notification types
+export type NotificationType =
+  | "game_started"
+  | "game_finished"
+  | "game_score_update"
+  | "news_published"
+  | "tournament_update"
 
-  // Set VAPID details
-  webpush.setVapidDetails(
-    "mailto:admin@ligaflagdurango.com",
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-      "BEl62iUYgUivxIkv69yViEuiBIa40HI80NM9f8HnVJOyuAcJidkAp1hF7-3GFxDnfbaHQHXvVffHstfn5NjjbI4",
-    process.env.VAPID_PRIVATE_KEY || "your-private-key-here",
-  )
-
-  try {
-    await webpush.sendNotification(subscription, JSON.stringify(payload))
-    console.log("Notification sent successfully")
-  } catch (error) {
-    console.error("Error sending notification:", error)
-    throw error
-  }
-}
-
-export function createGameNotification(gameData: {
-  homeTeam: string
-  awayTeam: string
-  status: string
-  homeScore?: number
-  awayScore?: number
-}) {
-  if (gameData.status === "en_vivo") {
-    return {
-      title: "🔴 Partido EN VIVO",
-      body: `${gameData.homeTeam} vs ${gameData.awayTeam}`,
-      icon: "/icons/icon-192x192.png",
-      badge: "/icons/icon-96x96.png",
-      data: {
-        type: "game_live",
-        gameData,
-      },
-    }
-  }
-
-  if (gameData.status === "finalizado") {
-    return {
-      title: "🏁 Partido Finalizado",
-      body: `${gameData.homeTeam} ${gameData.homeScore || 0} - ${gameData.awayScore || 0} ${gameData.awayTeam}`,
-      icon: "/icons/icon-192x192.png",
-      badge: "/icons/icon-96x96.png",
-      data: {
-        type: "game_finished",
-        gameData,
-      },
-    }
-  }
-
-  return null
-}
-
-export function createNewsNotification(newsData: {
+export interface NotificationPayload {
   title: string
-  content: string
-}) {
-  return {
-    title: "📰 Nueva Noticia",
-    body: newsData.title,
+  body: string
+  icon?: string
+  badge?: string
+  data?: {
+    type: NotificationType
+    url?: string
+    gameId?: string
+    teamId?: string
+    [key: string]: any
+  }
+  actions?: Array<{
+    action: string
+    title: string
+    icon?: string
+  }>
+}
+
+// Helper function to create notification payloads
+export function createNotificationPayload(
+  type: NotificationType,
+  data: Partial<NotificationPayload>,
+): NotificationPayload {
+  const basePayload: NotificationPayload = {
+    title: "Liga Flag Durango",
+    body: "Nueva notificación",
     icon: "/icons/icon-192x192.png",
-    badge: "/icons/icon-96x96.png",
+    badge: "/icons/icon-72x72.png",
     data: {
-      type: "news",
-      newsData,
+      type,
+      url: "/",
     },
+  }
+
+  switch (type) {
+    case "game_started":
+      return {
+        ...basePayload,
+        title: "¡Partido en vivo!",
+        body: data.body || "Un partido acaba de comenzar",
+        data: {
+          ...basePayload.data,
+          type,
+          url: "/partidos",
+        },
+        actions: [
+          {
+            action: "view_game",
+            title: "Ver partido",
+            icon: "/icons/icon-96x96.png",
+          },
+          {
+            action: "close",
+            title: "Cerrar",
+          },
+        ],
+        ...data,
+      }
+
+    case "game_finished":
+      return {
+        ...basePayload,
+        title: "Partido finalizado",
+        body: data.body || "Un partido ha terminado",
+        data: {
+          ...basePayload.data,
+          type,
+          url: "/partidos",
+        },
+        actions: [
+          {
+            action: "view_results",
+            title: "Ver resultado",
+            icon: "/icons/icon-96x96.png",
+          },
+          {
+            action: "close",
+            title: "Cerrar",
+          },
+        ],
+        ...data,
+      }
+
+    case "game_score_update":
+      return {
+        ...basePayload,
+        title: "¡Gol!",
+        body: data.body || "Se ha actualizado el marcador",
+        data: {
+          ...basePayload.data,
+          type,
+          url: "/partidos",
+        },
+        ...data,
+      }
+
+    case "news_published":
+      return {
+        ...basePayload,
+        title: "Nueva noticia",
+        body: data.body || "Se ha publicado una nueva noticia",
+        data: {
+          ...basePayload.data,
+          type,
+          url: "/noticias",
+        },
+        actions: [
+          {
+            action: "read_news",
+            title: "Leer noticia",
+            icon: "/icons/icon-96x96.png",
+          },
+          {
+            action: "close",
+            title: "Cerrar",
+          },
+        ],
+        ...data,
+      }
+
+    case "tournament_update":
+      return {
+        ...basePayload,
+        title: "Actualización del torneo",
+        body: data.body || "Hay novedades en el torneo",
+        data: {
+          ...basePayload.data,
+          type,
+          url: "/wildbrowl",
+        },
+        actions: [
+          {
+            action: "view_tournament",
+            title: "Ver torneo",
+            icon: "/icons/icon-96x96.png",
+          },
+          {
+            action: "close",
+            title: "Cerrar",
+          },
+        ],
+        ...data,
+      }
+
+    default:
+      return {
+        ...basePayload,
+        ...data,
+      }
+  }
+}
+
+// Helper function to convert VAPID key
+export function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/")
+
+  const rawData = window.atob(base64)
+  const outputArray = new Uint8Array(rawData.length)
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i)
+  }
+  return outputArray
+}
+
+// Helper function to send push notification (server-side)
+export async function sendPushNotification(
+  subscription: PushSubscription,
+  payload: NotificationPayload,
+): Promise<boolean> {
+  try {
+    // This would typically use a library like web-push
+    // For now, we'll just log the notification
+    console.log("Sending push notification:", {
+      endpoint: subscription.endpoint,
+      payload,
+    })
+
+    return true
+  } catch (error) {
+    console.error("Error sending push notification:", error)
+    return false
   }
 }

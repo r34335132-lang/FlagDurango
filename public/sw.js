@@ -9,30 +9,29 @@ const urlsToCache = [
   "/manifest.json",
   "/icons/icon-192x192.png",
   "/icons/icon-512x512.png",
+  "/imagenes/20años.png",
+  "/generic-sponsor-logo.png",
 ]
 
 // Install event
 self.addEventListener("install", (event) => {
+  console.log("Service Worker installing...")
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log("Opened cache")
-      return cache.addAll(urlsToCache)
+      return cache.addAll(urlsToCache).catch((error) => {
+        console.error("Failed to cache resources:", error)
+        // Cache individual resources that succeed
+        return Promise.allSettled(urlsToCache.map((url) => cache.add(url)))
+      })
     }),
   )
-})
-
-// Fetch event
-self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      // Return cached version or fetch from network
-      return response || fetch(event.request)
-    }),
-  )
+  self.skipWaiting()
 })
 
 // Activate event
 self.addEventListener("activate", (event) => {
+  console.log("Service Worker activating...")
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -45,51 +44,151 @@ self.addEventListener("activate", (event) => {
       )
     }),
   )
+  self.clients.claim()
+})
+
+// Fetch event
+self.addEventListener("fetch", (event) => {
+  // Skip non-GET requests
+  if (event.request.method !== "GET") {
+    return
+  }
+
+  // Skip requests to external domains
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return
+  }
+
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      // Return cached version if available
+      if (response) {
+        return response
+      }
+
+      // Fetch from network
+      return fetch(event.request)
+        .then((response) => {
+          // Don't cache non-successful responses
+          if (!response || response.status !== 200 || response.type !== "basic") {
+            return response
+          }
+
+          // Clone the response
+          const responseToCache = response.clone()
+
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache)
+          })
+
+          return response
+        })
+        .catch(() => {
+          // Return offline page for navigation requests
+          if (event.request.mode === "navigate") {
+            return caches.match("/")
+          }
+        })
+    }),
+  )
 })
 
 // Push event for notifications
 self.addEventListener("push", (event) => {
-  const options = {
-    body: event.data ? event.data.text() : "Nueva notificación de Liga Flag Durango",
+  console.log("Push event received:", event)
+
+  let notificationData = {
+    title: "Liga Flag Durango",
+    body: "Nueva notificación",
     icon: "/icons/icon-192x192.png",
     badge: "/icons/icon-72x72.png",
+    data: {},
+  }
+
+  if (event.data) {
+    try {
+      const data = event.data.json()
+      notificationData = {
+        title: data.title || notificationData.title,
+        body: data.body || notificationData.body,
+        icon: data.icon || notificationData.icon,
+        badge: data.badge || notificationData.badge,
+        data: data.data || {},
+      }
+    } catch (e) {
+      notificationData.body = event.data.text() || notificationData.body
+    }
+  }
+
+  const options = {
+    body: notificationData.body,
+    icon: notificationData.icon,
+    badge: notificationData.badge,
     vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: "2",
-    },
+    data: notificationData.data,
     actions: [
       {
-        action: "explore",
-        title: "Ver más",
-        icon: "/icons/icon-192x192.png",
+        action: "view",
+        title: "Ver",
+        icon: "/icons/icon-96x96.png",
       },
       {
         action: "close",
         title: "Cerrar",
-        icon: "/icons/icon-192x192.png",
       },
     ],
+    requireInteraction: false,
+    silent: false,
+    tag: "liga-flag-notification",
   }
 
-  event.waitUntil(self.registration.showNotification("Liga Flag Durango", options))
+  event.waitUntil(self.registration.showNotification(notificationData.title, options))
 })
 
 // Notification click event
 self.addEventListener("notificationclick", (event) => {
+  console.log("Notification click received:", event)
+
   event.notification.close()
 
-  if (event.action === "explore") {
-    event.waitUntil(clients.openWindow("/partidos"))
+  if (event.action === "view") {
+    const urlToOpen = event.notification.data.url || "/"
+    event.waitUntil(
+      clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+        // Check if there's already a window/tab open with the target URL
+        for (const client of clientList) {
+          if (client.url === urlToOpen && "focus" in client) {
+            return client.focus()
+          }
+        }
+        // If not, open a new window/tab
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen)
+        }
+      }),
+    )
   } else if (event.action === "close") {
-    event.notification.close()
+    // Just close the notification
+    return
   } else {
-    event.waitUntil(clients.openWindow("/"))
+    // Default action - open the app
+    event.waitUntil(
+      clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+        if (clientList.length > 0) {
+          return clientList[0].focus()
+        }
+        if (clients.openWindow) {
+          return clients.openWindow("/")
+        }
+      }),
+    )
   }
 })
 
 // Background sync
 self.addEventListener("sync", (event) => {
+  console.log("Background sync event:", event.tag)
+
   if (event.tag === "background-sync") {
     event.waitUntil(doBackgroundSync())
   }
@@ -98,9 +197,25 @@ self.addEventListener("sync", (event) => {
 function doBackgroundSync() {
   return fetch("/api/sync")
     .then((response) => {
-      console.log("Background sync completed")
+      if (response.ok) {
+        console.log("Background sync completed successfully")
+        return response.json()
+      }
+      throw new Error("Background sync failed")
+    })
+    .then((data) => {
+      console.log("Background sync data:", data)
     })
     .catch((error) => {
-      console.log("Background sync failed:", error)
+      console.error("Background sync failed:", error)
     })
 }
+
+// Handle messages from the main thread
+self.addEventListener("message", (event) => {
+  console.log("Service Worker received message:", event.data)
+
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting()
+  }
+})

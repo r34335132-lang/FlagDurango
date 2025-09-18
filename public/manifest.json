@@ -1,6 +1,6 @@
 {
   "name": "Liga Flag Durango",
-  "short_name": "Flag Durango",
+  "short_name": "Liga Flag",
   "description": "Liga oficial de flag football en Durango. 20 años promoviendo el deporte y la competencia sana.",
   "start_url": "/",
   "display": "standalone",
@@ -64,30 +64,50 @@
     {
       "name": "Ver Partidos",
       "short_name": "Partidos",
-      "description": "Ver calendario y resultados de partidos",
+      "description": "Ver partidos programados y en vivo",
       "url": "/partidos",
-      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+      "icons": [
+        {
+          "src": "/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
     },
     {
       "name": "Estadísticas",
       "short_name": "Stats",
       "description": "Ver estadísticas de equipos y jugadores",
       "url": "/estadisticas",
-      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+      "icons": [
+        {
+          "src": "/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
     },
     {
       "name": "Equipos",
       "short_name": "Equipos",
-      "description": "Ver información de equipos",
+      "description": "Ver todos los equipos registrados",
       "url": "/equipos",
-      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+      "icons": [
+        {
+          "src": "/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
     },
     {
       "name": "WildBrowl",
       "short_name": "1v1",
       "description": "Torneo individual WildBrowl",
       "url": "/wildbrowl",
-      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+      "icons": [
+        {
+          "src": "/icons/icon-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
     }
   ],
   "screenshots": [
@@ -100,10 +120,15 @@
     },
     {
       "src": "/images/screenshot-narrow.png",
-      "sizes": "750x1334",
+      "sizes": "720x1280",
       "type": "image/png",
       "form_factor": "narrow",
       "label": "Liga Flag Durango - Vista móvil"
     }
-  ]
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
 }
