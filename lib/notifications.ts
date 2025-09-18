@@ -1,200 +1,97 @@
-// VAPID keys for push notifications
-export const VAPID_KEYS = {
-  publicKey: "BEl62iUYgUivxIkv69yViEuiBIa40HI80NM9f53NlqKOYWsSBhjuXPiQfzuVAl9Hs4HcKSVdJiKz0g5JwQw5Y8g",
-  privateKey: process.env.VAPID_PRIVATE_KEY || "your-private-key-here",
+export interface PushSubscription {
+  endpoint: string
+  keys: {
+    p256dh: string
+    auth: string
+  }
 }
-
-// Notification types
-export type NotificationType =
-  | "game_started"
-  | "game_finished"
-  | "game_score_update"
-  | "news_published"
-  | "tournament_update"
 
 export interface NotificationPayload {
   title: string
   body: string
   icon?: string
   badge?: string
-  data?: {
-    type: NotificationType
-    url?: string
-    gameId?: string
-    teamId?: string
-    [key: string]: any
-  }
-  actions?: Array<{
-    action: string
-    title: string
-    icon?: string
-  }>
+  image?: string
+  data?: any
+  actions?: NotificationAction[]
+  tag?: string
+  requireInteraction?: boolean
 }
 
-// Helper function to create notification payloads
-export function createNotificationPayload(
-  type: NotificationType,
-  data: Partial<NotificationPayload>,
-): NotificationPayload {
-  const basePayload: NotificationPayload = {
-    title: "Liga Flag Durango",
-    body: "Nueva notificación",
-    icon: "/icons/icon-192x192.png",
-    badge: "/icons/icon-72x72.png",
-    data: {
-      type,
-      url: "/",
-    },
-  }
+export interface NotificationAction {
+  action: string
+  title: string
+  icon?: string
+}
 
+export const NOTIFICATION_TYPES = {
+  GAME_LIVE: "game_live",
+  GAME_RESULT: "game_result",
+  NEWS: "news",
+  WILDBROWL: "wildbrowl",
+  GENERAL: "general",
+} as const
+
+export type NotificationType = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES]
+
+export const createNotificationPayload = (type: NotificationType, data: any): NotificationPayload => {
   switch (type) {
-    case "game_started":
+    case NOTIFICATION_TYPES.GAME_LIVE:
       return {
-        ...basePayload,
-        title: "¡Partido en vivo!",
-        body: data.body || "Un partido acaba de comenzar",
-        data: {
-          ...basePayload.data,
-          type,
-          url: "/partidos",
-        },
+        title: "🔴 Partido EN VIVO",
+        body: `${data.home_team} vs ${data.away_team} - ${data.home_score || 0}-${data.away_score || 0}`,
+        icon: "/icons/icon-192x192.png",
+        badge: "/icons/icon-72x72.png",
+        tag: `game_${data.id}`,
+        data: { type, gameId: data.id, url: "/partidos" },
         actions: [
-          {
-            action: "view_game",
-            title: "Ver partido",
-            icon: "/icons/icon-96x96.png",
-          },
-          {
-            action: "close",
-            title: "Cerrar",
-          },
+          { action: "view", title: "Ver Partido", icon: "/icons/icon-72x72.png" },
+          { action: "close", title: "Cerrar" },
         ],
-        ...data,
+        requireInteraction: true,
       }
 
-    case "game_finished":
+    case NOTIFICATION_TYPES.GAME_RESULT:
       return {
-        ...basePayload,
-        title: "Partido finalizado",
-        body: data.body || "Un partido ha terminado",
-        data: {
-          ...basePayload.data,
-          type,
-          url: "/partidos",
-        },
-        actions: [
-          {
-            action: "view_results",
-            title: "Ver resultado",
-            icon: "/icons/icon-96x96.png",
-          },
-          {
-            action: "close",
-            title: "Cerrar",
-          },
-        ],
-        ...data,
+        title: "⚡ Resultado Final",
+        body: `${data.home_team} ${data.home_score} - ${data.away_score} ${data.away_team}`,
+        icon: "/icons/icon-192x192.png",
+        badge: "/icons/icon-72x72.png",
+        tag: `result_${data.id}`,
+        data: { type, gameId: data.id, url: "/partidos" },
+        actions: [{ action: "view", title: "Ver Detalles", icon: "/icons/icon-72x72.png" }],
       }
 
-    case "game_score_update":
+    case NOTIFICATION_TYPES.WILDBROWL:
       return {
-        ...basePayload,
-        title: "¡Gol!",
-        body: data.body || "Se ha actualizado el marcador",
-        data: {
-          ...basePayload.data,
-          type,
-          url: "/partidos",
-        },
-        ...data,
+        title: "🎯 WildBrowl 1v1",
+        body: data.message || "¡Nueva actualización en el torneo!",
+        icon: "/icons/icon-192x192.png",
+        badge: "/icons/icon-72x72.png",
+        tag: "wildbrowl",
+        data: { type, url: "/wildbrowl" },
+        actions: [{ action: "view", title: "Ver Torneo", icon: "/icons/icon-72x72.png" }],
       }
 
-    case "news_published":
+    case NOTIFICATION_TYPES.NEWS:
       return {
-        ...basePayload,
-        title: "Nueva noticia",
-        body: data.body || "Se ha publicado una nueva noticia",
-        data: {
-          ...basePayload.data,
-          type,
-          url: "/noticias",
-        },
-        actions: [
-          {
-            action: "read_news",
-            title: "Leer noticia",
-            icon: "/icons/icon-96x96.png",
-          },
-          {
-            action: "close",
-            title: "Cerrar",
-          },
-        ],
-        ...data,
-      }
-
-    case "tournament_update":
-      return {
-        ...basePayload,
-        title: "Actualización del torneo",
-        body: data.body || "Hay novedades en el torneo",
-        data: {
-          ...basePayload.data,
-          type,
-          url: "/wildbrowl",
-        },
-        actions: [
-          {
-            action: "view_tournament",
-            title: "Ver torneo",
-            icon: "/icons/icon-96x96.png",
-          },
-          {
-            action: "close",
-            title: "Cerrar",
-          },
-        ],
-        ...data,
+        title: "📰 Nueva Noticia",
+        body: data.title,
+        icon: "/icons/icon-192x192.png",
+        badge: "/icons/icon-72x72.png",
+        image: data.image_url,
+        tag: `news_${data.id}`,
+        data: { type, newsId: data.id, url: "/noticias" },
+        actions: [{ action: "view", title: "Leer Más", icon: "/icons/icon-72x72.png" }],
       }
 
     default:
       return {
-        ...basePayload,
-        ...data,
+        title: "Liga Flag Durango",
+        body: data.message || "Nueva actualización disponible",
+        icon: "/icons/icon-192x192.png",
+        badge: "/icons/icon-72x72.png",
+        data: { type, url: "/" },
       }
-  }
-}
-
-// Helper function to convert VAPID key
-export function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/")
-
-  const rawData = window.atob(base64)
-  const outputArray = new Uint8Array(rawData.length)
-
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i)
-  }
-  return outputArray
-}
-
-// Helper function to send push notification (server-side)
-export async function sendPushNotification(
-  subscription: PushSubscription,
-  payload: NotificationPayload,
-): Promise<boolean> {
-  try {
-    // This would typically use a library like web-push
-    // For now, we'll just log the notification
-    console.log("Sending push notification:", {
-      endpoint: subscription.endpoint,
-      payload,
-    })
-
-    return true
-  } catch (error) {
-    console.error("Error sending push notification:", error)
-    return false
   }
 }

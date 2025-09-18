@@ -13,3 +13,7 @@ export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
     persistSession: false,
   },
 })
+
+// Export both named and default for compatibility
+export const supabaseAdmin = supabase
+export default supabase
