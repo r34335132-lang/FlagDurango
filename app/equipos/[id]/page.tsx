@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Navigation } from "@/components/navigation"
-import { Users, Trophy, Star, Phone, Mail, MapPin, Calendar } from "lucide-react"
+import { Users, Trophy, Star, Phone, Mail, MapPin, Calendar, Clock } from "lucide-react"
 
 interface Team {
   id: number
@@ -45,6 +45,7 @@ interface Game {
   field: string
   status: string
   mvp?: string
+  category: string
 }
 
 export default function TeamPage() {
@@ -71,16 +72,21 @@ export default function TeamPage() {
           return
         }
 
-        setTeam(teamData.data)
+        const teamInfo = teamData.data
+        setTeam(teamInfo)
         setPlayers(teamData.players || [])
 
-        // Cargar partidos del equipo
-        if (teamData.data?.name) {
-          const gamesResponse = await fetch(`/api/games?team_names=${encodeURIComponent(teamData.data.name)}`)
+        // Cargar SOLO los partidos de este equipo específico
+        if (teamInfo?.name) {
+          const gamesResponse = await fetch(`/api/games`)
           const gamesData = await gamesResponse.json()
 
           if (gamesData.success) {
-            setGames(gamesData.data || [])
+            // Filtrar partidos donde este equipo participa (como local o visitante)
+            const teamGames = (gamesData.data || []).filter(
+              (game: Game) => game.home_team === teamInfo.name || game.away_team === teamInfo.name,
+            )
+            setGames(teamGames)
           }
         }
       } catch (err) {
@@ -105,7 +111,6 @@ export default function TeamPage() {
       "femenil-cooper": "Femenil Cooper",
       "mixto-gold": "Mixto Gold",
       "mixto-silver": "Mixto Silver",
-      teens: "Teens",
     }
     return labels[category] || category
   }
@@ -119,6 +124,8 @@ export default function TeamPage() {
     .filter((game) => game.status === "finalizado")
     .sort((a, b) => new Date(b.game_date).getTime() - new Date(a.game_date).getTime())
     .slice(0, 5)
+
+  const liveGames = games.filter((game) => game.status === "en_vivo" || game.status === "en vivo")
 
   if (loading) {
     return (
@@ -208,88 +215,93 @@ export default function TeamPage() {
             </div>
 
             <p className="text-xl text-white/90 mb-8">
-              Información completa del equipo, jugadores y próximos partidos.
+              {games.length} partidos programados • {players.length} jugadores registrados
             </p>
           </div>
         </div>
       </section>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Header del equipo */}
-        <Card className="bg-white border-gray-200 mb-8">
-          <CardContent className="p-8">
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              {/* Logo del equipo */}
-              <div className="relative">
-                {team.logo_url ? (
-                  <img
-                    src={team.logo_url || "/placeholder.svg"}
-                    alt={`Logo de ${team.name}`}
-                    className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement
-                      target.style.display = "none"
-                      const fallback = target.nextElementSibling as HTMLElement
-                      if (fallback) fallback.classList.remove("hidden")
-                    }}
-                  />
-                ) : null}
-                <div
-                  className={`w-32 h-32 rounded-full flex items-center justify-center text-white font-bold text-4xl border-4 border-gray-200 ${team.logo_url ? "hidden" : ""}`}
-                  style={{
-                    background: `linear-gradient(135deg, ${team.color1}, ${team.color2})`,
-                  }}
-                >
-                  {team.name ? team.name.charAt(0) : "?"}
-                </div>
-              </div>
-
-              {/* Información del equipo */}
-              <div className="flex-1 text-center md:text-left">
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">{team.name}</h1>
-                <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-4">
-                  <Badge className="bg-blue-600 text-white">{getCategoryLabel(team.category)}</Badge>
-                  {team.is_institutional && <Badge className="bg-purple-600 text-white">Institucional</Badge>}
-                  {team.paid ? (
-                    <Badge className="bg-green-600 text-white">Inscripción Pagada</Badge>
-                  ) : (
-                    <Badge className="bg-red-600 text-white">Pendiente de Pago</Badge>
-                  )}
-                </div>
-
-                {/* Información de contacto */}
-                <div className="grid md:grid-cols-2 gap-4 text-gray-600">
-                  {team.captain_name && (
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4" />
-                      <span>Capitán: {team.captain_name}</span>
+        {/* EN VIVO */}
+        {liveGames.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
+              <div className="w-3 h-3 bg-red-500 rounded-full mr-3 animate-pulse"></div>
+              EN VIVO
+            </h2>
+            <div className="grid gap-4">
+              {liveGames.map((game) => (
+                <Card key={game.id} className="bg-red-50 border-red-200">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-bold text-lg">
+                          {game.home_team} vs {game.away_team}
+                        </h3>
+                        <div className="text-2xl font-bold text-red-600">
+                          {game.home_score || 0} - {game.away_score || 0}
+                        </div>
+                      </div>
+                      <Badge className="bg-red-500 text-white animate-pulse">🔴 EN VIVO</Badge>
                     </div>
-                  )}
-                  {team.captain_phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      <span>{team.captain_phone}</span>
-                    </div>
-                  )}
-                  {team.is_institutional && team.coordinator_name && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      <span>Coordinador: {team.coordinator_name}</span>
-                    </div>
-                  )}
-                  {team.is_institutional && team.coordinator_phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4" />
-                      <span>{team.coordinator_phone}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </CardContent>
-        </Card>
+          </section>
+        )}
 
         <div className="grid lg:grid-cols-2 gap-8">
+          {/* Información del equipo */}
+          <Card className="bg-white border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-gray-900 flex items-center">
+                <Users className="w-5 h-5 mr-2" />
+                Información del Equipo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {team.captain_name && (
+                  <div className="flex items-center gap-3">
+                    <Users className="w-5 h-5 text-gray-400" />
+                    <div>
+                      <p className="font-semibold">Capitán</p>
+                      <p className="text-gray-600">{team.captain_name}</p>
+                    </div>
+                  </div>
+                )}
+                {team.captain_phone && (
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-5 h-5 text-gray-400" />
+                    <div>
+                      <p className="font-semibold">Teléfono</p>
+                      <p className="text-gray-600">{team.captain_phone}</p>
+                    </div>
+                  </div>
+                )}
+                {team.is_institutional && team.coordinator_name && (
+                  <div className="flex items-center gap-3">
+                    <Mail className="w-5 h-5 text-gray-400" />
+                    <div>
+                      <p className="font-semibold">Coordinador</p>
+                      <p className="text-gray-600">{team.coordinator_name}</p>
+                    </div>
+                  </div>
+                )}
+                {team.is_institutional && team.coordinator_phone && (
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-5 h-5 text-gray-400" />
+                    <div>
+                      <p className="font-semibold">Teléfono Coordinador</p>
+                      <p className="text-gray-600">{team.coordinator_phone}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Jugadores */}
           <Card className="bg-white border-gray-200">
             <CardHeader>
@@ -305,10 +317,9 @@ export default function TeamPage() {
                   <p className="text-gray-600">No hay jugadores registrados</p>
                 </div>
               ) : (
-                <div className="grid gap-3">
+                <div className="grid gap-3 max-h-96 overflow-y-auto">
                   {players.map((player) => (
                     <div key={player.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      {/* Foto del jugador */}
                       <div className="relative">
                         {player.photo_url ? (
                           <img
@@ -350,9 +361,11 @@ export default function TeamPage() {
               )}
             </CardContent>
           </Card>
+        </div>
 
-          {/* Próximos partidos */}
-          <Card className="bg-white border-gray-200">
+        {/* Próximos partidos */}
+        {upcomingGames.length > 0 && (
+          <Card className="bg-white border-gray-200 mt-8">
             <CardHeader>
               <CardTitle className="text-gray-900 flex items-center">
                 <Calendar className="w-5 h-5 mr-2" />
@@ -360,35 +373,32 @@ export default function TeamPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {upcomingGames.length === 0 ? (
-                <div className="text-center py-8">
-                  <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">No hay partidos programados</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {upcomingGames.map((game) => (
-                    <div key={game.id} className="p-4 bg-gray-50 rounded-lg">
-                      <div className="text-gray-900 font-semibold mb-2">
-                        {game.home_team} vs {game.away_team}
+              <div className="grid md:grid-cols-2 gap-4">
+                {upcomingGames.map((game) => (
+                  <div key={game.id} className="p-4 bg-gray-50 rounded-lg">
+                    <div className="text-gray-900 font-semibold mb-2">
+                      {game.home_team} vs {game.away_team}
+                    </div>
+                    <div className="text-gray-600 text-sm space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        {new Date(game.game_date).toLocaleDateString("es-ES")}
                       </div>
-                      <div className="text-gray-600 text-sm space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4" />
-                          {new Date(game.game_date).toLocaleDateString("es-ES")}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4" />
-                          {game.venue} - {game.field}
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        {game.game_time}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4" />
+                        {game.venue} - {game.field}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
-        </div>
+        )}
 
         {/* Resultados recientes */}
         {recentGames.length > 0 && (
@@ -406,8 +416,30 @@ export default function TeamPage() {
                     <div className="text-gray-900 font-semibold mb-2">
                       {game.home_team} vs {game.away_team}
                     </div>
-                    <div className="text-2xl font-bold text-gray-900 mb-2">
-                      {game.home_score} - {game.away_score}
+                    <div className="flex items-center justify-center text-2xl font-bold text-gray-900 mb-2">
+                      <span
+                        className={
+                          game.home_team === team.name && (game.home_score || 0) > (game.away_score || 0)
+                            ? "text-green-600"
+                            : game.away_team === team.name && (game.away_score || 0) > (game.home_score || 0)
+                              ? "text-green-600"
+                              : ""
+                        }
+                      >
+                        {game.home_score || 0}
+                      </span>
+                      <span className="mx-2">-</span>
+                      <span
+                        className={
+                          game.away_team === team.name && (game.away_score || 0) > (game.home_score || 0)
+                            ? "text-green-600"
+                            : game.home_team === team.name && (game.home_score || 0) > (game.away_score || 0)
+                              ? "text-green-600"
+                              : ""
+                        }
+                      >
+                        {game.away_score || 0}
+                      </span>
                     </div>
                     <div className="text-gray-600 text-sm">
                       {new Date(game.game_date).toLocaleDateString("es-ES")}

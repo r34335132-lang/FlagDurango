@@ -1,10 +1,14 @@
-export interface PushSubscription {
-  endpoint: string
-  keys: {
-    p256dh: string
-    auth: string
-  }
+import webpush from "web-push"
+
+// Configure VAPID keys
+const vapidKeys = {
+  publicKey:
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
+    "BEl62iUYgUivxIkv69yViEuiBIa40HI80NM9f53NlqKOYWsSBhjuXPiQfzuVAl9Hs4HcKSVdJiKz0g5JwQw5Y8g",
+  privateKey: process.env.VAPID_PRIVATE_KEY || "your-private-key-here",
 }
+
+webpush.setVapidDetails("mailto:admin@ligaflagdurango.com", vapidKeys.publicKey, vapidKeys.privateKey)
 
 export interface NotificationPayload {
   title: string
@@ -13,85 +17,87 @@ export interface NotificationPayload {
   badge?: string
   image?: string
   data?: any
-  actions?: NotificationAction[]
+  actions?: Array<{
+    action: string
+    title: string
+    icon?: string
+  }>
   tag?: string
   requireInteraction?: boolean
 }
 
-export interface NotificationAction {
-  action: string
-  title: string
-  icon?: string
+export interface PushSubscription {
+  endpoint: string
+  keys: {
+    p256dh: string
+    auth: string
+  }
 }
 
-export const NOTIFICATION_TYPES = {
-  GAME_LIVE: "game_live",
-  GAME_RESULT: "game_result",
-  NEWS: "news",
-  WILDBROWL: "wildbrowl",
-  GENERAL: "general",
-} as const
+export async function sendNotification(subscription: PushSubscription, payload: NotificationPayload): Promise<boolean> {
+  try {
+    const notificationPayload = JSON.stringify({
+      title: payload.title,
+      body: payload.body,
+      icon: payload.icon || "/icons/icon-192x192.png",
+      badge: payload.badge || "/icons/icon-72x72.png",
+      image: payload.image,
+      data: payload.data || {},
+      actions: payload.actions || [],
+      tag: payload.tag,
+      requireInteraction: payload.requireInteraction || false,
+      vibrate: [200, 100, 200],
+      timestamp: Date.now(),
+    })
 
-export type NotificationType = (typeof NOTIFICATION_TYPES)[keyof typeof NOTIFICATION_TYPES]
+    await webpush.sendNotification(subscription, notificationPayload)
+    return true
+  } catch (error) {
+    console.error("Error sending notification:", error)
+    return false
+  }
+}
 
-export const createNotificationPayload = (type: NotificationType, data: any): NotificationPayload => {
-  switch (type) {
-    case NOTIFICATION_TYPES.GAME_LIVE:
-      return {
-        title: "🔴 Partido EN VIVO",
-        body: `${data.home_team} vs ${data.away_team} - ${data.home_score || 0}-${data.away_score || 0}`,
-        icon: "/icons/icon-192x192.png",
-        badge: "/icons/icon-72x72.png",
-        tag: `game_${data.id}`,
-        data: { type, gameId: data.id, url: "/partidos" },
-        actions: [
-          { action: "view", title: "Ver Partido", icon: "/icons/icon-72x72.png" },
-          { action: "close", title: "Cerrar" },
-        ],
-        requireInteraction: true,
-      }
+export function createGameNotification(gameData: {
+  homeTeam: string
+  awayTeam: string
+  homeScore?: number
+  awayScore?: number
+  status: string
+  gameId: number
+}): NotificationPayload {
+  let title = ""
+  let body = ""
 
-    case NOTIFICATION_TYPES.GAME_RESULT:
-      return {
-        title: "⚡ Resultado Final",
-        body: `${data.home_team} ${data.home_score} - ${data.away_score} ${data.away_team}`,
-        icon: "/icons/icon-192x192.png",
-        badge: "/icons/icon-72x72.png",
-        tag: `result_${data.id}`,
-        data: { type, gameId: data.id, url: "/partidos" },
-        actions: [{ action: "view", title: "Ver Detalles", icon: "/icons/icon-72x72.png" }],
-      }
+  if (gameData.status === "en_vivo" || gameData.status === "en vivo") {
+    title = "🔴 Partido EN VIVO"
+    body = `${gameData.homeTeam} ${gameData.homeScore || 0} - ${gameData.awayScore || 0} ${gameData.awayTeam}`
+  } else if (gameData.status === "finalizado") {
+    title = "🏆 Partido Finalizado"
+    body = `${gameData.homeTeam} ${gameData.homeScore || 0} - ${gameData.awayScore || 0} ${gameData.awayTeam}`
+  } else {
+    title = "📅 Próximo Partido"
+    body = `${gameData.homeTeam} vs ${gameData.awayTeam}`
+  }
 
-    case NOTIFICATION_TYPES.WILDBROWL:
-      return {
-        title: "🎯 WildBrowl 1v1",
-        body: data.message || "¡Nueva actualización en el torneo!",
-        icon: "/icons/icon-192x192.png",
-        badge: "/icons/icon-72x72.png",
-        tag: "wildbrowl",
-        data: { type, url: "/wildbrowl" },
-        actions: [{ action: "view", title: "Ver Torneo", icon: "/icons/icon-72x72.png" }],
-      }
-
-    case NOTIFICATION_TYPES.NEWS:
-      return {
-        title: "📰 Nueva Noticia",
-        body: data.title,
-        icon: "/icons/icon-192x192.png",
-        badge: "/icons/icon-72x72.png",
-        image: data.image_url,
-        tag: `news_${data.id}`,
-        data: { type, newsId: data.id, url: "/noticias" },
-        actions: [{ action: "view", title: "Leer Más", icon: "/icons/icon-72x72.png" }],
-      }
-
-    default:
-      return {
-        title: "Liga Flag Durango",
-        body: data.message || "Nueva actualización disponible",
-        icon: "/icons/icon-192x192.png",
-        badge: "/icons/icon-72x72.png",
-        data: { type, url: "/" },
-      }
+  return {
+    title,
+    body,
+    icon: "/icons/icon-192x192.png",
+    badge: "/icons/icon-72x72.png",
+    data: {
+      url: "/partidos",
+      gameId: gameData.gameId,
+      type: "game-update",
+    },
+    actions: [
+      {
+        action: "view",
+        title: "Ver partido",
+        icon: "/icons/icon-96x96.png",
+      },
+    ],
+    tag: `game-${gameData.gameId}`,
+    requireInteraction: gameData.status === "en_vivo" || gameData.status === "en vivo",
   }
 }

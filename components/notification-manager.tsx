@@ -27,8 +27,8 @@ export default function NotificationManager() {
       const dismissedTime = dismissed ? Number.parseInt(dismissed) : 0
       const daysSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60 * 24)
 
-      if (daysSinceDismissed > 3) {
-        setTimeout(() => setShowPrompt(true), 5000) // Show after 5 seconds
+      if (daysSinceDismissed > 1) {
+        setTimeout(() => setShowPrompt(true), 3000) // Show after 3 seconds
       }
     }
   }, [])
@@ -61,11 +61,12 @@ export default function NotificationManager() {
 
     setLoading(true)
     try {
-      // Request permission
+      // Request permission first
       const permission = await Notification.requestPermission()
       setPermission(permission)
 
       if (permission !== "granted") {
+        alert("Para recibir notificaciones, necesitas permitir las notificaciones en tu navegador.")
         setLoading(false)
         return
       }
@@ -77,8 +78,7 @@ export default function NotificationManager() {
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(
-          process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
-            "BEl62iUYgUivxIkv69yViEuiBIa40HI80NM9f4EmgHqFBMARBnJIFBNpGcFUAqVyRkwu-zV9BcBjyuOAHVcVVm8",
+          "BEl62iUYgUivxIkv69yViEuiBIa40HI80NM9f53NlqKOYWsSBhjuXPiQfzuVAl9Hs4HcKSVdJiKz0g5JwQw5Y8g",
         ),
       })
 
@@ -91,12 +91,25 @@ export default function NotificationManager() {
         body: JSON.stringify(subscription),
       })
 
-      if (response.ok) {
+      const result = await response.json()
+
+      if (response.ok && result.success) {
         setIsSubscribed(true)
         setShowPrompt(false)
+
+        // Show test notification
+        new Notification("¡Notificaciones activadas!", {
+          body: "Ahora recibirás notificaciones de partidos en vivo y resultados.",
+          icon: "/icons/icon-192x192.png",
+          tag: "welcome-notification",
+        })
+      } else {
+        console.error("Failed to subscribe:", result)
+        alert("Error al activar notificaciones. Inténtalo de nuevo.")
       }
     } catch (error) {
       console.error("Error subscribing to notifications:", error)
+      alert("Error al activar notificaciones. Verifica tu conexión e inténtalo de nuevo.")
     } finally {
       setLoading(false)
     }
@@ -112,21 +125,31 @@ export default function NotificationManager() {
 
       if (subscription) {
         // Unsubscribe from push notifications
-        await subscription.unsubscribe()
+        const unsubscribed = await subscription.unsubscribe()
 
-        // Remove subscription from server
-        await fetch("/api/notifications/unsubscribe", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ endpoint: subscription.endpoint }),
-        })
+        if (unsubscribed) {
+          // Remove subscription from server
+          const response = await fetch("/api/notifications/unsubscribe", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ endpoint: subscription.endpoint }),
+          })
 
-        setIsSubscribed(false)
+          const result = await response.json()
+
+          if (response.ok && result.success) {
+            setIsSubscribed(false)
+            alert("Notificaciones desactivadas correctamente.")
+          } else {
+            console.error("Failed to unsubscribe from server:", result)
+          }
+        }
       }
     } catch (error) {
       console.error("Error unsubscribing from notifications:", error)
+      alert("Error al desactivar notificaciones.")
     } finally {
       setLoading(false)
     }
@@ -182,9 +205,15 @@ export default function NotificationManager() {
           size="sm"
           onClick={isSubscribed ? unsubscribeFromNotifications : subscribeToNotifications}
           disabled={loading}
-          className="bg-white/90 backdrop-blur-sm"
+          className={`bg-white/90 backdrop-blur-sm ${
+            isSubscribed
+              ? "text-green-600 border-green-200 hover:bg-green-50"
+              : "text-gray-600 border-gray-200 hover:bg-gray-50"
+          }`}
         >
-          {isSubscribed ? (
+          {loading ? (
+            "..."
+          ) : isSubscribed ? (
             <>
               <Bell className="w-4 h-4 mr-1" />
               Activas
