@@ -1,65 +1,65 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Bell, BellOff, AlertCircle } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 
-export function NotificationManager() {
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/")
+
+  const rawData = window.atob(base64)
+  const outputArray = new Uint8Array(rawData.length)
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i)
+  }
+  return outputArray
+}
+
+export default function NotificationManager() {
   const [isSupported, setIsSupported] = useState(false)
   const [subscription, setSubscription] = useState<PushSubscription | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [status, setStatus] = useState("")
 
   useEffect(() => {
-    if (typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window) {
+    if ("serviceWorker" in navigator && "PushManager" in window) {
       setIsSupported(true)
-      checkSubscription()
       registerServiceWorker()
     }
   }, [])
 
-  const registerServiceWorker = async () => {
+  async function registerServiceWorker() {
     try {
-      const registration = await navigator.serviceWorker.register("/sw.js")
-      console.log("Service Worker registered:", registration)
-    } catch (error) {
-      console.error("Service Worker registration failed:", error)
-    }
-  }
+      const registration = await navigator.serviceWorker.register("/sw.js", {
+        scope: "/",
+        updateViaCache: "none",
+      })
+      console.log("Service Worker registrado:", registration)
 
-  const checkSubscription = async () => {
-    try {
-      const registration = await navigator.serviceWorker.ready
       const sub = await registration.pushManager.getSubscription()
       setSubscription(sub)
-      console.log("Current subscription:", sub)
+      console.log("Suscripción actual:", sub)
     } catch (error) {
-      console.error("Error checking subscription:", error)
-      setError("Error al verificar suscripción")
+      console.error("Error registrando Service Worker:", error)
+      setStatus("Error registrando Service Worker")
     }
   }
 
-  const subscribeUser = async () => {
-    setLoading(true)
-    setError(null)
+  async function subscribeToPush() {
+    setIsLoading(true)
+    setStatus("Suscribiendo...")
 
     try {
-      // Solicitar permiso para notificaciones
-      const permission = await Notification.requestPermission()
-      console.log("Notification permission:", permission)
-
-      if (permission !== "granted") {
-        throw new Error("Permiso de notificaciones denegado")
-      }
-
       const registration = await navigator.serviceWorker.ready
-      console.log("Service Worker ready:", registration)
+      console.log("Service Worker listo")
 
       const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
-      console.log("VAPID Public Key:", publicKey)
-
       if (!publicKey) {
-        throw new Error("VAPID public key no configurada")
+        throw new Error("VAPID public key no encontrada")
       }
 
       const sub = await registration.pushManager.subscribe({
@@ -67,8 +67,10 @@ export function NotificationManager() {
         applicationServerKey: urlBase64ToUint8Array(publicKey),
       })
 
-      console.log("New subscription:", sub)
+      console.log("Nueva suscripción:", sub)
+      setSubscription(sub)
 
+      // Enviar suscripción al servidor
       const response = await fetch("/api/notifications/subscribe", {
         method: "POST",
         headers: {
@@ -77,157 +79,126 @@ export function NotificationManager() {
         body: JSON.stringify(sub.toJSON()),
       })
 
-      const data = await response.json()
-      console.log("Subscribe response:", data)
-
-      if (data.success) {
-        setSubscription(sub)
-
-        // Enviar notificación de bienvenida
-        await fetch("/api/notifications/send", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            title: "🏈 Liga Flag Durango",
-            body: "¡Notificaciones activadas! Te avisaremos de partidos en vivo y resultados.",
-            url: "/",
-          }),
-        })
-
-        alert("¡Notificaciones activadas correctamente!")
-      } else {
-        throw new Error(data.error || "Error al activar notificaciones")
+      if (!response.ok) {
+        throw new Error("Error enviando suscripción al servidor")
       }
-    } catch (error: any) {
-      console.error("Error subscribing:", error)
-      setError(error.message)
-      alert(`Error: ${error.message}`)
+
+      setStatus("¡Suscrito exitosamente!")
+    } catch (error) {
+      console.error("Error suscribiendo:", error)
+      setStatus(`Error: ${error instanceof Error ? error.message : "Error desconocido"}`)
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
-  const unsubscribeUser = async () => {
-    setLoading(true)
-    setError(null)
+  async function unsubscribeFromPush() {
+    setIsLoading(true)
+    setStatus("Desuscribiendo...")
 
     try {
       if (subscription) {
         await subscription.unsubscribe()
-
-        const response = await fetch("/api/notifications/unsubscribe", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ endpoint: subscription.endpoint }),
-        })
-
-        const data = await response.json()
-
-        if (data.success) {
-          setSubscription(null)
-          alert("Notificaciones desactivadas correctamente.")
-        } else {
-          throw new Error(data.error || "Error al desactivar notificaciones")
-        }
+        console.log("Desuscrito localmente")
       }
-    } catch (error: any) {
-      console.error("Error unsubscribing:", error)
-      setError(error.message)
-      alert(`Error: ${error.message}`)
+
+      // Notificar al servidor
+      await fetch("/api/notifications/unsubscribe", {
+        method: "POST",
+      })
+
+      setSubscription(null)
+      setStatus("Desuscrito exitosamente")
+    } catch (error) {
+      console.error("Error desuscribiendo:", error)
+      setStatus(`Error: ${error instanceof Error ? error.message : "Error desconocido"}`)
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
-  const testNotification = async () => {
+  async function sendTestNotification() {
+    if (!subscription || !message.trim()) return
+
+    setIsLoading(true)
+    setStatus("Enviando notificación...")
+
     try {
       const response = await fetch("/api/notifications/send", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          title: "🧪 Notificación de Prueba",
-          body: "Esta es una notificación de prueba del sistema Liga Flag Durango",
-          url: "/partidos",
-        }),
+        body: JSON.stringify({ message: message.trim() }),
       })
 
-      const data = await response.json()
-      console.log("Test notification response:", data)
-
-      if (data.success) {
-        alert("Notificación de prueba enviada!")
-      } else {
-        alert(`Error enviando notificación: ${data.error}`)
+      if (!response.ok) {
+        throw new Error("Error enviando notificación")
       }
-    } catch (error) {
-      console.error("Error sending test notification:", error)
-      alert("Error enviando notificación de prueba")
-    }
-  }
 
-  const urlBase64ToUint8Array = (base64String: string) => {
-    const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
-    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/")
-    const rawData = window.atob(base64)
-    const outputArray = new Uint8Array(rawData.length)
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i)
+      setMessage("")
+      setStatus("¡Notificación enviada!")
+    } catch (error) {
+      console.error("Error enviando notificación:", error)
+      setStatus(`Error: ${error instanceof Error ? error.message : "Error desconocido"}`)
+    } finally {
+      setIsLoading(false)
     }
-    return outputArray
   }
 
   if (!isSupported) {
     return (
-      <div className="fixed bottom-4 right-4 z-50">
-        <div className="bg-gray-500 text-white px-4 py-2 rounded-lg text-sm">Notificaciones no soportadas</div>
-      </div>
+      <Card className="fixed bottom-4 left-4 w-80 z-50">
+        <CardContent className="p-4">
+          <p className="text-sm text-gray-600">Las notificaciones push no son compatibles con este navegador.</p>
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 space-y-2">
-      {error && (
-        <div className="bg-red-500 text-white px-3 py-2 rounded-lg text-sm flex items-center">
-          <AlertCircle className="w-4 h-4 mr-2" />
-          {error}
-        </div>
-      )}
-
-      <div className="flex flex-col space-y-2">
+    <Card className="fixed bottom-4 left-4 w-80 z-50">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg">🔔 Notificaciones</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
         {subscription ? (
           <>
-            <Button
-              onClick={unsubscribeUser}
-              disabled={loading}
-              variant="outline"
-              size="sm"
-              className="bg-red-500 hover:bg-red-600 text-white border-red-500"
-            >
-              <BellOff className="w-4 h-4 mr-2" />
-              {loading ? "..." : "Desactivar"}
-            </Button>
-            <Button onClick={testNotification} size="sm" className="bg-blue-500 hover:bg-blue-600 text-white">
-              🧪 Probar
-            </Button>
+            <p className="text-sm text-green-600">✅ Notificaciones activadas</p>
+            <div className="space-y-2">
+              <Input
+                type="text"
+                placeholder="Mensaje de prueba"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                className="text-sm"
+              />
+              <div className="flex gap-2">
+                <Button
+                  onClick={sendTestNotification}
+                  disabled={isLoading || !message.trim()}
+                  size="sm"
+                  className="flex-1"
+                >
+                  🧪 Probar
+                </Button>
+                <Button onClick={unsubscribeFromPush} disabled={isLoading} variant="outline" size="sm">
+                  ❌
+                </Button>
+              </div>
+            </div>
           </>
         ) : (
-          <Button
-            onClick={subscribeUser}
-            disabled={loading}
-            size="sm"
-            className="bg-green-500 hover:bg-green-600 text-white"
-          >
-            <Bell className="w-4 h-4 mr-2" />
-            {loading ? "Activando..." : "Activar Notificaciones"}
-          </Button>
+          <>
+            <p className="text-sm text-gray-600">Activa las notificaciones para recibir actualizaciones</p>
+            <Button onClick={subscribeToPush} disabled={isLoading} className="w-full" size="sm">
+              {isLoading ? "⏳ Activando..." : "🔔 Activar Notificaciones"}
+            </Button>
+          </>
         )}
-      </div>
-    </div>
+
+        {status && <p className="text-xs text-gray-500 mt-2">{status}</p>}
+      </CardContent>
+    </Card>
   )
 }
