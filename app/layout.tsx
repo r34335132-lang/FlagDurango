@@ -4,7 +4,6 @@ import "./globals.css"
 import { Navigation } from "@/components/navigation"
 import { NavGuard } from "@/components/nav-guard"
 import PWAInstall from "@/components/pwa-install"
-import NotificationManager from "@/components/notification-manager"
 
 export const metadata: Metadata = {
   title: "Liga Flag Durango - 20 Años Haciendo Historia",
@@ -99,7 +98,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         {/* PWA Components */}
         <PWAInstall />
-        <NotificationManager />
+
 
         {/* Service Worker Registration */}
         <script
