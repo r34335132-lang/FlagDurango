@@ -5,18 +5,30 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env
 
 export async function POST(request: NextRequest) {
   try {
-    // En una implementación real, deberías identificar qué suscripción eliminar
-    // Por simplicidad, aquí eliminamos todas las suscripciones
-    const { error } = await supabase.from("push_subscriptions").delete().neq("id", 0) // Eliminar todas
+    const { endpoint } = await request.json()
 
-    if (error) {
-      console.error("Error eliminando suscripciones:", error)
-      return NextResponse.json({ error: "Error eliminando suscripciones" }, { status: 500 })
+    console.log("Unsubscribing endpoint:", endpoint?.substring(0, 50) + "...")
+
+    if (!endpoint) {
+      return NextResponse.json({ success: false, error: "Endpoint is required" }, { status: 400 })
     }
 
-    return NextResponse.json({ success: true })
+    // Eliminar suscripción de la base de datos
+    const { error } = await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint)
+
+    if (error) {
+      console.error("Database error:", error)
+      return NextResponse.json({ success: false, error: "Database error: " + error.message }, { status: 500 })
+    }
+
+    console.log("Subscription removed successfully")
+
+    return NextResponse.json({
+      success: true,
+      message: "Subscription removed successfully",
+    })
   } catch (error) {
-    console.error("Error en unsubscribe:", error)
-    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
+    console.error("Error in unsubscribe route:", error)
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 })
   }
 }

@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { X, Download, Share, Plus } from "lucide-react"
+import { X, Download, Smartphone } from "lucide-react"
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[]
@@ -19,135 +18,115 @@ export default function PWAInstall() {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [isIOS, setIsIOS] = useState(false)
   const [isStandalone, setIsStandalone] = useState(false)
-  const [showIOSInstructions, setShowIOSInstructions] = useState(false)
 
   useEffect(() => {
-    // Check if running in browser
-    if (typeof window === "undefined") return
-
-    // Check if iOS
+    // Detectar iOS
     const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
     setIsIOS(iOS)
 
-    // Check if already installed (standalone mode)
+    // Detectar si ya está instalado como PWA
     const standalone =
       window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone === true
     setIsStandalone(standalone)
 
-    // Listen for beforeinstallprompt event
+    // Escuchar evento beforeinstallprompt
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault()
       setDeferredPrompt(e as BeforeInstallPromptEvent)
-
-      // Don't show if already installed or dismissed recently
-      const dismissed = localStorage.getItem("pwa-install-dismissed")
-      const dismissedTime = dismissed ? Number.parseInt(dismissed) : 0
-      const daysSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60 * 24)
-
-      if (!standalone && daysSinceDismissed > 7) {
-        setShowInstallPrompt(true)
-      }
+      setShowInstallPrompt(true)
     }
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
 
-    // For iOS, show install prompt if not standalone and not dismissed recently
-    if (iOS && !standalone) {
-      const dismissed = localStorage.getItem("pwa-install-dismissed")
-      const dismissedTime = dismissed ? Number.parseInt(dismissed) : 0
-      const daysSinceDismissed = (Date.now() - dismissedTime) / (1000 * 60 * 60 * 24)
-
-      if (daysSinceDismissed > 7) {
-        setShowInstallPrompt(true)
-      }
-    }
-
+    // Limpiar listener
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt)
     }
   }, [])
 
   const handleInstallClick = async () => {
-    if (isIOS) {
-      setShowIOSInstructions(true)
-      return
-    }
-
     if (!deferredPrompt) return
 
     deferredPrompt.prompt()
     const { outcome } = await deferredPrompt.userChoice
 
     if (outcome === "accepted") {
-      setShowInstallPrompt(false)
+      console.log("PWA installation accepted")
+    } else {
+      console.log("PWA installation dismissed")
     }
 
     setDeferredPrompt(null)
+    setShowInstallPrompt(false)
   }
 
   const handleDismiss = () => {
     setShowInstallPrompt(false)
-    setShowIOSInstructions(false)
-    localStorage.setItem("pwa-install-dismissed", Date.now().toString())
+    setDeferredPrompt(null)
   }
 
-  // Don't render on server or if already installed
-  if (typeof window === "undefined" || isStandalone || !showInstallPrompt) {
+  // No mostrar si ya está instalado
+  if (isStandalone) {
     return null
   }
 
-  if (showIOSInstructions) {
+  // Prompt para iOS
+  if (isIOS && !isStandalone) {
     return (
-      <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:max-w-sm">
-        <Card className="bg-white border-2 border-blue-500 shadow-lg">
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start mb-3">
-              <h3 className="font-bold text-gray-900">Instalar Liga Flag Durango</h3>
-              <Button variant="ghost" size="sm" onClick={handleDismiss}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-            <div className="space-y-3 text-sm text-gray-700">
-              <div className="flex items-center gap-2">
-                <Share className="w-4 h-4 text-blue-500" />
-                <span>1. Toca el botón de compartir</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Plus className="w-4 h-4 text-blue-500" />
-                <span>2. Selecciona "Añadir a pantalla de inicio"</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Download className="w-4 h-4 text-blue-500" />
-                <span>3. Confirma la instalación</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="fixed bottom-4 left-4 z-50 bg-blue-500 text-white p-4 rounded-lg shadow-lg max-w-sm">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center">
+            <Smartphone className="w-5 h-5 mr-2" />
+            <h3 className="font-semibold text-sm">Instalar App</h3>
+          </div>
+          <Button onClick={handleDismiss} variant="ghost" size="sm" className="text-white hover:bg-blue-600 p-1 h-auto">
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+        <p className="text-xs mb-3">
+          Para instalar esta app en tu iPhone: toca{" "}
+          <span className="inline-block w-4 h-4 border border-white rounded text-center text-xs leading-4 mx-1">⬆️</span>{" "}
+          y luego "Añadir a pantalla de inicio"
+        </p>
       </div>
     )
   }
 
-  return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:max-w-sm">
-      <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0 shadow-lg">
-        <CardContent className="p-4">
-          <div className="flex justify-between items-start mb-3">
-            <div>
-              <h3 className="font-bold">¡Instala la App!</h3>
-              <p className="text-sm text-blue-100">Acceso rápido desde tu pantalla de inicio</p>
-            </div>
-            <Button variant="ghost" size="sm" onClick={handleDismiss} className="text-white hover:bg-white/20">
-              <X className="w-4 h-4" />
-            </Button>
+  // Prompt para Android/Desktop
+  if (showInstallPrompt && deferredPrompt) {
+    return (
+      <div className="fixed bottom-4 left-4 z-50 bg-green-500 text-white p-4 rounded-lg shadow-lg max-w-sm">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex items-center">
+            <Download className="w-5 h-5 mr-2" />
+            <h3 className="font-semibold text-sm">Instalar App</h3>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={handleInstallClick} className="flex-1 bg-white text-blue-600 hover:bg-blue-50">
-              <Download className="w-4 h-4 mr-2" />
-              Instalar
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  )
+          <Button
+            onClick={handleDismiss}
+            variant="ghost"
+            size="sm"
+            className="text-white hover:bg-green-600 p-1 h-auto"
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+        <p className="text-xs mb-3">Instala Liga Flag Durango en tu dispositivo para acceso rápido y notificaciones.</p>
+        <div className="flex space-x-2">
+          <Button onClick={handleInstallClick} size="sm" className="bg-white text-green-500 hover:bg-gray-100 flex-1">
+            Instalar
+          </Button>
+          <Button
+            onClick={handleDismiss}
+            variant="outline"
+            size="sm"
+            className="border-white text-white hover:bg-green-600 bg-transparent"
+          >
+            Ahora no
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return null
 }
