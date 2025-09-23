@@ -5,7 +5,18 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Calendar, Clock, MapPin, Users, Trophy, ArrowRight, Castle as Whistle, Search, Filter } from "lucide-react"
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  Trophy,
+  ArrowRight,
+  Castle as Whistle,
+  Search,
+  Filter,
+  Share2,
+} from "lucide-react"
 
 interface Game {
   id: number
@@ -88,7 +99,6 @@ export default function GamesPage() {
       "varonil-gold": "bg-blue-500",
       "mixto-silver": "bg-orange-400",
       "mixto-gold": "bg-orange-500",
-      teens: "bg-green-500",
     }
     return colors[category] || "bg-gray-500"
   }
@@ -102,7 +112,6 @@ export default function GamesPage() {
       "varonil-gold": "Varonil Gold",
       "mixto-silver": "Mixto Silver",
       "mixto-gold": "Mixto Gold",
-      teens: "Teens",
     }
     return labels[category] || category
   }
@@ -137,6 +146,45 @@ export default function GamesPage() {
     return {
       color1: team?.color1 || "#3B82F6",
       color2: team?.color2 || "#1E40AF",
+    }
+  }
+
+  const shareGame = async (game: Game) => {
+    const gameDate = new Date(game.game_date).toLocaleDateString("es-ES", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+
+    const shareData = {
+      title: `${game.home_team} vs ${game.away_team}`,
+      text: `🏈 ${game.home_team} vs ${game.away_team}\n📅 ${gameDate} a las ${game.game_time}\n📍 ${game.venue} - ${game.field}\n🏆 ${getCategoryLabel(game.category)}\n\n¡No te lo pierdas! Liga Flag Durango`,
+      url: window.location.href,
+    }
+
+    try {
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData)
+      } else {
+        // Fallback: copiar al portapapeles
+        const textToShare = `${shareData.title}\n${shareData.text}\n${shareData.url}`
+        await navigator.clipboard.writeText(textToShare)
+
+        // Mostrar feedback visual
+        const button = document.activeElement as HTMLButtonElement
+        if (button) {
+          const originalText = button.innerHTML
+          button.innerHTML = "✅ Copiado"
+          button.disabled = true
+          setTimeout(() => {
+            button.innerHTML = originalText
+            button.disabled = false
+          }, 2000)
+        }
+      }
+    } catch (error) {
+      console.error("Error sharing:", error)
     }
   }
 
@@ -305,7 +353,6 @@ export default function GamesPage() {
                 <option value="femenil-cooper">Femenil Cooper</option>
                 <option value="mixto-gold">Mixto Gold</option>
                 <option value="mixto-silver">Mixto Silver</option>
-                <option value="teens">Teens</option>
               </select>
               <select
                 value={statusFilter}
@@ -346,7 +393,11 @@ export default function GamesPage() {
               {liveGames.map((game) => (
                 <Card
                   key={game.id}
-                  className="border-2 border-red-500 shadow-2xl bg-red-500/10 backdrop-blur-sm hover:bg-red-500/20 transition-all duration-300"
+                  className="border-2 border-red-500 shadow-2xl overflow-hidden"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(59, 130, 246, 0.1), rgba(168, 85, 247, 0.1))",
+                  }}
                 >
                   <CardContent className="p-6 lg:p-8">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -387,16 +438,27 @@ export default function GamesPage() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex flex-wrap gap-2 justify-end">
-                        <Badge className={`${getCategoryColor(game.category)} text-white`}>
-                          {getCategoryLabel(game.category)}
-                        </Badge>
-                        <Badge className="bg-red-500 text-white animate-pulse">🔴 EN VIVO</Badge>
-                        {game.stage && game.stage !== "regular" && (
-                          <Badge variant="secondary">{getStageLabel(game.stage)}</Badge>
-                        )}
-                        {game.match_type === "amistoso" && <Badge className="bg-gray-600">Amistoso</Badge>}
-                        {game.jornada && <Badge className="bg-blue-600">J{game.jornada}</Badge>}
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-wrap gap-2 justify-end">
+                          <Badge className={`${getCategoryColor(game.category)} text-white`}>
+                            {getCategoryLabel(game.category)}
+                          </Badge>
+                          <Badge className="bg-red-500 text-white animate-pulse">🔴 EN VIVO</Badge>
+                          {game.stage && game.stage !== "regular" && (
+                            <Badge variant="secondary">{getStageLabel(game.stage)}</Badge>
+                          )}
+                          {game.match_type === "amistoso" && <Badge className="bg-gray-600">Amistoso</Badge>}
+                          {game.jornada && <Badge className="bg-blue-600">J{game.jornada}</Badge>}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => shareGame(game)}
+                          className="bg-white/80 hover:bg-white border-gray-300"
+                        >
+                          <Share2 className="w-4 h-4 mr-2" />
+                          Compartir
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -420,10 +482,16 @@ export default function GamesPage() {
               upcomingGames.map((game) => (
                 <Card
                   key={game.id}
-                  className="shadow-xl hover:shadow-2xl transition-all duration-300 bg-white border-gray-200 hover:bg-gray-50 transform hover:scale-105"
+                  className="shadow-xl hover:shadow-2xl transition-all duration-300 border-gray-200 hover:bg-gray-50 transform hover:scale-105 overflow-hidden"
                 >
                   <CardHeader className="p-0">
-                    <div className="relative h-40 flex items-center justify-center bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-t-lg">
+                    <div
+                      className="relative h-40 flex items-center justify-center rounded-t-lg"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(168, 85, 247, 0.2), rgba(249, 115, 22, 0.2))",
+                      }}
+                    >
                       <div className="absolute inset-0 flex items-center justify-center gap-6 p-4">
                         {renderTeam(game.home_team)}
                         <div className="text-2xl font-bold text-gray-900">VS</div>
@@ -464,6 +532,17 @@ export default function GamesPage() {
                         Árbitros: {getReferees(game)}
                       </p>
                     </div>
+                    <div className="flex justify-center pt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => shareGame(game)}
+                        className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20 border-blue-300"
+                      >
+                        <Share2 className="w-4 h-4 mr-2" />
+                        Compartir
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))
@@ -495,10 +574,16 @@ export default function GamesPage() {
               finishedGames.map((game) => (
                 <Card
                   key={game.id}
-                  className="shadow-xl hover:shadow-2xl transition-all duration-300 bg-white border-gray-200 hover:bg-gray-50 transform hover:scale-105"
+                  className="shadow-xl hover:shadow-2xl transition-all duration-300 border-gray-200 hover:bg-gray-50 transform hover:scale-105 overflow-hidden"
                 >
                   <CardHeader className="p-0">
-                    <div className="relative h-40 flex items-center justify-center bg-gradient-to-br from-green-500/20 to-blue-500/20 rounded-t-lg">
+                    <div
+                      className="relative h-40 flex items-center justify-center rounded-t-lg"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(59, 130, 246, 0.2), rgba(168, 85, 247, 0.2))",
+                      }}
+                    >
                       <div className="absolute inset-0 flex items-center justify-center gap-6 p-4">
                         {renderTeam(game.home_team)}
                         <div className="text-3xl font-bold text-gray-900">
@@ -541,6 +626,17 @@ export default function GamesPage() {
                           <Trophy className="w-4 h-4 mr-2" /> MVP: {game.mvp}
                         </p>
                       )}
+                    </div>
+                    <div className="flex justify-center pt-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => shareGame(game)}
+                        className="bg-gradient-to-r from-green-500/10 to-blue-500/10 hover:from-green-500/20 hover:to-blue-500/20 border-green-300"
+                      >
+                        <Share2 className="w-4 h-4 mr-2" />
+                        Compartir
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
