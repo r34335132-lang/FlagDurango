@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from "next"
 import "./globals.css"
 import { Navigation } from "@/components/navigation"
 import { NavGuard } from "@/components/nav-guard"
-import PWAInstall from "@/components/pwa-install"
+
 
 export const metadata: Metadata = {
   title: "Liga Flag Durango - 20 Años Haciendo Historia",
@@ -96,8 +96,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </NavGuard>
         <main>{children}</main>
 
-        {/* PWA Components */}
-        <PWAInstall />
+
 
 
         {/* Service Worker Registration */}

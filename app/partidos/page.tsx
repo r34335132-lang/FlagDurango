@@ -1,484 +1,263 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Calendar, MapPin, Clock, Trophy, Users, Star, Share2, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import html2canvas from "html2canvas"
-import {
-  Calendar,
-  Clock,
-  MapPin,
-  Users,
-  Trophy,
-  ArrowRight,
-  Castle as Whistle,
-  Search,
-  Filter,
-  Share2,
-  MessageCircle,
-  Instagram,
-} from "lucide-react"
 
 interface Game {
   id: number
   home_team: string
   away_team: string
-  home_score?: number | null
-  away_score?: number | null
+  home_score?: number
+  away_score?: number
   game_date: string
   game_time: string
   venue: string
   field: string
   category: string
+  referee1?: string
+  referee2?: string
+  mvp?: string
   status: string
-  match_type?: string
   jornada?: number
-  referee1?: string | null
-  referee2?: string | null
-  mvp?: string | null
-  stage?: string | null
+  match_type?: string
 }
 
 interface Team {
   id: number
   name: string
   category: string
+  logo_url?: string
   color1: string
   color2: string
-  logo_url?: string | null
 }
 
-export default function GamesPage() {
+export default function PartidosPage() {
   const [games, setGames] = useState<Game[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<string>("all")
+  const [selectedStatus, setSelectedStatus] = useState<string>("all")
   const [searchTerm, setSearchTerm] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState("")
-  const [statusFilter, setStatusFilter] = useState("")
-  const [matchTypeFilter, setMatchTypeFilter] = useState("")
-  const [showShareModal, setShowShareModal] = useState(false)
+  const [shareModalOpen, setShareModalOpen] = useState(false)
   const [selectedGame, setSelectedGame] = useState<Game | null>(null)
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [gamesRes, teamsRes] = await Promise.all([fetch("/api/games"), fetch("/api/teams")])
-        const [gamesData, teamsData] = await Promise.all([gamesRes.json(), teamsRes.json()])
+  const loadData = async () => {
+    try {
+      const [gamesResponse, teamsResponse] = await Promise.all([fetch("/api/games"), fetch("/api/teams")])
 
-        if (gamesData.success) {
-          setGames(gamesData.data || [])
-        } else {
-          setError(gamesData.message || "Error al cargar partidos.")
-        }
+      const [gamesData, teamsData] = await Promise.all([gamesResponse.json(), teamsResponse.json()])
 
-        if (teamsData.success) {
-          setTeams(teamsData.data || [])
-        }
-      } catch (e) {
-        console.error("Error fetching data:", e)
-        setError("Error de red o del servidor al cargar partidos.")
-      } finally {
-        setLoading(false)
-      }
+      if (gamesData.success) setGames(gamesData.data)
+      if (teamsData.success) setTeams(teamsData.data)
+    } catch (error) {
+      console.error("Error loading data:", error)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     loadData()
-    const i = setInterval(loadData, 30000)
-    return () => clearInterval(i)
+    const interval = setInterval(loadData, 30000)
+    return () => clearInterval(interval)
   }, [])
 
-  const teamMap = useMemo(() => {
-    const map = new Map<string, Team>()
-    teams.forEach((t) => map.set(t.name, t))
-    return map
-  }, [teams])
-
-  const getCategoryColor = (category: string) => {
-    const colors: Record<string, string> = {
-      "femenil-silver": "bg-pink-400",
-      "femenil-gold": "bg-pink-500",
-      "femenil-cooper": "bg-pink-600",
-      "varonil-silver": "bg-blue-400",
-      "varonil-gold": "bg-blue-500",
-      "mixto-silver": "bg-orange-400",
-      "mixto-gold": "bg-orange-500",
-    }
-    return colors[category] || "bg-gray-500"
+  const getTeamInfo = (teamName: string) => {
+    return (
+      teams.find((t) => t.name === teamName) || {
+        name: teamName,
+        logo_url: null,
+        color1: "#3B82F6",
+        color2: "#1E40AF",
+      }
+    )
   }
 
   const getCategoryLabel = (category: string) => {
-    const labels: Record<string, string> = {
-      "femenil-silver": "Femenil Silver",
-      "femenil-gold": "Femenil Gold",
-      "femenil-cooper": "Femenil Cooper",
-      "varonil-silver": "Varonil Silver",
+    const labels: { [key: string]: string } = {
       "varonil-gold": "Varonil Gold",
-      "mixto-silver": "Mixto Silver",
+      "varonil-silver": "Varonil Silver",
+      "femenil-gold": "Femenil Gold",
+      "femenil-silver": "Femenil Silver",
+      "femenil-cooper": "Femenil Cooper",
       "mixto-gold": "Mixto Gold",
+      "mixto-silver": "Mixto Silver",
     }
     return labels[category] || category
   }
 
-  const getStageLabel = (stage?: string | null) => {
-    switch (stage) {
-      case "quarterfinal":
-        return "Cuartos"
-      case "semifinal":
-        return "Semifinal"
-      case "final":
-        return "Final"
-      case "third_place":
-        return "Tercer Lugar"
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "en_vivo":
+      case "en vivo":
+        return <Badge className="bg-red-500 text-white animate-pulse text-xs sm:text-sm">🔴 EN VIVO</Badge>
+      case "finalizado":
+        return <Badge className="bg-green-500 text-white text-xs sm:text-sm">✅ FINALIZADO</Badge>
+      case "programado":
+        return <Badge className="bg-blue-500 text-white text-xs sm:text-sm">📅 PROGRAMADO</Badge>
       default:
-        return "Temporada"
+        return <Badge className="bg-gray-500 text-white text-xs sm:text-sm">{status}</Badge>
     }
   }
 
-  const getReferees = (game: Game) => {
-    const refs = [game.referee1, game.referee2].filter(Boolean)
-    return refs.length > 0 ? refs.join(", ") : "Sin asignar"
-  }
+  const filteredGames = games.filter((game) => {
+    const categoryMatch = selectedCategory === "all" || game.category === selectedCategory
+    const statusMatch = selectedStatus === "all" || game.status === selectedStatus
+    const searchMatch =
+      !searchTerm ||
+      game.home_team.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      game.away_team.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      game.venue.toLowerCase().includes(searchTerm.toLowerCase())
+    return categoryMatch && statusMatch && searchMatch
+  })
 
-  const getTeamLogo = (teamName: string) => {
-    const team = teams.find((t) => t.name === teamName)
-    return team?.logo_url || null
-  }
+  const sortedGames = filteredGames.sort((a, b) => {
+    // Primero en vivo, luego programados, luego finalizados
+    const statusOrder = { en_vivo: 0, "en vivo": 0, programado: 1, finalizado: 2 }
+    const aOrder = statusOrder[a.status as keyof typeof statusOrder] ?? 3
+    const bOrder = statusOrder[b.status as keyof typeof statusOrder] ?? 3
 
-  const getTeamColors = (teamName: string) => {
-    const team = teams.find((t) => t.name === teamName)
-    return {
-      color1: team?.color1 || "#3B82F6",
-      color2: team?.color2 || "#1E40AF",
-    }
-  }
+    if (aOrder !== bOrder) return aOrder - bOrder
 
-  const openShareModal = (game: Game) => {
-    setSelectedGame(game)
-    setShowShareModal(true)
-  }
+    // Dentro del mismo estado, ordenar por fecha
+    return new Date(a.game_date).getTime() - new Date(b.game_date).getTime()
+  })
 
-  const shareGame = async (game: Game, platform?: "whatsapp" | "instagram") => {
+  const captureAndShare = async (platform: "whatsapp" | "instagram") => {
     try {
-      // Capturar el contenido del modal como imagen
-      const modalContent = document.getElementById("share-modal-content")
-      if (!modalContent) return
+      // Importar html2canvas dinámicamente para evitar problemas de SSR
+      const html2canvas = (await import("html2canvas")).default
 
-      const canvas = await html2canvas(modalContent, {
+      const element = document.getElementById("share-modal-content")
+      if (!element) return
+
+      // Crear un nuevo canvas cada vez para evitar limitaciones
+      const canvas = await html2canvas(element, {
+        scale: 2,
         backgroundColor: "#ffffff",
-        scale: 2, // Mayor calidad
         useCORS: true,
         allowTaint: true,
-        width: modalContent.offsetWidth,
-        height: modalContent.offsetHeight,
+        height: element.scrollHeight,
+        width: element.scrollWidth,
+        logging: false, // Desactivar logs
+        removeContainer: true, // Limpiar después de usar
       })
 
-      // Convertir canvas a blob
+      // Crear blob y URL únicos cada vez
       canvas.toBlob(
-        async (blob) => {
+        (blob) => {
           if (!blob) return
 
+          // Crear URL único con timestamp
+          const timestamp = Date.now()
+          const url = URL.createObjectURL(blob)
+          const link = document.createElement("a")
+          link.href = url
+          link.download = `partido-${selectedGame?.home_team}-vs-${selectedGame?.away_team}-${timestamp}.png`
+
           if (platform === "whatsapp") {
-            // Para WhatsApp, intentar compartir la imagen
+            // Intentar compartir nativamente, si no funciona descargar
             if (
               navigator.share &&
-              navigator.canShare({ files: [new File([blob], "partido.png", { type: "image/png" })] })
+              navigator.canShare &&
+              navigator.canShare({ files: [new File([blob], `partido-${timestamp}.png`, { type: "image/png" })] })
             ) {
-              await navigator.share({
-                title: `${game.home_team} vs ${game.away_team}`,
-                files: [new File([blob], "partido.png", { type: "image/png" })],
-              })
+              navigator
+                .share({
+                  files: [new File([blob], `partido-${timestamp}.png`, { type: "image/png" })],
+                  title: "Partido Liga Flag Durango",
+                })
+                .catch(() => {
+                  link.click()
+                  setTimeout(() => window.open("https://wa.me/", "_blank"), 500)
+                })
             } else {
-              // Fallback: descargar la imagen
-              const url = URL.createObjectURL(blob)
-              const a = document.createElement("a")
-              a.href = url
-              a.download = `partido-${game.home_team}-vs-${game.away_team}.png`
-              a.click()
-              URL.revokeObjectURL(url)
-              alert("Imagen descargada. Compártela en WhatsApp desde tu galería.")
+              link.click()
+              setTimeout(() => window.open("https://wa.me/", "_blank"), 500)
             }
           } else if (platform === "instagram") {
-            // Para Instagram, descargar la imagen
-            const url = URL.createObjectURL(blob)
-            const a = document.createElement("a")
-            a.href = url
-            a.download = `partido-${game.home_team}-vs-${game.away_team}.png`
-            a.click()
-            URL.revokeObjectURL(url)
-
-            // Intentar abrir Instagram
-            try {
-              window.location.href = "instagram://story-camera"
-            } catch {
-              window.open("https://www.instagram.com/", "_blank")
-            }
-
-            alert("¡Imagen descargada! Súbela a tu historia de Instagram desde tu galería.")
+            link.click()
+            setTimeout(() => {
+              try {
+                window.location.href = "instagram://story-camera"
+              } catch {
+                window.open("https://www.instagram.com/", "_blank")
+              }
+            }, 500)
           }
+
+          // Limpiar URL después de un tiempo
+          setTimeout(() => {
+            URL.revokeObjectURL(url)
+            // Limpiar canvas
+            canvas.remove()
+          }, 2000)
         },
         "image/png",
         0.95,
       )
     } catch (error) {
-      console.error("Error sharing:", error)
-      alert("Error al generar la imagen. Inténtalo de nuevo.")
-    } finally {
-      setShowShareModal(false)
+      console.error("Error capturing image:", error)
     }
-  }
-
-  const filteredGames = (gamesList: Game[]) => {
-    return gamesList.filter((game) => {
-      const matchesSearch =
-        !searchTerm ||
-        game.home_team.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        game.away_team.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        game.venue.toLowerCase().includes(searchTerm.toLowerCase())
-
-      const matchesCategory = !categoryFilter || game.category === categoryFilter
-      const matchesStatus = !statusFilter || normalizedStatus(game.status) === statusFilter
-      const matchesMatchType = !matchTypeFilter || game.match_type === matchTypeFilter
-
-      return matchesSearch && matchesCategory && matchesStatus && matchesMatchType
-    })
   }
 
   if (loading) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
-      >
+      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-orange-500 flex items-center justify-center">
         <div className="text-white text-xl">Cargando partidos...</div>
       </div>
-    )
-  }
-  if (error) {
-    return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
-      >
-        <div className="text-red-400 text-xl">{error}</div>
-      </div>
-    )
-  }
-
-  const normalizedStatus = (s: string) => (s === "en vivo" || s === "en_vivo" ? "en_vivo" : s)
-
-  const liveGames = filteredGames(games.filter((g) => normalizedStatus(g.status) === "en_vivo"))
-  const upcomingGames = filteredGames(
-    games
-      .filter((g) => normalizedStatus(g.status) === "programado")
-      .sort((a, b) => new Date(a.game_date).getTime() - new Date(b.game_date).getTime()),
-  )
-  const finishedGames = filteredGames(
-    games
-      .filter((g) => normalizedStatus(g.status) === "finalizado")
-      .sort((a, b) => new Date(b.game_date).getTime() - new Date(a.game_date).getTime()),
-  )
-
-  const renderTeamLogo = (name: string, size = "h-16 w-16") => {
-    const logo = getTeamLogo(name)
-    const colors = getTeamColors(name)
-
-    return (
-      <div
-        className={`${size} rounded-full flex items-center justify-center text-white text-xl font-bold overflow-hidden border-2 border-white/30`}
-        style={{ background: `linear-gradient(135deg, ${colors.color1}, ${colors.color2})` }}
-      >
-        {logo ? (
-          <img
-            src={logo || "/placeholder.svg"}
-            alt={`Logo de ${name}`}
-            className="h-full w-full object-cover rounded-full"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement
-              const parent = target.parentElement
-              if (parent) {
-                target.style.display = "none"
-                parent.innerHTML = `<span class="text-xl font-bold">${name.charAt(0)}</span>`
-              }
-            }}
-          />
-        ) : (
-          name.charAt(0)
-        )}
-      </div>
-    )
-  }
-
-  // Componente de tarjeta de partido estilo moderno
-  const GameCard = ({ game }: { game: Game }) => {
-    const statusClass =
-      {
-        en_vivo: "bg-red-500",
-        programado: "bg-blue-500",
-        finalizado: "bg-green-500",
-      }[normalizedStatus(game.status)] || "bg-gray-500"
-
-    const statusLabel =
-      {
-        en_vivo: "En Vivo",
-        programado: "Programado",
-        finalizado: "Finalizado",
-      }[normalizedStatus(game.status)] || "Desconocido"
-
-    return (
-      <Card className="overflow-hidden border-0 shadow-md hover:shadow-xl transition-all duration-300">
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6">
-          <div className="flex justify-center items-center gap-4 mb-4">
-            <div className="flex flex-col items-center">
-              {renderTeamLogo(game.home_team)}
-              <span className="mt-2 font-medium text-sm text-center max-w-[100px]">{game.home_team}</span>
-            </div>
-
-            <div className="text-3xl font-bold text-gray-800">
-              {normalizedStatus(game.status) === "programado" ? (
-                "VS"
-              ) : (
-                <>
-                  {game.home_score ?? 0} - {game.away_score ?? 0}
-                </>
-              )}
-            </div>
-
-            <div className="flex flex-col items-center">
-              {renderTeamLogo(game.away_team)}
-              <span className="mt-2 font-medium text-sm text-center max-w-[100px]">{game.away_team}</span>
-            </div>
-          </div>
-
-          <div className="flex justify-center gap-2 mb-4">
-            <Badge className={getCategoryColor(game.category)}>{getCategoryLabel(game.category)}</Badge>
-            <Badge className={statusClass}>{statusLabel}</Badge>
-          </div>
-
-          <div className="space-y-2 text-sm text-gray-600">
-            <div className="flex items-center justify-center">
-              <Calendar className="w-4 h-4 mr-2" />
-              {new Date(game.game_date).toLocaleDateString("es-ES", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })}
-            </div>
-
-            <div className="flex items-center justify-center">
-              <Clock className="w-4 h-4 mr-2" />
-              {game.game_time}
-            </div>
-
-            <div className="flex items-center justify-center">
-              <MapPin className="w-4 h-4 mr-2" />
-              {game.venue} - {game.field}
-            </div>
-
-            <div className="flex items-center justify-center">
-              <Whistle className="w-4 h-4 mr-2" />
-              Árbitros: {getReferees(game)}
-            </div>
-
-            {game.mvp && (
-              <div className="flex items-center justify-center text-yellow-600">
-                <Trophy className="w-4 h-4 mr-2" />
-                MVP: {game.mvp}
-              </div>
-            )}
-          </div>
-
-          <div className="mt-4 flex justify-center">
-            <Button
-              onClick={() => openShareModal(game)}
-              className="bg-white hover:bg-gray-100 text-gray-800 border border-gray-300"
-            >
-              <Share2 className="w-4 h-4 mr-2" />
-              Compartir
-            </Button>
-          </div>
-        </div>
-      </Card>
     )
   }
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section */}
-      <section
-        className="relative py-20 overflow-hidden"
-        style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
-      >
+      {/* Header */}
+      <section className="relative py-12 sm:py-16 overflow-hidden bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500">
+        <div className="absolute inset-0 bg-black/40"></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-block bg-green-400/95 backdrop-blur-sm text-gray-900 px-6 py-2 rounded-full font-bold mb-6">
-              {"🏈 Calendario de Partidos - Liga Flag Durango"}
-            </div>
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
+            <h1 className="text-3xl sm:text-5xl md:text-7xl font-bold text-white mb-4 sm:mb-6">
               Partidos
               <span className="block bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-                2025
+                Liga Flag
               </span>
             </h1>
-            <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
-              Sigue todos los partidos de la temporada actual.
-              <span className="block mt-2 text-yellow-300 font-semibold">¡No te pierdas ningún juego!</span>
+            <p className="text-lg sm:text-xl md:text-2xl text-white/90 mb-6 sm:mb-8 leading-relaxed px-4">
+              Sigue todos los partidos de la temporada 2025
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold"
-                onClick={() => (window.location.href = "/equipos")}
-              >
-                <Users className="w-5 h-5 mr-2" />
-                Ver Equipos
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent"
-                onClick={() => (window.location.href = "/estadisticas")}
-              >
-                <Trophy className="w-5 h-5 mr-2" />
-                Estadísticas
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent"
-                onClick={() => (window.location.href = "/")}
-              >
-                Inicio
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </div>
           </div>
         </div>
       </section>
 
-      {/* Filtros */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-8">
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <div className="relative flex-1 md:w-80">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Buscar equipos, venue..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-600" />
+      <div className="container mx-auto px-4 py-6 sm:py-8">
+        {/* Filtros */}
+        <div className="mb-6 sm:mb-8 space-y-4">
+          {/* Buscador */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Buscar equipos o venue..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-full"
+            />
+          </div>
+
+          {/* Filtros en grid responsivo */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
               <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               >
-                <option value="">Todas las categorías</option>
+                <option value="all">Todas las categorías</option>
                 <option value="varonil-gold">Varonil Gold</option>
                 <option value="varonil-silver">Varonil Silver</option>
                 <option value="femenil-gold">Femenil Gold</option>
@@ -487,288 +266,319 @@ export default function GamesPage() {
                 <option value="mixto-gold">Mixto Gold</option>
                 <option value="mixto-silver">Mixto Silver</option>
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
               <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               >
-                <option value="">Todos los estados</option>
-                <option value="programado">Programados</option>
+                <option value="all">Todos los estados</option>
                 <option value="en_vivo">En Vivo</option>
+                <option value="programado">Programados</option>
                 <option value="finalizado">Finalizados</option>
-              </select>
-              <select
-                value={matchTypeFilter}
-                onChange={(e) => setMatchTypeFilter(e.target.value)}
-                className="px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Todos los tipos</option>
-                <option value="jornada">Jornada</option>
-                <option value="amistoso">Amistoso</option>
-                <option value="playoff">Playoff</option>
               </select>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="container mx-auto p-4 lg:p-6">
-        {/* EN VIVO */}
-        {liveGames.length > 0 && (
-          <section className="mb-16">
-            <div className="text-center mb-8">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4 flex items-center justify-center">
-                <div className="w-3 h-3 bg-red-500 rounded-full mr-3 animate-pulse"></div>🔴 PARTIDOS EN VIVO
-              </h2>
-              <p className="text-gray-600 text-lg">Partidos que se están jugando ahora mismo</p>
-            </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {liveGames.map((game) => (
-                <GameCard key={game.id} game={game} />
-              ))}
-            </div>
-          </section>
-        )}
+        {/* Lista de Partidos */}
+        <div className="grid gap-4 sm:gap-6">
+          {sortedGames.map((game) => {
+            const homeTeam = getTeamInfo(game.home_team)
+            const awayTeam = getTeamInfo(game.away_team)
 
-        {/* PRÓXIMOS PARTIDOS */}
-        <section className="mb-16">
-          <div className="text-center mb-8">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4 flex items-center justify-center">
-              <Calendar className="w-8 h-8 mr-3 text-blue-400" />
-              Próximos Partidos
-            </h2>
-            <p className="text-gray-600 text-lg">Partidos programados para los próximos días</p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {upcomingGames.length > 0 ? (
-              upcomingGames.map((game) => <GameCard key={game.id} game={game} />)
-            ) : (
-              <div className="col-span-full">
-                <Card className="bg-white border-gray-200">
-                  <CardContent className="p-12 text-center">
-                    <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay partidos programados</h3>
-                    <p className="text-gray-600">Los próximos partidos aparecerán aquí una vez que sean programados.</p>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* PARTIDOS FINALIZADOS */}
-        <section className="mb-16">
-          <div className="text-center mb-8">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4 flex items-center justify-center">
-              <Trophy className="w-8 h-8 mr-3 text-green-400" />
-              Partidos Finalizados
-            </h2>
-            <p className="text-gray-600 text-lg">Resultados de los partidos más recientes</p>
-          </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {finishedGames.length > 0 ? (
-              finishedGames.map((game) => <GameCard key={game.id} game={game} />)
-            ) : (
-              <div className="col-span-full">
-                <Card className="bg-white border-gray-200">
-                  <CardContent className="p-12 text-center">
-                    <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay partidos finalizados</h3>
-                    <p className="text-gray-600">
-                      Los resultados de los partidos aparecerán aquí una vez que finalicen.
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </div>
-        </section>
-      </div>
-
-      {/* Modal de compartir */}
-      {showShareModal && selectedGame && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full overflow-hidden shadow-xl">
-            {/* Contenido para capturar */}
-            <div id="share-modal-content" className="bg-white">
-              {/* Cabecera del modal */}
-              <div className="p-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white">
-                <h3 className="text-xl font-bold text-center">Liga Flag Durango</h3>
-              </div>
-
-              {/* Tarjeta de partido para compartir */}
-              <div className="p-0 relative">
-                {/* Fondo degradado */}
-                <div
-                  className="absolute inset-0 z-0"
-                  style={{ background: "linear-gradient(135deg, #f5f7fa, #e4e8f0)" }}
-                ></div>
-
-                {/* Contenido de la tarjeta */}
-                <div className="relative z-10 p-6">
-                  {/* Logo de la liga */}
-                  <div className="flex justify-center mb-4">
-                    <div className="bg-white rounded-full p-2 shadow-md">
-                      <img
-                        src="/icons/icon-96x96.png"
-                        alt="Liga Flag Durango"
-                        className="h-12 w-12"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          target.src = "/favicon.ico"
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Estado del partido */}
-                  <div className="text-center mb-4">
-                    <Badge
-                      className={
-                        normalizedStatus(selectedGame.status) === "en_vivo"
-                          ? "bg-red-500 text-white text-lg px-4 py-2"
-                          : normalizedStatus(selectedGame.status) === "finalizado"
-                            ? "bg-green-500 text-white text-lg px-4 py-2"
-                            : "bg-blue-500 text-white text-lg px-4 py-2"
-                      }
+            return (
+              <Card
+                key={game.id}
+                className={`overflow-hidden transition-all duration-300 hover:shadow-xl ${
+                  game.status === "en_vivo" || game.status === "en vivo"
+                    ? "bg-gradient-to-r from-red-50 to-pink-50 border-red-200"
+                    : game.status === "finalizado"
+                      ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200"
+                      : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200"
+                }`}
+              >
+                <CardContent className="p-4 sm:p-6">
+                  {/* Header con estado y botón compartir */}
+                  <div className="flex items-center justify-between mb-4">
+                    {getStatusBadge(game.status)}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedGame(game)
+                        setShareModalOpen(true)
+                      }}
+                      className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3"
                     >
-                      {normalizedStatus(selectedGame.status) === "en_vivo"
-                        ? "🔴 EN VIVO"
-                        : normalizedStatus(selectedGame.status) === "finalizado"
-                          ? "✅ RESULTADO FINAL"
-                          : "🏈 PRÓXIMO PARTIDO"}
-                    </Badge>
+                      <Share2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">Compartir</span>
+                      <span className="sm:hidden">📤</span>
+                    </Button>
                   </div>
 
-                  {/* Equipos y resultado */}
-                  <div className="flex justify-between items-center mb-6 bg-white rounded-lg p-6 shadow-sm">
-                    <div className="flex flex-col items-center text-center flex-1">
-                      {renderTeamLogo(selectedGame.home_team, "h-20 w-20")}
-                      <span className="mt-3 font-bold text-base">{selectedGame.home_team}</span>
-                      {normalizedStatus(selectedGame.status) !== "programado" && (
-                        <span className="text-3xl font-bold text-blue-600 mt-2">{selectedGame.home_score ?? 0}</span>
-                      )}
-                    </div>
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 sm:gap-6">
+                    {/* Equipos y Marcador */}
+                    <div className="flex-1">
+                      <div className="grid grid-cols-3 items-center gap-2 sm:gap-4">
+                        {/* Equipo Local */}
+                        <div className="text-center">
+                          <div className="flex flex-col items-center mb-2">
+                            {homeTeam.logo_url ? (
+                              <img
+                                src={homeTeam.logo_url || "/placeholder.svg"}
+                                alt={homeTeam.name}
+                                className="w-12 h-12 sm:w-16 sm:h-16 object-contain mb-1 sm:mb-2"
+                              />
+                            ) : (
+                              <div
+                                className="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-xl mb-1 sm:mb-2"
+                                style={{ backgroundColor: homeTeam.color1 }}
+                              >
+                                {homeTeam.name.charAt(0)}
+                              </div>
+                            )}
+                            <h3 className="font-bold text-xs sm:text-lg text-gray-900 leading-tight">
+                              {game.home_team}
+                            </h3>
+                          </div>
+                        </div>
 
-                    <div className="mx-4">
-                      {normalizedStatus(selectedGame.status) === "programado" ? (
-                        <div className="text-3xl font-bold text-gray-800">VS</div>
-                      ) : (
-                        <div className="text-2xl font-bold text-gray-500">-</div>
-                      )}
-                    </div>
+                        {/* Marcador */}
+                        <div className="text-center">
+                          {game.status === "finalizado" || game.status === "en_vivo" || game.status === "en vivo" ? (
+                            <div className="text-2xl sm:text-4xl font-bold text-gray-900">
+                              {game.home_score || 0} - {game.away_score || 0}
+                            </div>
+                          ) : (
+                            <div className="text-xl sm:text-2xl font-bold text-gray-600">VS</div>
+                          )}
+                        </div>
 
-                    <div className="flex flex-col items-center text-center flex-1">
-                      {renderTeamLogo(selectedGame.away_team, "h-20 w-20")}
-                      <span className="mt-3 font-bold text-base">{selectedGame.away_team}</span>
-                      {normalizedStatus(selectedGame.status) !== "programado" && (
-                        <span className="text-3xl font-bold text-blue-600 mt-2">{selectedGame.away_score ?? 0}</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Detalles del partido */}
-                  <div className="bg-white rounded-lg p-4 shadow-sm space-y-3 text-center">
-                    <div className="flex items-center justify-center">
-                      <Calendar className="w-5 h-5 mr-2 text-blue-500" />
-                      <span className="font-medium">
-                        {new Date(selectedGame.game_date).toLocaleDateString("es-ES", {
-                          weekday: "long",
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                      <Clock className="w-5 h-5 mr-2 text-blue-500" />
-                      <span className="font-medium">{selectedGame.game_time}</span>
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                      <MapPin className="w-5 h-5 mr-2 text-blue-500" />
-                      <span className="font-medium">
-                        {selectedGame.venue} - {selectedGame.field}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-center">
-                      <Badge className={getCategoryColor(selectedGame.category) + " text-white px-3 py-1"}>
-                        {getCategoryLabel(selectedGame.category)}
-                      </Badge>
-                    </div>
-
-                    {selectedGame.mvp && normalizedStatus(selectedGame.status) === "finalizado" && (
-                      <div className="flex items-center justify-center text-yellow-600 bg-yellow-50 p-2 rounded">
-                        <Trophy className="w-5 h-5 mr-2" />
-                        <span className="font-bold">MVP: {selectedGame.mvp}</span>
+                        {/* Equipo Visitante */}
+                        <div className="text-center">
+                          <div className="flex flex-col items-center mb-2">
+                            {awayTeam.logo_url ? (
+                              <img
+                                src={awayTeam.logo_url || "/placeholder.svg"}
+                                alt={awayTeam.name}
+                                className="w-12 h-12 sm:w-16 sm:h-16 object-contain mb-1 sm:mb-2"
+                              />
+                            ) : (
+                              <div
+                                className="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-xl mb-1 sm:mb-2"
+                                style={{ backgroundColor: awayTeam.color1 }}
+                              >
+                                {awayTeam.name.charAt(0)}
+                              </div>
+                            )}
+                            <h3 className="font-bold text-xs sm:text-lg text-gray-900 leading-tight">
+                              {game.away_team}
+                            </h3>
+                          </div>
+                        </div>
                       </div>
+                    </div>
+
+                    {/* Información del Partido */}
+                    <div className="lg:w-80 space-y-2 sm:space-y-3">
+                      <div className="flex items-center text-gray-600 text-sm sm:text-base">
+                        <Trophy className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+                        <span className="font-medium">{getCategoryLabel(game.category)}</span>
+                      </div>
+                      <div className="flex items-center text-gray-600 text-sm sm:text-base">
+                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+                        <span className="text-xs sm:text-base">
+                          {new Date(game.game_date).toLocaleDateString("es-MX", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex items-center text-gray-600 text-sm sm:text-base">
+                        <Clock className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+                        <span>{game.game_time}</span>
+                      </div>
+                      <div className="flex items-center text-gray-600 text-sm sm:text-base">
+                        <MapPin className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+                        <span className="text-xs sm:text-base">
+                          {game.venue} - {game.field}
+                        </span>
+                      </div>
+                      {game.jornada && (
+                        <div className="flex items-center text-gray-600 text-sm sm:text-base">
+                          <Users className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+                          <span>Jornada {game.jornada}</span>
+                        </div>
+                      )}
+                      {game.mvp && game.status === "finalizado" && (
+                        <div className="flex items-center text-yellow-600 text-sm sm:text-base">
+                          <Star className="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" />
+                          <span className="font-medium">MVP: {game.mvp}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+
+        {sortedGames.length === 0 && (
+          <div className="text-center py-12">
+            <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay partidos</h3>
+            <p className="text-gray-500">No se encontraron partidos con los filtros seleccionados.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Modal de Compartir */}
+      <Dialog open={shareModalOpen} onOpenChange={setShareModalOpen}>
+        <DialogContent className="max-w-sm sm:max-w-md mx-auto p-0 overflow-hidden">
+          <div
+            id="share-modal-content"
+            className="bg-gradient-to-br from-blue-500 via-purple-600 to-orange-500 text-white"
+          >
+            {/* Header */}
+            <div className="p-4 sm:p-6 text-center border-b border-white/20">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
+                <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              </div>
+              <h2 className="text-lg sm:text-xl font-bold">Liga Flag Durango</h2>
+              <p className="text-white/80 text-xs sm:text-sm">20 años haciendo historia</p>
+            </div>
+
+            {/* Contenido del Partido */}
+            {selectedGame && (
+              <div className="p-4 sm:p-6">
+                {/* Estado */}
+                <div className="text-center mb-3 sm:mb-4">
+                  {selectedGame.status === "finalizado" && (
+                    <div className="bg-green-500/20 border border-green-400 rounded-lg px-3 py-2 inline-block">
+                      <span className="text-green-200 font-bold text-sm">✅ RESULTADO FINAL</span>
+                    </div>
+                  )}
+                  {(selectedGame.status === "en_vivo" || selectedGame.status === "en vivo") && (
+                    <div className="bg-red-500/20 border border-red-400 rounded-lg px-3 py-2 inline-block animate-pulse">
+                      <span className="text-red-200 font-bold text-sm">🔴 EN VIVO</span>
+                    </div>
+                  )}
+                  {selectedGame.status === "programado" && (
+                    <div className="bg-blue-500/20 border border-blue-400 rounded-lg px-3 py-2 inline-block">
+                      <span className="text-blue-200 font-bold text-sm">📅 PRÓXIMO PARTIDO</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Equipos */}
+                <div className="grid grid-cols-3 items-center gap-2 sm:gap-4 mb-4 sm:mb-6">
+                  {/* Equipo Local */}
+                  <div className="text-center">
+                    {getTeamInfo(selectedGame.home_team).logo_url ? (
+                      <img
+                        src={getTeamInfo(selectedGame.home_team).logo_url || "/placeholder.svg"}
+                        alt={selectedGame.home_team}
+                        className="w-12 h-12 sm:w-16 sm:h-16 object-contain mx-auto mb-1 sm:mb-2"
+                      />
+                    ) : (
+                      <div
+                        className="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-xl mx-auto mb-1 sm:mb-2 shadow-lg"
+                        style={{ backgroundColor: getTeamInfo(selectedGame.home_team).color1 }}
+                      >
+                        {selectedGame.home_team.charAt(0)}
+                      </div>
+                    )}
+                    <p className="font-bold text-xs sm:text-sm leading-tight">{selectedGame.home_team}</p>
+                  </div>
+
+                  {/* Marcador */}
+                  <div className="text-center">
+                    {selectedGame.status === "finalizado" ||
+                    selectedGame.status === "en_vivo" ||
+                    selectedGame.status === "en vivo" ? (
+                      <div className="text-2xl sm:text-4xl font-bold">
+                        {selectedGame.home_score || 0} - {selectedGame.away_score || 0}
+                      </div>
+                    ) : (
+                      <div className="text-xl sm:text-2xl font-bold text-white/80">VS</div>
                     )}
                   </div>
 
-                  {/* Pie de la tarjeta */}
-                  <div className="mt-6 text-center">
-                    <div className="text-lg font-bold text-gray-800">Liga Flag Durango</div>
-                    <div className="text-sm text-gray-600">20 años haciendo historia</div>
+                  {/* Equipo Visitante */}
+                  <div className="text-center">
+                    {getTeamInfo(selectedGame.away_team).logo_url ? (
+                      <img
+                        src={getTeamInfo(selectedGame.away_team).logo_url || "/placeholder.svg"}
+                        alt={selectedGame.away_team}
+                        className="w-12 h-12 sm:w-16 sm:h-16 object-contain mx-auto mb-1 sm:mb-2"
+                      />
+                    ) : (
+                      <div
+                        className="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-white font-bold text-sm sm:text-xl mx-auto mb-1 sm:mb-2 shadow-lg"
+                        style={{ backgroundColor: getTeamInfo(selectedGame.away_team).color1 }}
+                      >
+                        {selectedGame.away_team.charAt(0)}
+                      </div>
+                    )}
+                    <p className="font-bold text-xs sm:text-sm leading-tight">{selectedGame.away_team}</p>
                   </div>
                 </div>
+
+                {/* Información */}
+                <div className="space-y-1 sm:space-y-2 text-center text-white/90 text-xs sm:text-sm">
+                  <p className="font-semibold">{getCategoryLabel(selectedGame.category)}</p>
+                  <p>
+                    {new Date(selectedGame.game_date).toLocaleDateString("es-MX", {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                    })}{" "}
+                    - {selectedGame.game_time}
+                  </p>
+                  <p>
+                    {selectedGame.venue} - {selectedGame.field}
+                  </p>
+                  {selectedGame.mvp && selectedGame.status === "finalizado" && (
+                    <p className="text-yellow-300 font-semibold">⭐ MVP: {selectedGame.mvp}</p>
+                  )}
+                </div>
               </div>
+            )}
+          </div>
+
+          {/* Botones de Compartir */}
+          <div className="p-3 sm:p-4 bg-white">
+            <DialogHeader className="mb-3 sm:mb-4">
+              <DialogTitle className="text-center text-gray-900 text-sm sm:text-base">Compartir Partido</DialogTitle>
+            </DialogHeader>
+
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <Button
+                onClick={() => captureAndShare("whatsapp")}
+                className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 sm:py-3 text-sm"
+              >
+                📱 WhatsApp
+              </Button>
+              <Button
+                onClick={() => captureAndShare("instagram")}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-2 sm:py-3 text-sm"
+              >
+                📸 Instagram
+              </Button>
             </div>
 
-            {/* Botones de compartir */}
-            <div className="p-4 bg-gray-50 flex gap-4">
-              <Button
-                onClick={() => shareGame(selectedGame, "whatsapp")}
-                className="flex-1 bg-green-500 hover:bg-green-600 text-white"
-              >
-                <MessageCircle className="w-5 h-5 mr-2" />
-                WhatsApp
-              </Button>
-
-              <Button
-                onClick={() => shareGame(selectedGame, "instagram")}
-                className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-              >
-                <Instagram className="w-5 h-5 mr-2" />
-                Instagram
-              </Button>
-            </div>
-
-            <Button onClick={() => setShowShareModal(false)} variant="ghost" className="w-full">
-              Cancelar
-            </Button>
+            <p className="text-xs text-gray-500 text-center mt-2 sm:mt-3">
+              Se descargará la imagen para compartir en historias
+            </p>
           </div>
-        </div>
-      )}
-
-      {/* Footer CTA */}
-      <section className="py-16" style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}>
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">¿Quieres participar?</h2>
-          <p className="text-white/90 text-lg mb-8 leading-relaxed">
-            Únete a la Liga Flag Durango y forma parte de la acción
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              size="lg"
-              className="bg-white text-gray-900 hover:bg-gray-100 font-bold"
-              onClick={() => (window.location.href = "/register-team")}
-            >
-              <Users className="w-5 h-5 mr-2" />
-              Registrar Equipo
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent"
-              onClick={() => (window.location.href = "/register-coach")}
-            >
-              Registrar Coach
-            </Button>
-          </div>
-        </div>
-      </section>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
