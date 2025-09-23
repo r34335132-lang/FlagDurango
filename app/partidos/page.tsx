@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import html2canvas from "html2canvas"
 import {
   Calendar,
   Clock,
@@ -159,76 +160,70 @@ export default function GamesPage() {
   }
 
   const shareGame = async (game: Game, platform?: "whatsapp" | "instagram") => {
-    const gameDate = new Date(game.game_date).toLocaleDateString("es-ES", {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
-
-    // Texto diferente según el estado del partido
-    let shareText = ""
-    if (normalizedStatus(game.status) === "finalizado") {
-      shareText = `🏈 RESULTADO FINAL: ${game.home_team} ${game.home_score ?? 0} - ${game.away_score ?? 0} ${game.away_team}
-📅 ${gameDate}
-📍 ${game.venue} - ${game.field}
-🏆 ${getCategoryLabel(game.category)}
-${game.mvp ? `🌟 MVP: ${game.mvp}` : ""}
-
-¡Liga Flag Durango - 20 años haciendo historia!
-${window.location.href}`
-    } else if (normalizedStatus(game.status) === "en_vivo") {
-      shareText = `🔴 EN VIVO: ${game.home_team} ${game.home_score ?? 0} - ${game.away_score ?? 0} ${game.away_team}
-📅 ${gameDate} a las ${game.game_time}
-📍 ${game.venue} - ${game.field}
-🏆 ${getCategoryLabel(game.category)}
-
-¡Sigue la acción en vivo! Liga Flag Durango
-${window.location.href}`
-    } else {
-      shareText = `🏈 PRÓXIMO PARTIDO: ${game.home_team} vs ${game.away_team}
-📅 ${gameDate} a las ${game.game_time}
-📍 ${game.venue} - ${game.field}
-🏆 ${getCategoryLabel(game.category)}
-
-¡No te lo pierdas! Liga Flag Durango
-${window.location.href}`
-    }
-
     try {
-      if (platform === "whatsapp") {
-        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`
-        window.open(whatsappUrl, "_blank")
-      } else if (platform === "instagram") {
-        // Para Instagram, copiamos al portapapeles y abrimos Instagram
-        await navigator.clipboard.writeText(shareText)
-        // Intentar abrir Instagram (funciona en móviles)
-        const instagramUrl = "instagram://story-camera"
-        const fallbackUrl = "https://www.instagram.com/"
+      // Capturar el contenido del modal como imagen
+      const modalContent = document.getElementById("share-modal-content")
+      if (!modalContent) return
 
-        try {
-          window.location.href = instagramUrl
-        } catch {
-          window.open(fallbackUrl, "_blank")
-        }
+      const canvas = await html2canvas(modalContent, {
+        backgroundColor: "#ffffff",
+        scale: 2, // Mayor calidad
+        useCORS: true,
+        allowTaint: true,
+        width: modalContent.offsetWidth,
+        height: modalContent.offsetHeight,
+      })
 
-        // Mostrar mensaje de que se copió
-        alert("¡Texto copiado! Pégalo en Instagram Stories")
-      } else {
-        // Compartir nativo del navegador
-        if (navigator.share && navigator.canShare) {
-          await navigator.share({
-            title: `${game.home_team} vs ${game.away_team}`,
-            text: shareText,
-            url: window.location.href,
-          })
-        } else {
-          await navigator.clipboard.writeText(shareText)
-          alert("¡Texto copiado al portapapeles!")
-        }
-      }
+      // Convertir canvas a blob
+      canvas.toBlob(
+        async (blob) => {
+          if (!blob) return
+
+          if (platform === "whatsapp") {
+            // Para WhatsApp, intentar compartir la imagen
+            if (
+              navigator.share &&
+              navigator.canShare({ files: [new File([blob], "partido.png", { type: "image/png" })] })
+            ) {
+              await navigator.share({
+                title: `${game.home_team} vs ${game.away_team}`,
+                files: [new File([blob], "partido.png", { type: "image/png" })],
+              })
+            } else {
+              // Fallback: descargar la imagen
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement("a")
+              a.href = url
+              a.download = `partido-${game.home_team}-vs-${game.away_team}.png`
+              a.click()
+              URL.revokeObjectURL(url)
+              alert("Imagen descargada. Compártela en WhatsApp desde tu galería.")
+            }
+          } else if (platform === "instagram") {
+            // Para Instagram, descargar la imagen
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement("a")
+            a.href = url
+            a.download = `partido-${game.home_team}-vs-${game.away_team}.png`
+            a.click()
+            URL.revokeObjectURL(url)
+
+            // Intentar abrir Instagram
+            try {
+              window.location.href = "instagram://story-camera"
+            } catch {
+              window.open("https://www.instagram.com/", "_blank")
+            }
+
+            alert("¡Imagen descargada! Súbela a tu historia de Instagram desde tu galería.")
+          }
+        },
+        "image/png",
+        0.95,
+      )
     } catch (error) {
       console.error("Error sharing:", error)
+      alert("Error al generar la imagen. Inténtalo de nuevo.")
     } finally {
       setShowShareModal(false)
     }
@@ -442,7 +437,8 @@ ${window.location.href}`
               </Button>
               <Button
                 size="lg"
-                className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-bold"
+                variant="outline"
+                className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent"
                 onClick={() => (window.location.href = "/estadisticas")}
               >
                 <Trophy className="w-5 h-5 mr-2" />
@@ -593,125 +589,129 @@ ${window.location.href}`
       {showShareModal && selectedGame && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full overflow-hidden shadow-xl">
-            {/* Cabecera del modal */}
-            <div className="p-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white">
-              <h3 className="text-xl font-bold text-center">Compartir partido</h3>
-            </div>
+            {/* Contenido para capturar */}
+            <div id="share-modal-content" className="bg-white">
+              {/* Cabecera del modal */}
+              <div className="p-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white">
+                <h3 className="text-xl font-bold text-center">Liga Flag Durango</h3>
+              </div>
 
-            {/* Tarjeta de partido para compartir (estilo Instagram/WhatsApp) */}
-            <div className="p-0 relative">
-              {/* Fondo degradado */}
-              <div
-                className="absolute inset-0 z-0"
-                style={{ background: "linear-gradient(135deg, #f5f7fa, #e4e8f0)" }}
-              ></div>
+              {/* Tarjeta de partido para compartir */}
+              <div className="p-0 relative">
+                {/* Fondo degradado */}
+                <div
+                  className="absolute inset-0 z-0"
+                  style={{ background: "linear-gradient(135deg, #f5f7fa, #e4e8f0)" }}
+                ></div>
 
-              {/* Contenido de la tarjeta */}
-              <div className="relative z-10 p-6">
-                {/* Logo de la liga */}
-                <div className="flex justify-center mb-4">
-                  <div className="bg-white rounded-full p-2 shadow-md">
-                    <img
-                      src="/icons/icon-96x96.png"
-                      alt="Liga Flag Durango"
-                      className="h-10 w-10"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement
-                        target.src = "/favicon.ico"
-                      }}
-                    />
+                {/* Contenido de la tarjeta */}
+                <div className="relative z-10 p-6">
+                  {/* Logo de la liga */}
+                  <div className="flex justify-center mb-4">
+                    <div className="bg-white rounded-full p-2 shadow-md">
+                      <img
+                        src="/icons/icon-96x96.png"
+                        alt="Liga Flag Durango"
+                        className="h-12 w-12"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.src = "/favicon.ico"
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {/* Estado del partido */}
-                <div className="text-center mb-2">
-                  <Badge
-                    className={
-                      normalizedStatus(selectedGame.status) === "en_vivo"
-                        ? "bg-red-500 animate-pulse"
+                  {/* Estado del partido */}
+                  <div className="text-center mb-4">
+                    <Badge
+                      className={
+                        normalizedStatus(selectedGame.status) === "en_vivo"
+                          ? "bg-red-500 text-white text-lg px-4 py-2"
+                          : normalizedStatus(selectedGame.status) === "finalizado"
+                            ? "bg-green-500 text-white text-lg px-4 py-2"
+                            : "bg-blue-500 text-white text-lg px-4 py-2"
+                      }
+                    >
+                      {normalizedStatus(selectedGame.status) === "en_vivo"
+                        ? "🔴 EN VIVO"
                         : normalizedStatus(selectedGame.status) === "finalizado"
-                          ? "bg-green-500"
-                          : "bg-blue-500"
-                    }
-                  >
-                    {normalizedStatus(selectedGame.status) === "en_vivo"
-                      ? "🔴 EN VIVO"
-                      : normalizedStatus(selectedGame.status) === "finalizado"
-                        ? "✅ RESULTADO FINAL"
-                        : "🏈 PRÓXIMO PARTIDO"}
-                  </Badge>
-                </div>
-
-                {/* Equipos y resultado */}
-                <div className="flex justify-between items-center mb-6 bg-white rounded-lg p-4 shadow-sm">
-                  <div className="flex flex-col items-center text-center flex-1">
-                    {renderTeamLogo(selectedGame.home_team, "h-16 w-16")}
-                    <span className="mt-2 font-medium text-sm">{selectedGame.home_team}</span>
-                    {normalizedStatus(selectedGame.status) !== "programado" && (
-                      <span className="text-xl font-bold">{selectedGame.home_score ?? 0}</span>
-                    )}
-                  </div>
-
-                  <div className="mx-2">
-                    {normalizedStatus(selectedGame.status) === "programado" ? (
-                      <div className="text-2xl font-bold text-gray-800">VS</div>
-                    ) : (
-                      <div className="text-lg font-bold text-gray-500">-</div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col items-center text-center flex-1">
-                    {renderTeamLogo(selectedGame.away_team, "h-16 w-16")}
-                    <span className="mt-2 font-medium text-sm">{selectedGame.away_team}</span>
-                    {normalizedStatus(selectedGame.status) !== "programado" && (
-                      <span className="text-xl font-bold">{selectedGame.away_score ?? 0}</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Detalles del partido */}
-                <div className="bg-white rounded-lg p-4 shadow-sm space-y-2 text-sm">
-                  <div className="flex items-center">
-                    <Calendar className="w-4 h-4 mr-2 text-blue-500" />
-                    <span>
-                      {new Date(selectedGame.game_date).toLocaleDateString("es-ES", {
-                        weekday: "long",
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center">
-                    <Clock className="w-4 h-4 mr-2 text-blue-500" />
-                    <span>{selectedGame.game_time}</span>
-                  </div>
-
-                  <div className="flex items-center">
-                    <MapPin className="w-4 h-4 mr-2 text-blue-500" />
-                    <span>
-                      {selectedGame.venue} - {selectedGame.field}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center">
-                    <Badge className={getCategoryColor(selectedGame.category)}>
-                      {getCategoryLabel(selectedGame.category)}
+                          ? "✅ RESULTADO FINAL"
+                          : "🏈 PRÓXIMO PARTIDO"}
                     </Badge>
                   </div>
 
-                  {selectedGame.mvp && normalizedStatus(selectedGame.status) === "finalizado" && (
-                    <div className="flex items-center text-yellow-600">
-                      <Trophy className="w-4 h-4 mr-2" />
-                      <span>MVP: {selectedGame.mvp}</span>
+                  {/* Equipos y resultado */}
+                  <div className="flex justify-between items-center mb-6 bg-white rounded-lg p-6 shadow-sm">
+                    <div className="flex flex-col items-center text-center flex-1">
+                      {renderTeamLogo(selectedGame.home_team, "h-20 w-20")}
+                      <span className="mt-3 font-bold text-base">{selectedGame.home_team}</span>
+                      {normalizedStatus(selectedGame.status) !== "programado" && (
+                        <span className="text-3xl font-bold text-blue-600 mt-2">{selectedGame.home_score ?? 0}</span>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Pie de la tarjeta */}
-                <div className="mt-4 text-center text-xs text-gray-500">
-                  Liga Flag Durango - 20 años haciendo historia
+                    <div className="mx-4">
+                      {normalizedStatus(selectedGame.status) === "programado" ? (
+                        <div className="text-3xl font-bold text-gray-800">VS</div>
+                      ) : (
+                        <div className="text-2xl font-bold text-gray-500">-</div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col items-center text-center flex-1">
+                      {renderTeamLogo(selectedGame.away_team, "h-20 w-20")}
+                      <span className="mt-3 font-bold text-base">{selectedGame.away_team}</span>
+                      {normalizedStatus(selectedGame.status) !== "programado" && (
+                        <span className="text-3xl font-bold text-blue-600 mt-2">{selectedGame.away_score ?? 0}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Detalles del partido */}
+                  <div className="bg-white rounded-lg p-4 shadow-sm space-y-3 text-center">
+                    <div className="flex items-center justify-center">
+                      <Calendar className="w-5 h-5 mr-2 text-blue-500" />
+                      <span className="font-medium">
+                        {new Date(selectedGame.game_date).toLocaleDateString("es-ES", {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                      <Clock className="w-5 h-5 mr-2 text-blue-500" />
+                      <span className="font-medium">{selectedGame.game_time}</span>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                      <MapPin className="w-5 h-5 mr-2 text-blue-500" />
+                      <span className="font-medium">
+                        {selectedGame.venue} - {selectedGame.field}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-center">
+                      <Badge className={getCategoryColor(selectedGame.category) + " text-white px-3 py-1"}>
+                        {getCategoryLabel(selectedGame.category)}
+                      </Badge>
+                    </div>
+
+                    {selectedGame.mvp && normalizedStatus(selectedGame.status) === "finalizado" && (
+                      <div className="flex items-center justify-center text-yellow-600 bg-yellow-50 p-2 rounded">
+                        <Trophy className="w-5 h-5 mr-2" />
+                        <span className="font-bold">MVP: {selectedGame.mvp}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Pie de la tarjeta */}
+                  <div className="mt-6 text-center">
+                    <div className="text-lg font-bold text-gray-800">Liga Flag Durango</div>
+                    <div className="text-sm text-gray-600">20 años haciendo historia</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -746,7 +746,9 @@ ${window.location.href}`
       <section className="py-16" style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}>
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">¿Quieres participar?</h2>
-          <p className="text-white/90 text-lg mb-8">Únete a la Liga Flag Durango y forma parte de la acción</p>
+          <p className="text-white/90 text-lg mb-8 leading-relaxed">
+            Únete a la Liga Flag Durango y forma parte de la acción
+          </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               size="lg"
