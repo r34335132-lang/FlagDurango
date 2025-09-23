@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,9 +15,9 @@ import {
   Castle as Whistle,
   Search,
   Filter,
-  Instagram,
+  Share2,
   MessageCircle,
-  Copy,
+  Instagram,
 } from "lucide-react"
 
 interface Game {
@@ -58,6 +58,8 @@ export default function GamesPage() {
   const [categoryFilter, setCategoryFilter] = useState("")
   const [statusFilter, setStatusFilter] = useState("")
   const [matchTypeFilter, setMatchTypeFilter] = useState("")
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null)
 
   useEffect(() => {
     const loadData = async () => {
@@ -151,7 +153,12 @@ export default function GamesPage() {
     }
   }
 
-  const shareGame = async (game: Game, platform?: "instagram" | "whatsapp" | "copy") => {
+  const openShareModal = (game: Game) => {
+    setSelectedGame(game)
+    setShowShareModal(true)
+  }
+
+  const shareGame = async (game: Game, platform?: "whatsapp" | "instagram") => {
     const gameDate = new Date(game.game_date).toLocaleDateString("es-ES", {
       weekday: "long",
       year: "numeric",
@@ -166,12 +173,6 @@ export default function GamesPage() {
 
 ¡No te lo pierdas! Liga Flag Durango
 ${window.location.href}`
-
-    const shareData = {
-      title: `${game.home_team} vs ${game.away_team}`,
-      text: shareText,
-      url: window.location.href,
-    }
 
     try {
       if (platform === "whatsapp") {
@@ -191,41 +192,24 @@ ${window.location.href}`
         }
 
         // Mostrar mensaje de que se copió
-        showCopyFeedback("¡Copiado! Pégalo en Instagram")
-      } else if (platform === "copy") {
-        await navigator.clipboard.writeText(shareText)
-        showCopyFeedback("¡Copiado al portapapeles!")
+        alert("¡Texto copiado! Pégalo en Instagram Stories")
       } else {
         // Compartir nativo del navegador
-        if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-          await navigator.share(shareData)
+        if (navigator.share && navigator.canShare) {
+          await navigator.share({
+            title: `${game.home_team} vs ${game.away_team}`,
+            text: shareText,
+            url: window.location.href,
+          })
         } else {
           await navigator.clipboard.writeText(shareText)
-          showCopyFeedback("¡Copiado al portapapeles!")
+          alert("¡Texto copiado al portapapeles!")
         }
       }
     } catch (error) {
       console.error("Error sharing:", error)
-      // Fallback: copiar al portapapeles
-      try {
-        await navigator.clipboard.writeText(shareText)
-        showCopyFeedback("¡Copiado al portapapeles!")
-      } catch (clipboardError) {
-        console.error("Error copying to clipboard:", clipboardError)
-      }
-    }
-  }
-
-  const showCopyFeedback = (message: string) => {
-    const button = document.activeElement as HTMLButtonElement
-    if (button) {
-      const originalText = button.innerHTML
-      button.innerHTML = `✅ ${message}`
-      button.disabled = true
-      setTimeout(() => {
-        button.innerHTML = originalText
-        button.disabled = false
-      }, 3000)
+    } finally {
+      setShowShareModal(false)
     }
   }
 
@@ -280,70 +264,129 @@ ${window.location.href}`
       .sort((a, b) => new Date(b.game_date).getTime() - new Date(a.game_date).getTime()),
   )
 
-  const renderTeam = (name: string, isHome = true) => {
+  const renderTeamLogo = (name: string, size = "h-16 w-16") => {
     const logo = getTeamLogo(name)
     const colors = getTeamColors(name)
 
     return (
-      <div className="flex flex-col items-center text-center flex-1">
-        <div
-          className="h-16 w-16 rounded-full flex items-center justify-center text-white text-xl font-bold mb-2 overflow-hidden border-2 border-white/30"
-          style={{ background: `linear-gradient(135deg, ${colors.color1}, ${colors.color2})` }}
-        >
-          {logo ? (
-            <img
-              src={logo || "/placeholder.svg"}
-              alt={`Logo de ${name}`}
-              className="h-full w-full object-cover rounded-full"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement
-                const parent = target.parentElement
-                if (parent) {
-                  target.style.display = "none"
-                  parent.innerHTML = `<span class="text-xl font-bold">${name.charAt(0)}</span>`
-                }
-              }}
-            />
-          ) : (
-            name.charAt(0)
-          )}
-        </div>
-        <span className="font-semibold text-sm text-white text-center leading-tight max-w-[80px]">{name}</span>
+      <div
+        className={`${size} rounded-full flex items-center justify-center text-white text-xl font-bold overflow-hidden border-2 border-white/30`}
+        style={{ background: `linear-gradient(135deg, ${colors.color1}, ${colors.color2})` }}
+      >
+        {logo ? (
+          <img
+            src={logo || "/placeholder.svg"}
+            alt={`Logo de ${name}`}
+            className="h-full w-full object-cover rounded-full"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement
+              const parent = target.parentElement
+              if (parent) {
+                target.style.display = "none"
+                parent.innerHTML = `<span class="text-xl font-bold">${name.charAt(0)}</span>`
+              }
+            }}
+          />
+        ) : (
+          name.charAt(0)
+        )}
       </div>
     )
   }
 
-  const ShareButtons = ({ game }: { game: Game }) => (
-    <div className="flex flex-col gap-2">
-      <div className="flex gap-2">
-        <Button
-          size="sm"
-          onClick={() => shareGame(game, "whatsapp")}
-          className="bg-green-500 hover:bg-green-600 text-white border-0"
-        >
-          <MessageCircle className="w-4 h-4 mr-1" />
-          WhatsApp
-        </Button>
-        <Button
-          size="sm"
-          onClick={() => shareGame(game, "instagram")}
-          className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
-        >
-          <Instagram className="w-4 h-4 mr-1" />
-          Instagram
-        </Button>
-      </div>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => shareGame(game, "copy")}
-        className="bg-white/90 hover:bg-white border-gray-300"
-      >
-        <Copy className="w-4 h-4 mr-2" />
-        Copiar
-      </Button>
-    </div>
-  )
+  // Componente de tarjeta de partido estilo moderno
+  const GameCard = ({ game }: { game: Game }) => {
+    const statusClass =
+      {
+        en_vivo: "bg-red-500",
+        programado: "bg-blue-500",
+        finalizado: "bg-green-500",
+      }[normalizedStatus(game.status)] || "bg-gray-500"
+
+    const statusLabel =
+      {
+        en_vivo: "En Vivo",
+        programado: "Programado",
+        finalizado: "Finalizado",
+      }[normalizedStatus(game.status)] || "Desconocido"
+
+    return (
+      <Card className="overflow-hidden border-0 shadow-md hover:shadow-xl transition-all duration-300">
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6">
+          <div className="flex justify-center items-center gap-4 mb-4">
+            <div className="flex flex-col items-center">
+              {renderTeamLogo(game.home_team)}
+              <span className="mt-2 font-medium text-sm text-center max-w-[100px]">{game.home_team}</span>
+            </div>
+
+            <div className="text-3xl font-bold text-gray-800">
+              {normalizedStatus(game.status) === "programado" ? (
+                "VS"
+              ) : (
+                <>
+                  {game.home_score ?? 0} - {game.away_score ?? 0}
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-col items-center">
+              {renderTeamLogo(game.away_team)}
+              <span className="mt-2 font-medium text-sm text-center max-w-[100px]">{game.away_team}</span>
+            </div>
+          </div>
+
+          <div className="flex justify-center gap-2 mb-4">
+            <Badge className={getCategoryColor(game.category)}>{getCategoryLabel(game.category)}</Badge>
+            <Badge className={statusClass}>{statusLabel}</Badge>
+          </div>
+
+          <div className="space-y-2 text-sm text-gray-600">
+            <div className="flex items-center justify-center">
+              <Calendar className="w-4 h-4 mr-2" />
+              {new Date(game.game_date).toLocaleDateString("es-ES", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            </div>
+
+            <div className="flex items-center justify-center">
+              <Clock className="w-4 h-4 mr-2" />
+              {game.game_time}
+            </div>
+
+            <div className="flex items-center justify-center">
+              <MapPin className="w-4 h-4 mr-2" />
+              {game.venue} - {game.field}
+            </div>
+
+            <div className="flex items-center justify-center">
+              <Whistle className="w-4 h-4 mr-2" />
+              Árbitros: {getReferees(game)}
+            </div>
+
+            {game.mvp && (
+              <div className="flex items-center justify-center text-yellow-600">
+                <Trophy className="w-4 h-4 mr-2" />
+                MVP: {game.mvp}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 flex justify-center">
+            <Button
+              onClick={() => openShareModal(game)}
+              className="bg-white hover:bg-gray-100 text-gray-800 border border-gray-300"
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              Compartir
+            </Button>
+          </div>
+        </div>
+      </Card>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -462,71 +505,9 @@ ${window.location.href}`
               </h2>
               <p className="text-gray-600 text-lg">Partidos que se están jugando ahora mismo</p>
             </div>
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {liveGames.map((game) => (
-                <Card
-                  key={game.id}
-                  className="border-2 border-red-500 overflow-hidden"
-                  style={{
-                    background: "linear-gradient(135deg, #0857b5, #e266be, #ff6d06)",
-                  }}
-                >
-                  <CardContent className="p-6 lg:p-8">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                      <div className="flex items-center gap-8 flex-1">
-                        <div className="text-center min-w-[80px]">
-                          <p className="text-sm text-white/80">
-                            {new Date(game.game_date).toLocaleDateString("es-ES")}
-                          </p>
-                          <p className="font-semibold text-white">{game.game_time}</p>
-                        </div>
-
-                        {/* Contenedor principal del marcador */}
-                        <div className="flex items-center justify-center gap-4 flex-1 max-w-2xl mx-auto">
-                          {/* Equipo Local */}
-                          {renderTeam(game.home_team, true)}
-
-                          {/* Marcador */}
-                          <div className="flex flex-col items-center justify-center min-w-[120px]">
-                            <div className="text-4xl font-bold text-white animate-pulse text-center">
-                              {game.home_score ?? 0} - {game.away_score ?? 0}
-                            </div>
-                            <div className="text-xs text-white/80 mt-1">EN VIVO</div>
-                          </div>
-
-                          {/* Equipo Visitante */}
-                          {renderTeam(game.away_team, false)}
-                        </div>
-
-                        <div className="text-sm text-white/90 min-w-[150px]">
-                          <p className="font-medium flex items-center">
-                            <MapPin className="w-4 h-4 mr-1" />
-                            {game.venue}
-                          </p>
-                          <p className="text-white/70">{game.field}</p>
-                          <p className="text-white/70 flex items-center mt-1">
-                            <Whistle className="w-4 h-4 mr-1" />
-                            {getReferees(game)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-3">
-                        <div className="flex flex-wrap gap-2 justify-end">
-                          <Badge className={`${getCategoryColor(game.category)} text-white`}>
-                            {getCategoryLabel(game.category)}
-                          </Badge>
-                          <Badge className="bg-red-500 text-white animate-pulse">🔴 EN VIVO</Badge>
-                          {game.stage && game.stage !== "regular" && (
-                            <Badge className="bg-white/20 text-white">{getStageLabel(game.stage)}</Badge>
-                          )}
-                          {game.match_type === "amistoso" && <Badge className="bg-white/20 text-white">Amistoso</Badge>}
-                          {game.jornada && <Badge className="bg-white/20 text-white">J{game.jornada}</Badge>}
-                        </div>
-                        <ShareButtons game={game} />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <GameCard key={game.id} game={game} />
               ))}
             </div>
           </section>
@@ -543,64 +524,7 @@ ${window.location.href}`
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {upcomingGames.length > 0 ? (
-              upcomingGames.map((game) => (
-                <Card
-                  key={game.id}
-                  className="hover:shadow-2xl transition-all duration-300 border-gray-200 transform hover:scale-105 overflow-hidden"
-                >
-                  <CardHeader className="p-0">
-                    <div
-                      className="relative h-40 flex items-center justify-center rounded-t-lg"
-                      style={{
-                        background: "linear-gradient(135deg, #0857b5, #e266be, #ff6d06)",
-                      }}
-                    >
-                      <div className="absolute inset-0 flex items-center justify-center gap-6 p-4">
-                        {renderTeam(game.home_team)}
-                        <div className="text-2xl font-bold text-white">VS</div>
-                        {renderTeam(game.away_team)}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6 space-y-4">
-                    <div className="flex flex-wrap gap-2 justify-center">
-                      <Badge className={`${getCategoryColor(game.category)} text-white`}>
-                        {getCategoryLabel(game.category)}
-                      </Badge>
-                      <Badge className="bg-blue-600">Programado</Badge>
-                      {game.stage && game.stage !== "regular" && (
-                        <Badge variant="outline">{getStageLabel(game.stage)}</Badge>
-                      )}
-                    </div>
-                    <div className="text-center text-gray-600 space-y-2">
-                      <p className="flex items-center justify-center text-sm">
-                        <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-                        {new Date(game.game_date).toLocaleDateString("es-ES", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </p>
-                      <p className="flex items-center justify-center text-sm">
-                        <Clock className="w-4 h-4 mr-2 text-gray-500" />
-                        {game.game_time}
-                      </p>
-                      <p className="flex items-center justify-center text-sm">
-                        <MapPin className="w-4 h-4 mr-2 text-gray-500" />
-                        {game.venue} - {game.field}
-                      </p>
-                      <p className="flex items-center justify-center text-sm">
-                        <Whistle className="w-4 h-4 mr-2 text-gray-500" />
-                        Árbitros: {getReferees(game)}
-                      </p>
-                    </div>
-                    <div className="flex justify-center pt-2">
-                      <ShareButtons game={game} />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+              upcomingGames.map((game) => <GameCard key={game.id} game={game} />)
             ) : (
               <div className="col-span-full">
                 <Card className="bg-white border-gray-200">
@@ -626,67 +550,7 @@ ${window.location.href}`
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {finishedGames.length > 0 ? (
-              finishedGames.map((game) => (
-                <Card
-                  key={game.id}
-                  className="hover:shadow-2xl transition-all duration-300 border-gray-200 transform hover:scale-105 overflow-hidden"
-                >
-                  <CardHeader className="p-0">
-                    <div
-                      className="relative h-40 flex items-center justify-center rounded-t-lg"
-                      style={{
-                        background: "linear-gradient(135deg, #0857b5, #e266be, #ff6d06)",
-                      }}
-                    >
-                      <div className="absolute inset-0 flex items-center justify-center gap-6 p-4">
-                        {renderTeam(game.home_team)}
-                        <div className="text-3xl font-bold text-white">
-                          {game.home_score ?? 0} - {game.away_score ?? 0}
-                        </div>
-                        {renderTeam(game.away_team)}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6 space-y-4">
-                    <div className="flex flex-wrap gap-2 justify-center">
-                      <Badge className={`${getCategoryColor(game.category)} text-white`}>
-                        {getCategoryLabel(game.category)}
-                      </Badge>
-                      <Badge className="bg-green-600">Finalizado</Badge>
-                      {game.stage && game.stage !== "regular" && (
-                        <Badge variant="outline">{getStageLabel(game.stage)}</Badge>
-                      )}
-                    </div>
-                    <div className="text-center text-gray-600 space-y-2">
-                      <p className="flex items-center justify-center text-sm">
-                        <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-                        {new Date(game.game_date).toLocaleDateString("es-ES", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </p>
-                      <p className="flex items-center justify-center text-sm">
-                        <MapPin className="w-4 h-4 mr-2 text-gray-500" />
-                        {game.venue} - {game.field}
-                      </p>
-                      <p className="flex items-center justify-center text-sm">
-                        <Whistle className="w-4 h-4 mr-2 text-gray-500" />
-                        Árbitros: {getReferees(game)}
-                      </p>
-                      {game.mvp && (
-                        <p className="flex items-center justify-center text-sm text-yellow-600">
-                          <Trophy className="w-4 h-4 mr-2" /> MVP: {game.mvp}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex justify-center pt-2">
-                      <ShareButtons game={game} />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+              finishedGames.map((game) => <GameCard key={game.id} game={game} />)
             ) : (
               <div className="col-span-full">
                 <Card className="bg-white border-gray-200">
@@ -703,6 +567,68 @@ ${window.location.href}`
           </div>
         </section>
       </div>
+
+      {/* Modal de compartir */}
+      {showShareModal && selectedGame && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
+            <h3 className="text-xl font-bold mb-4 text-center">Compartir partido</h3>
+
+            <div className="bg-gradient-to-r from-blue-100 to-purple-100 p-4 rounded-lg mb-6">
+              <div className="flex justify-center items-center gap-4 mb-4">
+                <div className="flex flex-col items-center">
+                  {renderTeamLogo(selectedGame.home_team, "h-12 w-12")}
+                  <span className="mt-1 text-xs font-medium">{selectedGame.home_team}</span>
+                </div>
+
+                <div className="text-xl font-bold">VS</div>
+
+                <div className="flex flex-col items-center">
+                  {renderTeamLogo(selectedGame.away_team, "h-12 w-12")}
+                  <span className="mt-1 text-xs font-medium">{selectedGame.away_team}</span>
+                </div>
+              </div>
+
+              <div className="text-sm text-center text-gray-700">
+                <p>
+                  {new Date(selectedGame.game_date).toLocaleDateString("es-ES", {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </p>
+                <p>{selectedGame.game_time}</p>
+                <p>
+                  {selectedGame.venue} - {selectedGame.field}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Button
+                onClick={() => shareGame(selectedGame, "whatsapp")}
+                className="bg-green-500 hover:bg-green-600 text-white"
+              >
+                <MessageCircle className="w-5 h-5 mr-2" />
+                WhatsApp
+              </Button>
+
+              <Button
+                onClick={() => shareGame(selectedGame, "instagram")}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+              >
+                <Instagram className="w-5 h-5 mr-2" />
+                Instagram
+              </Button>
+            </div>
+
+            <Button onClick={() => setShowShareModal(false)} variant="outline" className="w-full mt-4">
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Footer CTA */}
       <section className="py-16" style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}>
