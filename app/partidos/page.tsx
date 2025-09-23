@@ -15,7 +15,9 @@ import {
   Castle as Whistle,
   Search,
   Filter,
-  Share2,
+  Instagram,
+  MessageCircle,
+  Copy,
 } from "lucide-react"
 
 interface Game {
@@ -149,7 +151,7 @@ export default function GamesPage() {
     }
   }
 
-  const shareGame = async (game: Game) => {
+  const shareGame = async (game: Game, platform?: "instagram" | "whatsapp" | "copy") => {
     const gameDate = new Date(game.game_date).toLocaleDateString("es-ES", {
       weekday: "long",
       year: "numeric",
@@ -157,34 +159,73 @@ export default function GamesPage() {
       day: "numeric",
     })
 
+    const shareText = `🏈 ${game.home_team} vs ${game.away_team}
+📅 ${gameDate} a las ${game.game_time}
+📍 ${game.venue} - ${game.field}
+🏆 ${getCategoryLabel(game.category)}
+
+¡No te lo pierdas! Liga Flag Durango
+${window.location.href}`
+
     const shareData = {
       title: `${game.home_team} vs ${game.away_team}`,
-      text: `🏈 ${game.home_team} vs ${game.away_team}\n📅 ${gameDate} a las ${game.game_time}\n📍 ${game.venue} - ${game.field}\n🏆 ${getCategoryLabel(game.category)}\n\n¡No te lo pierdas! Liga Flag Durango`,
+      text: shareText,
       url: window.location.href,
     }
 
     try {
-      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
-        await navigator.share(shareData)
-      } else {
-        // Fallback: copiar al portapapeles
-        const textToShare = `${shareData.title}\n${shareData.text}\n${shareData.url}`
-        await navigator.clipboard.writeText(textToShare)
+      if (platform === "whatsapp") {
+        const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`
+        window.open(whatsappUrl, "_blank")
+      } else if (platform === "instagram") {
+        // Para Instagram, copiamos al portapapeles y abrimos Instagram
+        await navigator.clipboard.writeText(shareText)
+        // Intentar abrir Instagram (funciona en móviles)
+        const instagramUrl = "instagram://story-camera"
+        const fallbackUrl = "https://www.instagram.com/"
 
-        // Mostrar feedback visual
-        const button = document.activeElement as HTMLButtonElement
-        if (button) {
-          const originalText = button.innerHTML
-          button.innerHTML = "✅ Copiado"
-          button.disabled = true
-          setTimeout(() => {
-            button.innerHTML = originalText
-            button.disabled = false
-          }, 2000)
+        try {
+          window.location.href = instagramUrl
+        } catch {
+          window.open(fallbackUrl, "_blank")
+        }
+
+        // Mostrar mensaje de que se copió
+        showCopyFeedback("¡Copiado! Pégalo en Instagram")
+      } else if (platform === "copy") {
+        await navigator.clipboard.writeText(shareText)
+        showCopyFeedback("¡Copiado al portapapeles!")
+      } else {
+        // Compartir nativo del navegador
+        if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+          await navigator.share(shareData)
+        } else {
+          await navigator.clipboard.writeText(shareText)
+          showCopyFeedback("¡Copiado al portapapeles!")
         }
       }
     } catch (error) {
       console.error("Error sharing:", error)
+      // Fallback: copiar al portapapeles
+      try {
+        await navigator.clipboard.writeText(shareText)
+        showCopyFeedback("¡Copiado al portapapeles!")
+      } catch (clipboardError) {
+        console.error("Error copying to clipboard:", clipboardError)
+      }
+    }
+  }
+
+  const showCopyFeedback = (message: string) => {
+    const button = document.activeElement as HTMLButtonElement
+    if (button) {
+      const originalText = button.innerHTML
+      button.innerHTML = `✅ ${message}`
+      button.disabled = true
+      setTimeout(() => {
+        button.innerHTML = originalText
+        button.disabled = false
+      }, 3000)
     }
   }
 
@@ -246,7 +287,7 @@ export default function GamesPage() {
     return (
       <div className="flex flex-col items-center text-center flex-1">
         <div
-          className="h-16 w-16 rounded-full flex items-center justify-center text-white text-xl font-bold mb-2 overflow-hidden border-2 border-white/20 shadow-lg"
+          className="h-16 w-16 rounded-full flex items-center justify-center text-white text-xl font-bold mb-2 overflow-hidden border-2 border-white/30"
           style={{ background: `linear-gradient(135deg, ${colors.color1}, ${colors.color2})` }}
         >
           {logo ? (
@@ -271,6 +312,38 @@ export default function GamesPage() {
       </div>
     )
   }
+
+  const ShareButtons = ({ game }: { game: Game }) => (
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          onClick={() => shareGame(game, "whatsapp")}
+          className="bg-green-500 hover:bg-green-600 text-white border-0"
+        >
+          <MessageCircle className="w-4 h-4 mr-1" />
+          WhatsApp
+        </Button>
+        <Button
+          size="sm"
+          onClick={() => shareGame(game, "instagram")}
+          className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
+        >
+          <Instagram className="w-4 h-4 mr-1" />
+          Instagram
+        </Button>
+      </div>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={() => shareGame(game, "copy")}
+        className="bg-white/90 hover:bg-white border-gray-300"
+      >
+        <Copy className="w-4 h-4 mr-2" />
+        Copiar
+      </Button>
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-white">
@@ -393,20 +466,19 @@ export default function GamesPage() {
               {liveGames.map((game) => (
                 <Card
                   key={game.id}
-                  className="border-2 border-red-500 shadow-2xl overflow-hidden"
+                  className="border-2 border-red-500 overflow-hidden"
                   style={{
-                    background:
-                      "linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(59, 130, 246, 0.1), rgba(168, 85, 247, 0.1))",
+                    background: "linear-gradient(135deg, #0857b5, #e266be, #ff6d06)",
                   }}
                 >
                   <CardContent className="p-6 lg:p-8">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                       <div className="flex items-center gap-8 flex-1">
                         <div className="text-center min-w-[80px]">
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-white/80">
                             {new Date(game.game_date).toLocaleDateString("es-ES")}
                           </p>
-                          <p className="font-semibold text-gray-900">{game.game_time}</p>
+                          <p className="font-semibold text-white">{game.game_time}</p>
                         </div>
 
                         {/* Contenedor principal del marcador */}
@@ -416,49 +488,41 @@ export default function GamesPage() {
 
                           {/* Marcador */}
                           <div className="flex flex-col items-center justify-center min-w-[120px]">
-                            <div className="text-4xl font-bold text-red-500 animate-pulse text-center">
+                            <div className="text-4xl font-bold text-white animate-pulse text-center">
                               {game.home_score ?? 0} - {game.away_score ?? 0}
                             </div>
-                            <div className="text-xs text-gray-500 mt-1">EN VIVO</div>
+                            <div className="text-xs text-white/80 mt-1">EN VIVO</div>
                           </div>
 
                           {/* Equipo Visitante */}
                           {renderTeam(game.away_team, false)}
                         </div>
 
-                        <div className="text-sm text-gray-600 min-w-[150px]">
+                        <div className="text-sm text-white/90 min-w-[150px]">
                           <p className="font-medium flex items-center">
                             <MapPin className="w-4 h-4 mr-1" />
                             {game.venue}
                           </p>
-                          <p className="text-gray-500">{game.field}</p>
-                          <p className="text-gray-500 flex items-center mt-1">
+                          <p className="text-white/70">{game.field}</p>
+                          <p className="text-white/70 flex items-center mt-1">
                             <Whistle className="w-4 h-4 mr-1" />
                             {getReferees(game)}
                           </p>
                         </div>
                       </div>
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-3">
                         <div className="flex flex-wrap gap-2 justify-end">
                           <Badge className={`${getCategoryColor(game.category)} text-white`}>
                             {getCategoryLabel(game.category)}
                           </Badge>
                           <Badge className="bg-red-500 text-white animate-pulse">🔴 EN VIVO</Badge>
                           {game.stage && game.stage !== "regular" && (
-                            <Badge variant="secondary">{getStageLabel(game.stage)}</Badge>
+                            <Badge className="bg-white/20 text-white">{getStageLabel(game.stage)}</Badge>
                           )}
-                          {game.match_type === "amistoso" && <Badge className="bg-gray-600">Amistoso</Badge>}
-                          {game.jornada && <Badge className="bg-blue-600">J{game.jornada}</Badge>}
+                          {game.match_type === "amistoso" && <Badge className="bg-white/20 text-white">Amistoso</Badge>}
+                          {game.jornada && <Badge className="bg-white/20 text-white">J{game.jornada}</Badge>}
                         </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => shareGame(game)}
-                          className="bg-white/80 hover:bg-white border-gray-300"
-                        >
-                          <Share2 className="w-4 h-4 mr-2" />
-                          Compartir
-                        </Button>
+                        <ShareButtons game={game} />
                       </div>
                     </div>
                   </CardContent>
@@ -482,19 +546,18 @@ export default function GamesPage() {
               upcomingGames.map((game) => (
                 <Card
                   key={game.id}
-                  className="shadow-xl hover:shadow-2xl transition-all duration-300 border-gray-200 hover:bg-gray-50 transform hover:scale-105 overflow-hidden"
+                  className="hover:shadow-2xl transition-all duration-300 border-gray-200 transform hover:scale-105 overflow-hidden"
                 >
                   <CardHeader className="p-0">
                     <div
                       className="relative h-40 flex items-center justify-center rounded-t-lg"
                       style={{
-                        background:
-                          "linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(168, 85, 247, 0.2), rgba(249, 115, 22, 0.2))",
+                        background: "linear-gradient(135deg, #0857b5, #e266be, #ff6d06)",
                       }}
                     >
                       <div className="absolute inset-0 flex items-center justify-center gap-6 p-4">
                         {renderTeam(game.home_team)}
-                        <div className="text-2xl font-bold text-gray-900">VS</div>
+                        <div className="text-2xl font-bold text-white">VS</div>
                         {renderTeam(game.away_team)}
                       </div>
                     </div>
@@ -533,15 +596,7 @@ export default function GamesPage() {
                       </p>
                     </div>
                     <div className="flex justify-center pt-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => shareGame(game)}
-                        className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 hover:from-blue-500/20 hover:to-purple-500/20 border-blue-300"
-                      >
-                        <Share2 className="w-4 h-4 mr-2" />
-                        Compartir
-                      </Button>
+                      <ShareButtons game={game} />
                     </div>
                   </CardContent>
                 </Card>
@@ -574,19 +629,18 @@ export default function GamesPage() {
               finishedGames.map((game) => (
                 <Card
                   key={game.id}
-                  className="shadow-xl hover:shadow-2xl transition-all duration-300 border-gray-200 hover:bg-gray-50 transform hover:scale-105 overflow-hidden"
+                  className="hover:shadow-2xl transition-all duration-300 border-gray-200 transform hover:scale-105 overflow-hidden"
                 >
                   <CardHeader className="p-0">
                     <div
                       className="relative h-40 flex items-center justify-center rounded-t-lg"
                       style={{
-                        background:
-                          "linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(59, 130, 246, 0.2), rgba(168, 85, 247, 0.2))",
+                        background: "linear-gradient(135deg, #0857b5, #e266be, #ff6d06)",
                       }}
                     >
                       <div className="absolute inset-0 flex items-center justify-center gap-6 p-4">
                         {renderTeam(game.home_team)}
-                        <div className="text-3xl font-bold text-gray-900">
+                        <div className="text-3xl font-bold text-white">
                           {game.home_score ?? 0} - {game.away_score ?? 0}
                         </div>
                         {renderTeam(game.away_team)}
@@ -628,15 +682,7 @@ export default function GamesPage() {
                       )}
                     </div>
                     <div className="flex justify-center pt-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => shareGame(game)}
-                        className="bg-gradient-to-r from-green-500/10 to-blue-500/10 hover:from-green-500/20 hover:to-blue-500/20 border-green-300"
-                      >
-                        <Share2 className="w-4 h-4 mr-2" />
-                        Compartir
-                      </Button>
+                      <ShareButtons game={game} />
                     </div>
                   </CardContent>
                 </Card>
