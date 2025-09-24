@@ -121,15 +121,18 @@ export default function PartidosPage() {
 
   const captureAndShare = async (platform: "whatsapp" | "instagram") => {
     try {
-      // Crear un elemento temporal único para cada captura
+      // Crear timestamp único para evitar conflictos
       const timestamp = Date.now()
       const tempId = `share-temp-${timestamp}`
 
-      // Clonar el contenido del modal
+      // Obtener el elemento original
       const originalElement = document.getElementById("share-modal-content")
-      if (!originalElement) return
+      if (!originalElement) {
+        console.error("No se encontró el elemento share-modal-content")
+        return
+      }
 
-      // Crear elemento temporal
+      // Crear un clon temporal para la captura
       const tempElement = originalElement.cloneNode(true) as HTMLElement
       tempElement.id = tempId
       tempElement.style.position = "fixed"
@@ -138,31 +141,35 @@ export default function PartidosPage() {
       tempElement.style.zIndex = "-1"
       tempElement.style.width = originalElement.offsetWidth + "px"
       tempElement.style.height = "auto"
+      tempElement.style.visibility = "hidden"
 
+      // Agregar al DOM temporalmente
       document.body.appendChild(tempElement)
 
       // Importar html2canvas dinámicamente
       const html2canvas = (await import("html2canvas")).default
 
-      // Capturar la imagen del elemento temporal
+      // Capturar la imagen
       const canvas = await html2canvas(tempElement, {
         scale: 2,
         backgroundColor: "#ffffff",
         useCORS: true,
         allowTaint: true,
         logging: false,
-        removeContainer: false,
         width: tempElement.scrollWidth,
         height: tempElement.scrollHeight,
       })
 
-      // Limpiar elemento temporal inmediatamente
+      // Remover elemento temporal inmediatamente
       document.body.removeChild(tempElement)
 
       // Crear blob y compartir
       canvas.toBlob(
         async (blob) => {
-          if (!blob) return
+          if (!blob) {
+            console.error("No se pudo crear el blob")
+            return
+          }
 
           const fileName = `partido-${selectedGame?.home_team}-vs-${selectedGame?.away_team}-${timestamp}.png`
 
@@ -179,8 +186,8 @@ export default function PartidosPage() {
                   })
                   return
                 }
-              } catch (error) {
-                console.log("Native share failed, using fallback")
+              } catch (shareError) {
+                console.log("Native share failed, using fallback:", shareError)
               }
             }
 
@@ -194,6 +201,7 @@ export default function PartidosPage() {
             link.click()
             document.body.removeChild(link)
 
+            // Limpiar URL y abrir WhatsApp
             setTimeout(() => {
               URL.revokeObjectURL(url)
               window.open("https://wa.me/", "_blank")
@@ -209,20 +217,26 @@ export default function PartidosPage() {
             link.click()
             document.body.removeChild(link)
 
+            // Limpiar URL y abrir Instagram
             setTimeout(() => {
               URL.revokeObjectURL(url)
-              // Intentar abrir Instagram app, si no funciona abrir web
               try {
+                // Intentar abrir la app de Instagram
                 window.location.href = "instagram://story-camera"
               } catch {
+                // Si falla, abrir Instagram web
                 window.open("https://www.instagram.com/", "_blank")
               }
             }, 500)
           }
 
-          // Limpiar canvas
+          // Limpiar canvas después de un tiempo
           setTimeout(() => {
-            canvas.remove()
+            try {
+              canvas.remove()
+            } catch (e) {
+              console.log("Canvas already removed")
+            }
           }, 1000)
         },
         "image/png",
@@ -230,7 +244,7 @@ export default function PartidosPage() {
       )
     } catch (error) {
       console.error("Error capturing image:", error)
-      alert("Error al generar la imagen. Inténtalo de nuevo.")
+      alert("Error al generar la imagen. Por favor, inténtalo de nuevo.")
     }
   }
 
