@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Calendar, MapPin, Clock, Trophy, Users, Star, Share2 } from "lucide-react"
+import html2canvas from "html2canvas"
 
 interface Game {
   id: number
@@ -123,121 +124,54 @@ export default function PartidosPage() {
 
   const captureAndShare = async () => {
     try {
-      // Crear timestamp único para evitar conflictos
-      const timestamp = Date.now()
-      const tempId = `share-temp-${timestamp}`
+      const element = document.getElementById("share-modal-content")
+      if (!element) return
 
-      // Obtener el elemento original del modal
-      const originalElement = document.getElementById("share-modal-content")
-      if (!originalElement) {
-        console.error("No se encontró el elemento share-modal-content")
-        alert("Error: No se pudo encontrar el contenido para compartir")
-        return
-      }
-
-      // Crear un clon temporal para la captura
-      const tempElement = originalElement.cloneNode(true) as HTMLElement
-      tempElement.id = tempId
-      tempElement.style.position = "fixed"
-      tempElement.style.top = "-9999px"
-      tempElement.style.left = "-9999px"
-      tempElement.style.zIndex = "-1"
-      tempElement.style.width = originalElement.offsetWidth + "px"
-      tempElement.style.height = "auto"
-      tempElement.style.visibility = "hidden"
-      tempElement.style.pointerEvents = "none"
-
-      // Agregar al DOM temporalmente
-      document.body.appendChild(tempElement)
-
-      // Importar html2canvas dinámicamente para evitar problemas de SSR
-      const html2canvas = (await import("html2canvas")).default
-
-      // Capturar la imagen del elemento temporal
-      const canvas = await html2canvas(tempElement, {
+      const canvas = await html2canvas(element, {
         scale: 2,
         backgroundColor: "#ffffff",
         useCORS: true,
         allowTaint: true,
-        logging: false,
-        width: tempElement.scrollWidth,
-        height: tempElement.scrollHeight,
-        onclone: (clonedDoc) => {
-          // Asegurar que el elemento clonado tenga los estilos correctos
-          const clonedElement = clonedDoc.getElementById(tempId)
-          if (clonedElement) {
-            clonedElement.style.position = "static"
-            clonedElement.style.visibility = "visible"
-          }
-        },
+        height: element.scrollHeight,
+        width: element.scrollWidth,
       })
 
-      // Remover elemento temporal inmediatamente después de la captura
-      document.body.removeChild(tempElement)
-
-      // Crear blob y compartir
       canvas.toBlob(
-        async (blob) => {
-          if (!blob) {
-            console.error("No se pudo crear el blob de la imagen")
-            alert("Error al generar la imagen")
-            return
-          }
+        (blob) => {
+          if (!blob) return
 
-          const fileName = `partido-${selectedGame?.home_team}-vs-${selectedGame?.away_team}-${timestamp}.png`
-
-          // Intentar compartir nativamente primero
-          if (navigator.share && navigator.canShare) {
-            try {
-              const file = new File([blob], fileName, { type: "image/png" })
-              if (navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                  files: [file],
-                  title: "Partido Liga Flag Durango",
-                  text: `${selectedGame?.home_team} vs ${selectedGame?.away_team} - Liga Flag Durango`,
-                })
-                return
-              }
-            } catch (shareError) {
-              console.log("Native share failed, using fallback:", shareError)
-            }
-          }
-
-          // Fallback: descargar la imagen
           const url = URL.createObjectURL(blob)
           const link = document.createElement("a")
           link.href = url
-          link.download = fileName
-          link.style.display = "none"
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
+          link.download = `partido-${selectedGame?.home_team}-vs-${selectedGame?.away_team}.png`
 
-          // Limpiar URL después de un breve delay
-          setTimeout(() => {
-            URL.revokeObjectURL(url)
-          }, 500)
+          // Intentar compartir nativamente, si no funciona descargar
+          if (
+            navigator.share &&
+            navigator.canShare &&
+            navigator.canShare({ files: [new File([blob], "partido.png", { type: "image/png" })] })
+          ) {
+            navigator
+              .share({
+                files: [new File([blob], "partido.png", { type: "image/png" })],
+                title: "Partido Liga Flag Durango",
+              })
+              .catch(() => {
+                link.click()
+                alert("Imagen descargada. Compártela en tus redes sociales.")
+              })
+          } else {
+            link.click()
+            alert("Imagen descargada. Compártela en tus redes sociales.")
+          }
 
-          // Mostrar mensaje de éxito
-          setTimeout(() => {
-            alert("¡Imagen descargada! Ahora puedes compartirla en tus redes sociales.")
-          }, 100)
-
-          // Limpiar canvas después de un tiempo
-          setTimeout(() => {
-            try {
-              canvas.remove()
-            } catch (e) {
-              console.log("Canvas already cleaned up")
-            }
-          }, 1000)
+          setTimeout(() => URL.revokeObjectURL(url), 1000)
         },
         "image/png",
         0.95,
       )
     } catch (error) {
       console.error("Error capturing image:", error)
-      alert("Error al generar la imagen. Por favor, inténtalo de nuevo.")
     }
   }
 
