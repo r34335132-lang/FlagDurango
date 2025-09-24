@@ -236,48 +236,136 @@ export default function GamesPage() {
   }
 
   const shareGame = async (game: Game) => {
-    const cardElement = gameCardRefs.current[game.id]
-    if (!cardElement) return
-
     try {
       const html2canvas = (await import("html2canvas")).default
 
-      const clone = cardElement.cloneNode(true) as HTMLElement
-      clone.style.transform = "none"
-      clone.style.position = "relative"
-      clone.style.width = "600px"
-      clone.style.backgroundColor = "white"
-      clone.style.padding = "20px"
-      clone.style.borderRadius = "12px"
-      clone.style.boxShadow = "0 10px 25px rgba(0,0,0,0.1)"
+      // Create a temporary container for the share card
+      const tempContainer = document.createElement("div")
+      tempContainer.style.position = "absolute"
+      tempContainer.style.left = "-9999px"
+      tempContainer.style.top = "-9999px"
+      document.body.appendChild(tempContainer)
 
-      const header = document.createElement("div")
-      header.style.cssText = `
-        text-align: center;
-        margin-bottom: 20px;
-        padding: 15px;
-        background: linear-gradient(to right, #0857b5, #e266be, #ff6d06);
-        border-radius: 8px;
-        color: white;
-        font-weight: bold;
-        font-size: 18px;
+      // Create the share card component
+      const shareCardElement = document.createElement("div")
+      shareCardElement.innerHTML = `
+        <div style="width: 600px; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.15);">
+           Header with gradient 
+          <div style="height: 80px; background: linear-gradient(135deg, #2563eb, #7c3aed, #dc2626); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold;">
+            🏈 Liga Flag Durango 2025
+          </div>
+
+           Status Badge 
+          <div style="display: flex; justify-content: center; padding: 16px 0; background: #f8fafc;">
+            <div style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 8px 24px; border-radius: 9999px; font-weight: bold; font-size: 18px;">
+              🏈 ${game.status === "programado" ? "PRÓXIMO PARTIDO" : game.status === "en_vivo" || game.status === "en vivo" ? "EN VIVO" : "FINALIZADO"}
+            </div>
+          </div>
+
+           Teams and score section 
+          <div style="background: linear-gradient(135deg, #dbeafe, #e0e7ff); padding: 32px;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 32px;">
+               Home team 
+              <div style="display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1;">
+                <div style="height: 80px; width: 80px; border-radius: 50%; background: linear-gradient(135deg, ${getTeamColors(game.home_team).color1}, ${getTeamColors(game.home_team).color2}); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; margin-bottom: 12px; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                  ${getTeamLogo(game.home_team) ? `<img src="${getTeamLogo(game.home_team)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />` : game.home_team.charAt(0)}
+                </div>
+                <span style="font-weight: bold; font-size: 18px; color: #1f2937; text-align: center; max-width: 120px; line-height: 1.2;">${game.home_team}</span>
+              </div>
+
+               VS or Score 
+              <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 100px;">
+                ${
+                  game.status === "finalizado"
+                    ? `<div style="font-size: 48px; font-weight: bold; color: #1f2937;">${game.home_score ?? 0} - ${game.away_score ?? 0}</div>`
+                    : game.status === "en_vivo" || game.status === "en vivo"
+                      ? `<div style="font-size: 48px; font-weight: bold; color: #dc2626;">${game.home_score ?? 0} - ${game.away_score ?? 0}</div><div style="font-size: 12px; color: #dc2626; font-weight: bold;">EN VIVO</div>`
+                      : `<div style="font-size: 48px; font-weight: bold; color: #1f2937;">VS</div>`
+                }
+              </div>
+
+               Away team 
+              <div style="display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1;">
+                <div style="height: 80px; width: 80px; border-radius: 50%; background: linear-gradient(135deg, ${getTeamColors(game.away_team).color1}, ${getTeamColors(game.away_team).color2}); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; margin-bottom: 12px; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                  ${getTeamLogo(game.away_team) ? `<img src="${getTeamLogo(game.away_team)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />` : game.away_team.charAt(0)}
+                </div>
+                <span style="font-weight: bold; font-size: 18px; color: #1f2937; text-align: center; max-width: 120px; line-height: 1.2;">${game.away_team}</span>
+              </div>
+            </div>
+          </div>
+
+           Game information 
+          <div style="padding: 24px; background: white; display: flex; flex-direction: column; gap: 16px;">
+             Category badge 
+            <div style="display: flex; justify-content: center;">
+              <span style="background: ${getCategoryColor(game.category).replace("bg-", "")}; color: white; padding: 4px 16px; border-radius: 9999px; font-size: 14px; font-weight: 600;">
+                ${getCategoryLabel(game.category)}
+              </span>
+              ${game.status === "programado" ? '<span style="background: #2563eb; color: white; padding: 4px 16px; border-radius: 9999px; font-size: 14px; font-weight: 600; margin-left: 8px;">Programado</span>' : ""}
+            </div>
+
+             Date 
+            <div style="display: flex; align-items: center; justify-content: center; color: #374151; font-size: 18px;">
+              <svg style="width: 20px; height: 20px; margin-right: 8px; color: #3b82f6;" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"></path>
+              </svg>
+              ${new Date(game.game_date).toLocaleDateString("es-ES", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </div>
+
+             Time 
+            <div style="display: flex; align-items: center; justify-content: center; color: #374151; font-size: 18px;">
+              <svg style="width: 20px; height: 20px; margin-right: 8px; color: #3b82f6;" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"></path>
+              </svg>
+              ${game.game_time}
+            </div>
+
+             Venue 
+            <div style="display: flex; align-items: center; justify-content: center; color: #374151; font-size: 18px;">
+              <svg style="width: 20px; height: 20px; margin-right: 8px; color: #3b82f6;" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"></path>
+              </svg>
+              ${game.venue} - ${game.field}
+            </div>
+
+             Referees 
+            <div style="display: flex; align-items: center; justify-content: center; color: #374151; font-size: 18px;">
+              <svg style="width: 20px; height: 20px; margin-right: 8px; color: #3b82f6;" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"></path>
+              </svg>
+              Árbitros: ${getReferees(game)}
+            </div>
+          </div>
+
+           Footer 
+          <div style="background: #1f2937; color: white; text-align: center; padding: 16px;">
+            <div style="font-size: 20px; font-weight: bold;">Liga Flag Durango</div>
+            <div style="font-size: 14px; color: #9ca3af;">20 años haciendo historia</div>
+          </div>
+        </div>
       `
-      header.textContent = "🏈 Liga Flag Durango 2025"
-      clone.insertBefore(header, clone.firstChild)
 
-      document.body.appendChild(clone)
+      tempContainer.appendChild(shareCardElement)
 
-      const canvas = await html2canvas(clone, {
+      // Generate the image
+      const canvas = await html2canvas(shareCardElement.firstElementChild as HTMLElement, {
         backgroundColor: "white",
         scale: 2,
         useCORS: true,
         allowTaint: true,
-        width: 640,
-        height: clone.offsetHeight + 40,
+        width: 600,
+        height: 800,
       })
 
-      document.body.removeChild(clone)
+      // Clean up
+      document.body.removeChild(tempContainer)
 
+      // Download the image
       canvas.toBlob((blob) => {
         if (blob) {
           const url = URL.createObjectURL(blob)
