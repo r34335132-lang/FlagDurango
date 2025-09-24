@@ -40,6 +40,7 @@ export default function PartidosPage() {
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [selectedStatus, setSelectedStatus] = useState<string>("all")
+  const [selectedGame, setSelectedGame] = useState<Game | null>(null)
 
   const loadData = async () => {
     try {
@@ -118,170 +119,117 @@ export default function PartidosPage() {
     return new Date(a.game_date).getTime() - new Date(b.game_date).getTime()
   })
 
-  const shareGame = async (game: Game) => {
+  const captureAndShare = async (platform: "whatsapp" | "instagram") => {
     try {
-      // Crear un elemento temporal para capturar
-      const shareElement = document.createElement("div")
-      shareElement.id = `share-content-${game.id}-${Date.now()}`
-      shareElement.style.position = "fixed"
-      shareElement.style.top = "-9999px"
-      shareElement.style.left = "-9999px"
-      shareElement.style.width = "400px"
-      shareElement.style.padding = "0"
-      shareElement.style.backgroundColor = "#ffffff"
-      shareElement.style.fontFamily = "system-ui, -apple-system, sans-serif"
+      // Crear un elemento temporal único para cada captura
+      const timestamp = Date.now()
+      const tempId = `share-temp-${timestamp}`
 
-      // Crear el contenido HTML para la imagen
-      const homeTeam = getTeamInfo(game.home_team)
-      const awayTeam = getTeamInfo(game.away_team)
+      // Clonar el contenido del modal
+      const originalElement = document.getElementById("share-modal-content")
+      if (!originalElement) return
 
-      shareElement.innerHTML = `
-        <div style="background: linear-gradient(135deg, #3B82F6, #8B5CF6, #F59E0B); color: white; padding: 24px; border-radius: 12px;">
-           Header 
-          <div style="text-align: center; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 16px; margin-bottom: 16px;">
-            <div style="width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;">
-              🏈
-            </div>
-            <h2 style="margin: 0; font-size: 20px; font-weight: bold;">Liga Flag Durango</h2>
-            <p style="margin: 4px 0 0; font-size: 12px; opacity: 0.8;">20 años haciendo historia</p>
-          </div>
+      // Crear elemento temporal
+      const tempElement = originalElement.cloneNode(true) as HTMLElement
+      tempElement.id = tempId
+      tempElement.style.position = "fixed"
+      tempElement.style.top = "-9999px"
+      tempElement.style.left = "-9999px"
+      tempElement.style.zIndex = "-1"
+      tempElement.style.width = originalElement.offsetWidth + "px"
+      tempElement.style.height = "auto"
 
-           Estado del partido 
-          <div style="text-align: center; margin-bottom: 16px;">
-            <div style="display: inline-block; padding: 8px 16px; border-radius: 8px; font-weight: bold; font-size: 14px; ${
-              game.status === "finalizado"
-                ? "background: rgba(34, 197, 94, 0.2); border: 1px solid #22C55E; color: #86EFAC;"
-                : game.status === "en_vivo" || game.status === "en vivo"
-                  ? "background: rgba(239, 68, 68, 0.2); border: 1px solid #EF4444; color: #FCA5A5;"
-                  : "background: rgba(59, 130, 246, 0.2); border: 1px solid #3B82F6; color: #93C5FD;"
-            }">
-              ${
-                game.status === "finalizado"
-                  ? "✅ RESULTADO FINAL"
-                  : game.status === "en_vivo" || game.status === "en vivo"
-                    ? "🔴 EN VIVO"
-                    : "📅 PRÓXIMO PARTIDO"
-              }
-            </div>
-          </div>
-
-           Equipos y marcador 
-          <div style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px; margin-bottom: 20px;">
-             Equipo local 
-            <div style="text-align: center;">
-              <div style="width: 64px; height: 64px; border-radius: 50%; background: ${
-                homeTeam.color1
-              }; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-weight: bold; font-size: 24px; color: white; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
-                ${homeTeam.name.charAt(0)}
-              </div>
-              <p style="margin: 0; font-weight: bold; font-size: 12px;">${game.home_team}</p>
-            </div>
-
-             Marcador 
-            <div style="text-align: center;">
-              <div style="font-size: ${
-                game.status === "programado" ? "24px" : "36px"
-              }; font-weight: bold; color: white;">
-                ${game.status === "programado" ? "VS" : `${game.home_score || 0} - ${game.away_score || 0}`}
-              </div>
-            </div>
-
-             Equipo visitante 
-            <div style="text-align: center;">
-              <div style="width: 64px; height: 64px; border-radius: 50%; background: ${
-                awayTeam.color1
-              }; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; font-weight: bold; font-size: 24px; color: white; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
-                ${awayTeam.name.charAt(0)}
-              </div>
-              <p style="margin: 0; font-weight: bold; font-size: 12px;">${game.away_team}</p>
-            </div>
-          </div>
-
-           Información del partido 
-          <div style="text-align: center; font-size: 12px; opacity: 0.9; line-height: 1.5;">
-            <p style="margin: 0 0 4px; font-weight: 600;">${getCategoryLabel(game.category)}</p>
-            <p style="margin: 0 0 4px;">${new Date(game.game_date).toLocaleDateString("es-MX", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            })} - ${game.game_time}</p>
-            <p style="margin: 0 0 4px;">${game.venue} - ${game.field}</p>
-            ${
-              game.mvp && game.status === "finalizado"
-                ? `<p style="margin: 4px 0 0; color: #FDE047; font-weight: bold;">⭐ MVP: ${game.mvp}</p>`
-                : ""
-            }
-          </div>
-        </div>
-      `
-
-      document.body.appendChild(shareElement)
+      document.body.appendChild(tempElement)
 
       // Importar html2canvas dinámicamente
       const html2canvas = (await import("html2canvas")).default
 
-      // Capturar la imagen
-      const canvas = await html2canvas(shareElement, {
+      // Capturar la imagen del elemento temporal
+      const canvas = await html2canvas(tempElement, {
         scale: 2,
         backgroundColor: "#ffffff",
         useCORS: true,
         allowTaint: true,
-        width: 400,
-        height: shareElement.scrollHeight,
         logging: false,
+        removeContainer: false,
+        width: tempElement.scrollWidth,
+        height: tempElement.scrollHeight,
       })
 
-      // Limpiar el elemento temporal
-      document.body.removeChild(shareElement)
+      // Limpiar elemento temporal inmediatamente
+      document.body.removeChild(tempElement)
 
-      // Convertir a blob y compartir
+      // Crear blob y compartir
       canvas.toBlob(
         async (blob) => {
           if (!blob) return
 
-          const timestamp = Date.now()
-          const fileName = `partido-${game.home_team}-vs-${game.away_team}-${timestamp}.png`
+          const fileName = `partido-${selectedGame?.home_team}-vs-${selectedGame?.away_team}-${timestamp}.png`
 
-          // Intentar compartir nativamente primero
-          if (navigator.share && navigator.canShare) {
-            try {
-              const file = new File([blob], fileName, { type: "image/png" })
-              if (navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                  title: `${game.home_team} vs ${game.away_team}`,
-                  text: `Partido Liga Flag Durango - ${getCategoryLabel(game.category)}`,
-                  files: [file],
-                })
-                return
+          if (platform === "whatsapp") {
+            // Intentar compartir nativamente primero
+            if (navigator.share && navigator.canShare) {
+              try {
+                const file = new File([blob], fileName, { type: "image/png" })
+                if (navigator.canShare({ files: [file] })) {
+                  await navigator.share({
+                    files: [file],
+                    title: "Partido Liga Flag Durango",
+                    text: `${selectedGame?.home_team} vs ${selectedGame?.away_team}`,
+                  })
+                  return
+                }
+              } catch (error) {
+                console.log("Native share failed, using fallback")
               }
-            } catch (error) {
-              console.log("Native share failed, falling back to download")
             }
+
+            // Fallback: descargar y abrir WhatsApp
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement("a")
+            link.href = url
+            link.download = fileName
+            link.style.display = "none"
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+
+            setTimeout(() => {
+              URL.revokeObjectURL(url)
+              window.open("https://wa.me/", "_blank")
+            }, 500)
+          } else if (platform === "instagram") {
+            // Para Instagram, siempre descargar
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement("a")
+            link.href = url
+            link.download = fileName
+            link.style.display = "none"
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+
+            setTimeout(() => {
+              URL.revokeObjectURL(url)
+              // Intentar abrir Instagram app, si no funciona abrir web
+              try {
+                window.location.href = "instagram://story-camera"
+              } catch {
+                window.open("https://www.instagram.com/", "_blank")
+              }
+            }, 500)
           }
 
-          // Fallback: descargar la imagen
-          const url = URL.createObjectURL(blob)
-          const link = document.createElement("a")
-          link.href = url
-          link.download = fileName
-          link.style.display = "none"
-          document.body.appendChild(link)
-          link.click()
-          document.body.removeChild(link)
-
-          // Limpiar URL después de un tiempo
+          // Limpiar canvas
           setTimeout(() => {
-            URL.revokeObjectURL(url)
+            canvas.remove()
           }, 1000)
-
-          // Mostrar mensaje de éxito
-          alert("¡Imagen descargada! Compártela en tus redes sociales.")
         },
         "image/png",
         0.95,
       )
     } catch (error) {
-      console.error("Error sharing game:", error)
+      console.error("Error capturing image:", error)
       alert("Error al generar la imagen. Inténtalo de nuevo.")
     }
   }
@@ -365,6 +313,7 @@ export default function PartidosPage() {
                       ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200"
                       : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200"
                 }`}
+                onClick={() => setSelectedGame(game)}
               >
                 <CardContent className="p-6">
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -375,11 +324,20 @@ export default function PartidosPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => shareGame(game)}
+                          onClick={() => captureAndShare("whatsapp")}
                           className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 hover:from-blue-600 hover:to-purple-600"
                         >
                           <Share2 className="w-4 h-4" />
-                          Compartir
+                          Compartir en WhatsApp
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => captureAndShare("instagram")}
+                          className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 hover:from-blue-600 hover:to-purple-600"
+                        >
+                          <Share2 className="w-4 h-4" />
+                          Compartir en Instagram
                         </Button>
                       </div>
 
@@ -494,6 +452,170 @@ export default function PartidosPage() {
           </div>
         )}
       </div>
+
+      {/* Modal Content */}
+      {selectedGame && (
+        <div id="share-modal-content" className="hidden">
+          <div
+            style={{
+              background: "linear-gradient(135deg, #3B82F6, #8B5CF6, #F59E0B)",
+              color: "white",
+              padding: "24px",
+              borderRadius: "12px",
+            }}
+          >
+            <div
+              style={{
+                textAlign: "center",
+                borderBottom: "1px solid rgba(255,255,255,0.2)",
+                paddingBottom: "16px",
+                marginBottom: "16px",
+              }}
+            >
+              <div
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  background: "rgba(255,255,255,0.2)",
+                  borderRadius: "50%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  margin: "0 auto 12px",
+                }}
+              >
+                🏈
+              </div>
+              <h2 style={{ margin: "0", fontSize: "20px", fontWeight: "bold" }}>Liga Flag Durango</h2>
+              <p style={{ margin: "4px 0 0", fontSize: "12px", opacity: "0.8" }}>20 años haciendo historia</p>
+            </div>
+
+            <div style={{ textAlign: "center", marginBottom: "16px" }}>
+              <div
+                style={{
+                  display: "inline-block",
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  fontWeight: "bold",
+                  fontSize: "14px",
+                  backgroundColor:
+                    selectedGame.status === "finalizado"
+                      ? "rgba(34, 197, 94, 0.2)"
+                      : selectedGame.status === "en_vivo" || selectedGame.status === "en vivo"
+                        ? "rgba(239, 68, 68, 0.2)"
+                        : "rgba(59, 130, 246, 0.2)",
+                  border:
+                    selectedGame.status === "finalizado"
+                      ? "1px solid #22C55E"
+                      : selectedGame.status === "en_vivo" || selectedGame.status === "en vivo"
+                        ? "1px solid #EF4444"
+                        : "1px solid #3B82F6",
+                  color:
+                    selectedGame.status === "finalizado"
+                      ? "#86EFAC"
+                      : selectedGame.status === "en_vivo" || selectedGame.status === "en vivo"
+                        ? "#FCA5A5"
+                        : "#93C5FD",
+                }}
+              >
+                {selectedGame.status === "finalizado"
+                  ? "✅ RESULTADO FINAL"
+                  : selectedGame.status === "en_vivo" || selectedGame.status === "en vivo"
+                    ? "🔴 EN VIVO"
+                    : "📅 PRÓXIMO PARTIDO"}
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr auto 1fr",
+                alignItems: "center",
+                gap: "16px",
+                marginBottom: "20px",
+              }}
+            >
+              <div style={{ textAlign: "center" }}>
+                <div
+                  style={{
+                    width: "64px",
+                    height: "64px",
+                    borderRadius: "50%",
+                    background: homeTeam.color1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    margin: "0 auto 8px",
+                    fontWeight: "bold",
+                    fontSize: "24px",
+                    color: "white",
+                    boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+                  }}
+                >
+                  {homeTeam.name.charAt(0)}
+                </div>
+                <p style={{ margin: "0", fontWeight: "bold", fontSize: "12px" }}>{selectedGame.home_team}</p>
+              </div>
+
+              <div style={{ textAlign: "center" }}>
+                <div
+                  style={{
+                    fontSize: selectedGame.status === "programado" ? "24px" : "36px",
+                    fontWeight: "bold",
+                    color: "white",
+                  }}
+                >
+                  {selectedGame.status === "programado"
+                    ? "VS"
+                    : `${selectedGame.home_score || 0} - ${selectedGame.away_score || 0}`}
+                </div>
+              </div>
+
+              <div style={{ textAlign: "center" }}>
+                <div
+                  style={{
+                    width: "64px",
+                    height: "64px",
+                    borderRadius: "50%",
+                    background: awayTeam.color1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    margin: "0 auto 8px",
+                    fontWeight: "bold",
+                    fontSize: "24px",
+                    color: "white",
+                    boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
+                  }}
+                >
+                  {awayTeam.name.charAt(0)}
+                </div>
+                <p style={{ margin: "0", fontWeight: "bold", fontSize: "12px" }}>{selectedGame.away_team}</p>
+              </div>
+            </div>
+
+            <div style={{ textAlign: "center", fontSize: "12px", opacity: "0.9", lineHeight: "1.5" }}>
+              <p style={{ margin: "0 0 4px", fontWeight: "600" }}>{getCategoryLabel(selectedGame.category)}</p>
+              <p style={{ margin: "0 0 4px" }}>
+                {new Date(selectedGame.game_date).toLocaleDateString("es-MX", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "long",
+                })}{" "}
+                - {selectedGame.game_time}
+              </p>
+              <p style={{ margin: "0 0 4px" }}>
+                {selectedGame.venue} - {selectedGame.field}
+              </p>
+              {selectedGame.mvp && selectedGame.status === "finalizado" ? (
+                <p style={{ margin: "4px 0 0", color: "#FDE047", fontWeight: "bold" }}>⭐ MVP: {selectedGame.mvp}</p>
+              ) : (
+                ""
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
