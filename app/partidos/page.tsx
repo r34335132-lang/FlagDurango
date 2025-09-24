@@ -238,7 +238,7 @@ export default function PartidosPage() {
           </div>
         </div>
 
-        {/* Lista de Partidos */}
+        {/* Lista de Partidos - DISEÑO EXACTO COMO LA IMAGEN */}
         <div className="grid gap-6">
           {sortedGames.map((game) => {
             const homeTeam = getTeamInfo(game.home_team)
@@ -247,130 +247,123 @@ export default function PartidosPage() {
             return (
               <Card
                 key={game.id}
-                className={`overflow-hidden transition-all duration-300 hover:shadow-xl transform hover:scale-[1.02] ${
-                  game.status === "en_vivo" || game.status === "en vivo"
-                    ? "bg-gradient-to-r from-red-50 to-pink-50 border-red-200"
-                    : game.status === "finalizado"
-                      ? "bg-gradient-to-r from-green-50 to-emerald-50 border-green-200"
-                      : "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200"
-                }`}
+                className="overflow-hidden bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 border-0 shadow-lg"
               >
                 <CardContent className="p-6">
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                    {/* Equipos y Marcador */}
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-4">
-                        {getStatusBadge(game.status)}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedGame(game)
-                            setShareModalOpen(true)
-                          }}
-                          className="flex items-center gap-2"
+                  {/* Equipos y VS - Exacto como la imagen */}
+                  <div className="flex justify-center items-center gap-8 mb-6">
+                    {/* Equipo Local */}
+                    <div className="text-center">
+                      {homeTeam.logo_url ? (
+                        <img
+                          src={homeTeam.logo_url || "/placeholder.svg"}
+                          alt={homeTeam.name}
+                          className="w-20 h-20 object-contain mx-auto mb-3 rounded-full"
+                        />
+                      ) : (
+                        <div
+                          className="w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-2xl mx-auto mb-3"
+                          style={{ backgroundColor: homeTeam.color1 }}
                         >
-                          <Share2 className="w-4 h-4" />
-                          Compartir
-                        </Button>
-                      </div>
-
-                      <div className="grid grid-cols-3 items-center gap-4">
-                        {/* Equipo Local */}
-                        <div className="text-center">
-                          <div className="flex flex-col items-center mb-2">
-                            {homeTeam.logo_url ? (
-                              <img
-                                src={homeTeam.logo_url || "/placeholder.svg"}
-                                alt={homeTeam.name}
-                                className="w-16 h-16 object-contain mb-2"
-                              />
-                            ) : (
-                              <div
-                                className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl mb-2"
-                                style={{ backgroundColor: homeTeam.color1 }}
-                              >
-                                {homeTeam.name.charAt(0)}
-                              </div>
-                            )}
-                            <h3 className="font-bold text-lg text-gray-900">{game.home_team}</h3>
-                          </div>
-                        </div>
-
-                        {/* Marcador */}
-                        <div className="text-center">
-                          {game.status === "finalizado" || game.status === "en_vivo" || game.status === "en vivo" ? (
-                            <div className="text-4xl font-bold text-gray-900">
-                              {game.home_score || 0} - {game.away_score || 0}
-                            </div>
-                          ) : (
-                            <div className="text-2xl font-bold text-gray-600">VS</div>
-                          )}
-                        </div>
-
-                        {/* Equipo Visitante */}
-                        <div className="text-center">
-                          <div className="flex flex-col items-center mb-2">
-                            {awayTeam.logo_url ? (
-                              <img
-                                src={awayTeam.logo_url || "/placeholder.svg"}
-                                alt={awayTeam.name}
-                                className="w-16 h-16 object-contain mb-2"
-                              />
-                            ) : (
-                              <div
-                                className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl mb-2"
-                                style={{ backgroundColor: awayTeam.color1 }}
-                              >
-                                {awayTeam.name.charAt(0)}
-                              </div>
-                            )}
-                            <h3 className="font-bold text-lg text-gray-900">{game.away_team}</h3>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Información del Partido */}
-                    <div className="lg:w-80 space-y-3">
-                      <div className="flex items-center text-gray-600">
-                        <Trophy className="w-5 h-5 mr-2" />
-                        <span className="font-medium">{getCategoryLabel(game.category)}</span>
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <Calendar className="w-5 h-5 mr-2" />
-                        <span>
-                          {new Date(game.game_date).toLocaleDateString("es-MX", {
-                            weekday: "long",
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
-                        </span>
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <Clock className="w-5 h-5 mr-2" />
-                        <span>{game.game_time}</span>
-                      </div>
-                      <div className="flex items-center text-gray-600">
-                        <MapPin className="w-5 h-5 mr-2" />
-                        <span>
-                          {game.venue} - {game.field}
-                        </span>
-                      </div>
-                      {game.jornada && (
-                        <div className="flex items-center text-gray-600">
-                          <Users className="w-5 h-5 mr-2" />
-                          <span>Jornada {game.jornada}</span>
+                          {homeTeam.name.charAt(0)}
                         </div>
                       )}
-                      {game.mvp && game.status === "finalizado" && (
-                        <div className="flex items-center text-yellow-600">
-                          <Star className="w-5 h-5 mr-2" />
-                          <span className="font-medium">MVP: {game.mvp}</span>
+                      <p className="font-medium text-gray-700 text-sm">{game.home_team}</p>
+                    </div>
+
+                    {/* VS o Marcador */}
+                    <div className="text-center">
+                      {game.status === "finalizado" || game.status === "en_vivo" || game.status === "en vivo" ? (
+                        <div className="text-4xl font-bold text-gray-900">
+                          {game.home_score || 0} - {game.away_score || 0}
                         </div>
+                      ) : (
+                        <div className="text-3xl font-bold text-gray-800">VS</div>
                       )}
                     </div>
+
+                    {/* Equipo Visitante */}
+                    <div className="text-center">
+                      {awayTeam.logo_url ? (
+                        <img
+                          src={awayTeam.logo_url || "/placeholder.svg"}
+                          alt={awayTeam.name}
+                          className="w-20 h-20 object-contain mx-auto mb-3 rounded-full"
+                        />
+                      ) : (
+                        <div
+                          className="w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-2xl mx-auto mb-3"
+                          style={{ backgroundColor: awayTeam.color1 }}
+                        >
+                          {awayTeam.name.charAt(0)}
+                        </div>
+                      )}
+                      <p className="font-medium text-gray-700 text-sm">{game.away_team}</p>
+                    </div>
+                  </div>
+
+                  {/* Badges - Exacto como la imagen */}
+                  <div className="flex justify-center gap-3 mb-6">
+                    <Badge className="bg-blue-400 text-white px-4 py-1">{getCategoryLabel(game.category)}</Badge>
+                    {getStatusBadge(game.status)}
+                  </div>
+
+                  {/* Información del partido - Exacto como la imagen */}
+                  <div className="space-y-3 text-center text-gray-700">
+                    <div className="flex items-center justify-center">
+                      <Calendar className="w-4 h-4 mr-2" />
+                      <span>
+                        {new Date(game.game_date).toLocaleDateString("es-MX", {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                      <Clock className="w-4 h-4 mr-2" />
+                      <span>{game.game_time}</span>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                      <MapPin className="w-4 h-4 mr-2" />
+                      <span>
+                        {game.venue} - {game.field}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-center">
+                      <Users className="w-4 h-4 mr-2" />
+                      <span>
+                        Árbitros:{" "}
+                        {game.referee1 && game.referee2
+                          ? `${game.referee1}, ${game.referee2}`
+                          : game.referee1 || game.referee2 || "Sin asignar"}
+                      </span>
+                    </div>
+
+                    {game.mvp && game.status === "finalizado" && (
+                      <div className="flex items-center justify-center text-yellow-600">
+                        <Star className="w-4 h-4 mr-2" />
+                        <span className="font-medium">MVP: {game.mvp}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Botón Compartir - Exacto como la imagen */}
+                  <div className="mt-6 text-center">
+                    <Button
+                      onClick={() => {
+                        setSelectedGame(game)
+                        setShareModalOpen(true)
+                      }}
+                      className="bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-6 py-2 rounded-lg shadow-sm"
+                    >
+                      <Share2 className="w-4 h-4 mr-2" />
+                      Compartir
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
