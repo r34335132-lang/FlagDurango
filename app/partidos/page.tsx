@@ -1,519 +1,678 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
+import { useState, useEffect, useMemo, useRef } from "react"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Calendar, MapPin, Clock, Trophy, Users, Star, Share2 } from "lucide-react"
-import html2canvas from "html2canvas"
+import { Input } from "@/components/ui/input"
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Users,
+  Trophy,
+  ArrowRight,
+  Castle as Whistle,
+  Search,
+  Filter,
+  Share2,
+  Download,
+} from "lucide-react"
 
 interface Game {
   id: number
   home_team: string
   away_team: string
-  home_score?: number
-  away_score?: number
+  home_score?: number | null
+  away_score?: number | null
   game_date: string
   game_time: string
   venue: string
   field: string
   category: string
-  referee1?: string
-  referee2?: string
-  mvp?: string
   status: string
-  jornada?: number
   match_type?: string
+  jornada?: number
+  referee1?: string | null
+  referee2?: string | null
+  mvp?: string | null
+  stage?: string | null
 }
 
 interface Team {
   id: number
   name: string
   category: string
-  logo_url?: string
   color1: string
   color2: string
+  logo_url?: string | null
 }
 
-export default function PartidosPage() {
+export default function GamesPage() {
   const [games, setGames] = useState<Game[]>([])
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedCategory, setSelectedCategory] = useState<string>("all")
-  const [selectedStatus, setSelectedStatus] = useState<string>("all")
-  const [shareModalOpen, setShareModalOpen] = useState(false)
-  const [selectedGame, setSelectedGame] = useState<Game | null>(null)
-
-  const loadData = async () => {
-    try {
-      const [gamesResponse, teamsResponse] = await Promise.all([fetch("/api/games"), fetch("/api/teams")])
-
-      const [gamesData, teamsData] = await Promise.all([gamesResponse.json(), teamsResponse.json()])
-
-      if (gamesData.success) setGames(gamesData.data)
-      if (teamsData.success) setTeams(teamsData.data)
-    } catch (error) {
-      console.error("Error loading data:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("")
+  const [statusFilter, setStatusFilter] = useState("")
+  const [matchTypeFilter, setMatchTypeFilter] = useState("")
+  const gameCardRefs = useRef<{ [key: number]: HTMLDivElement | null }>({})
 
   useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [gamesRes, teamsRes] = await Promise.all([fetch("/api/games"), fetch("/api/teams")])
+        const [gamesData, teamsData] = await Promise.all([gamesRes.json(), teamsRes.json()])
+
+        if (gamesData.success) {
+          setGames(gamesData.data || [])
+        } else {
+          setError(gamesData.message || "Error al cargar partidos.")
+        }
+
+        if (teamsData.success) {
+          setTeams(teamsData.data || [])
+        }
+      } catch (e) {
+        console.error("Error fetching data:", e)
+        setError("Error de red o del servidor al cargar partidos.")
+      } finally {
+        setLoading(false)
+      }
+    }
     loadData()
-    const interval = setInterval(loadData, 30000)
-    return () => clearInterval(interval)
+    const i = setInterval(loadData, 30000)
+    return () => clearInterval(i)
   }, [])
 
-  const getTeamInfo = (teamName: string) => {
-    return (
-      teams.find((t) => t.name === teamName) || {
-        name: teamName,
-        logo_url: null,
-        color1: "#3B82F6",
-        color2: "#1E40AF",
-      }
-    )
+  const teamMap = useMemo(() => {
+    const map = new Map<string, Team>()
+    teams.forEach((t) => map.set(t.name, t))
+    return map
+  }, [teams])
+
+  const getCategoryColor = (category: string) => {
+    const colors: Record<string, string> = {
+      "femenil-silver": "bg-pink-400",
+      "femenil-gold": "bg-pink-500",
+      "femenil-cooper": "bg-pink-600",
+      "varonil-silver": "bg-blue-400",
+      "varonil-gold": "bg-blue-500",
+      "mixto-silver": "bg-orange-400",
+      "mixto-gold": "bg-orange-500",
+    }
+    return colors[category] || "bg-gray-500"
   }
 
   const getCategoryLabel = (category: string) => {
-    const labels: { [key: string]: string } = {
-      "varonil-gold": "Varonil Gold",
-      "varonil-silver": "Varonil Silver",
-      "femenil-gold": "Femenil Gold",
+    const labels: Record<string, string> = {
       "femenil-silver": "Femenil Silver",
+      "femenil-gold": "Femenil Gold",
       "femenil-cooper": "Femenil Cooper",
-      "mixto-gold": "Mixto Gold",
+      "varonil-silver": "Varonil Silver",
+      "varonil-gold": "Varonil Gold",
       "mixto-silver": "Mixto Silver",
+      "mixto-gold": "Mixto Gold",
     }
     return labels[category] || category
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "en_vivo":
-      case "en vivo":
-        return <Badge className="bg-red-500 text-white animate-pulse">🔴 EN VIVO</Badge>
-      case "finalizado":
-        return <Badge className="bg-green-500 text-white">✅ FINALIZADO</Badge>
-      case "programado":
-        return <Badge className="bg-blue-500 text-white">📅 PROGRAMADO</Badge>
+  const getStageLabel = (stage?: string | null) => {
+    switch (stage) {
+      case "quarterfinal":
+        return "Cuartos"
+      case "semifinal":
+        return "Semifinal"
+      case "final":
+        return "Final"
+      case "third_place":
+        return "Tercer Lugar"
       default:
-        return <Badge className="bg-gray-500 text-white">{status}</Badge>
+        return "Temporada"
     }
   }
 
-  const filteredGames = games.filter((game) => {
-    const categoryMatch = selectedCategory === "all" || game.category === selectedCategory
-    const statusMatch = selectedStatus === "all" || game.status === selectedStatus
-    return categoryMatch && statusMatch
-  })
+  const getReferees = (game: Game) => {
+    const refs = [game.referee1, game.referee2].filter(Boolean)
+    return refs.length > 0 ? refs.join(", ") : "Sin asignar"
+  }
 
-  const sortedGames = filteredGames.sort((a, b) => {
-    // Primero en vivo, luego programados, luego finalizados
-    const statusOrder = { en_vivo: 0, "en vivo": 0, programado: 1, finalizado: 2 }
-    const aOrder = statusOrder[a.status as keyof typeof statusOrder] ?? 3
-    const bOrder = statusOrder[b.status as keyof typeof statusOrder] ?? 3
+  const getTeamLogo = (teamName: string) => {
+    const team = teams.find((t) => t.name === teamName)
+    return team?.logo_url || null
+  }
 
-    if (aOrder !== bOrder) return aOrder - bOrder
-
-    // Dentro del mismo estado, ordenar por fecha
-    return new Date(a.game_date).getTime() - new Date(b.game_date).getTime()
-  })
-
-  const captureAndShare = async () => {
-    try {
-      const element = document.getElementById("share-modal-content")
-      if (!element) return
-
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        useCORS: true,
-        allowTaint: true,
-        height: element.scrollHeight,
-        width: element.scrollWidth,
-      })
-
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) return
-
-          const url = URL.createObjectURL(blob)
-          const link = document.createElement("a")
-          link.href = url
-          link.download = `partido-${selectedGame?.home_team}-vs-${selectedGame?.away_team}.png`
-
-          // Intentar compartir nativamente, si no funciona descargar
-          if (
-            navigator.share &&
-            navigator.canShare &&
-            navigator.canShare({ files: [new File([blob], "partido.png", { type: "image/png" })] })
-          ) {
-            navigator
-              .share({
-                files: [new File([blob], "partido.png", { type: "image/png" })],
-                title: "Partido Liga Flag Durango",
-              })
-              .catch(() => {
-                link.click()
-                alert("Imagen descargada. Compártela en tus redes sociales.")
-              })
-          } else {
-            link.click()
-            alert("Imagen descargada. Compártela en tus redes sociales.")
-          }
-
-          setTimeout(() => URL.revokeObjectURL(url), 1000)
-        },
-        "image/png",
-        0.95,
-      )
-    } catch (error) {
-      console.error("Error capturing image:", error)
+  const getTeamColors = (teamName: string) => {
+    const team = teams.find((t) => t.name === teamName)
+    return {
+      color1: team?.color1 || "#3B82F6",
+      color2: team?.color2 || "#1E40AF",
     }
+  }
+
+  const filteredGames = (gamesList: Game[]) => {
+    return gamesList.filter((game) => {
+      const matchesSearch =
+        !searchTerm ||
+        game.home_team.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        game.away_team.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        game.venue.toLowerCase().includes(searchTerm.toLowerCase())
+
+      const matchesCategory = !categoryFilter || game.category === categoryFilter
+      const matchesStatus = !statusFilter || normalizedStatus(game.status) === statusFilter
+      const matchesMatchType = !matchTypeFilter || game.match_type === matchTypeFilter
+
+      return matchesSearch && matchesCategory && matchesStatus && matchesMatchType
+    })
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-orange-500 flex items-center justify-center">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
+      >
         <div className="text-white text-xl">Cargando partidos...</div>
       </div>
     )
   }
+  if (error) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
+      >
+        <div className="text-red-400 text-xl">{error}</div>
+      </div>
+    )
+  }
+
+  const normalizedStatus = (s: string) => (s === "en vivo" || s === "en_vivo" ? "en_vivo" : s)
+
+  const liveGames = filteredGames(games.filter((g) => normalizedStatus(g.status) === "en_vivo"))
+  const upcomingGames = filteredGames(
+    games
+      .filter((g) => normalizedStatus(g.status) === "programado")
+      .sort((a, b) => new Date(a.game_date).getTime() - new Date(b.game_date).getTime()),
+  )
+  const finishedGames = filteredGames(
+    games
+      .filter((g) => normalizedStatus(g.status) === "finalizado")
+      .sort((a, b) => new Date(b.game_date).getTime() - new Date(a.game_date).getTime()),
+  )
+
+  const renderTeam = (name: string, isHome = true) => {
+    const logo = getTeamLogo(name)
+    const colors = getTeamColors(name)
+
+    return (
+      <div className="flex flex-col items-center text-center flex-1">
+        <div
+          className="h-16 w-16 rounded-full flex items-center justify-center text-white text-xl font-bold mb-2 overflow-hidden border-2 border-white/20 shadow-lg"
+          style={{ background: `linear-gradient(135deg, ${colors.color1}, ${colors.color2})` }}
+        >
+          {logo ? (
+            <img
+              src={logo || "/placeholder.svg"}
+              alt={`Logo de ${name}`}
+              className="h-full w-full object-cover rounded-full"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement
+                const parent = target.parentElement
+                if (parent) {
+                  target.style.display = "none"
+                  parent.innerHTML = `<span class="text-xl font-bold">${name.charAt(0)}</span>`
+                }
+              }}
+            />
+          ) : (
+            name.charAt(0)
+          )}
+        </div>
+        <span className="font-semibold text-sm text-white text-center leading-tight max-w-[80px]">{name}</span>
+      </div>
+    )
+  }
+
+  const shareGame = async (game: Game) => {
+    const cardElement = gameCardRefs.current[game.id]
+    if (!cardElement) return
+
+    try {
+      const html2canvas = (await import("html2canvas")).default
+
+      const clone = cardElement.cloneNode(true) as HTMLElement
+      clone.style.transform = "none"
+      clone.style.position = "relative"
+      clone.style.width = "600px"
+      clone.style.backgroundColor = "white"
+      clone.style.padding = "20px"
+      clone.style.borderRadius = "12px"
+      clone.style.boxShadow = "0 10px 25px rgba(0,0,0,0.1)"
+
+      const header = document.createElement("div")
+      header.style.cssText = `
+        text-align: center;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: linear-gradient(to right, #0857b5, #e266be, #ff6d06);
+        border-radius: 8px;
+        color: white;
+        font-weight: bold;
+        font-size: 18px;
+      `
+      header.textContent = "🏈 Liga Flag Durango 2025"
+      clone.insertBefore(header, clone.firstChild)
+
+      document.body.appendChild(clone)
+
+      const canvas = await html2canvas(clone, {
+        backgroundColor: "white",
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        width: 640,
+        height: clone.offsetHeight + 40,
+      })
+
+      document.body.removeChild(clone)
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement("a")
+          a.href = url
+          a.download = `partido-${game.home_team}-vs-${game.away_team}-${game.game_date}.png`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+        }
+      }, "image/png")
+    } catch (error) {
+      console.error("Error generating image:", error)
+      alert("Error al generar la imagen. Por favor intenta de nuevo.")
+    }
+  }
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
-      <section className="relative py-16 overflow-hidden bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500">
-        <div className="absolute inset-0 bg-black/40"></div>
+      <section
+        className="relative py-20 overflow-hidden"
+        style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
+      >
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center max-w-4xl mx-auto">
+            <div className="inline-block bg-green-400/95 backdrop-blur-sm text-gray-900 px-6 py-2 rounded-full font-bold mb-6">
+              {"🏈 Calendario de Partidos - Liga Flag Durango"}
+            </div>
             <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
               Partidos
               <span className="block bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-                Liga Flag
+                2025
               </span>
             </h1>
             <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
-              Sigue todos los partidos de la temporada 2025
+              Sigue todos los partidos de la temporada actual.
+              <span className="block mt-2 text-yellow-300 font-semibold">¡No te pierdas ningún juego!</span>
             </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold"
+                onClick={() => (window.location.href = "/equipos")}
+              >
+                <Users className="w-5 h-5 mr-2" />
+                Ver Equipos
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent"
+                onClick={() => (window.location.href = "/")}
+              >
+                Inicio
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </div>
           </div>
         </div>
       </section>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Filtros */}
-        <div className="mb-8 flex flex-wrap gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">Todas las categorías</option>
-              <option value="varonil-gold">Varonil Gold</option>
-              <option value="varonil-silver">Varonil Silver</option>
-              <option value="femenil-gold">Femenil Gold</option>
-              <option value="femenil-silver">Femenil Silver</option>
-              <option value="femenil-cooper">Femenil Cooper</option>
-              <option value="mixto-gold">Mixto Gold</option>
-              <option value="mixto-silver">Mixto Silver</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="all">Todos los estados</option>
-              <option value="en_vivo">En Vivo</option>
-              <option value="programado">Programados</option>
-              <option value="finalizado">Finalizados</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Lista de Partidos - DISEÑO EXACTO COMO LA IMAGEN */}
-        <div className="grid gap-6">
-          {sortedGames.map((game) => {
-            const homeTeam = getTeamInfo(game.home_team)
-            const awayTeam = getTeamInfo(game.away_team)
-
-            return (
-              <Card
-                key={game.id}
-                className="overflow-hidden bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 border-0 shadow-lg"
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-8">
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <div className="relative flex-1 md:w-80">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Buscar equipos, venue..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 bg-white border-gray-300 text-gray-900 placeholder-gray-500"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-600" />
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <CardContent className="p-6">
-                  {/* Equipos y VS - Exacto como la imagen */}
-                  <div className="flex justify-center items-center gap-8 mb-6">
-                    {/* Equipo Local */}
-                    <div className="text-center">
-                      {homeTeam.logo_url ? (
-                        <img
-                          src={homeTeam.logo_url || "/placeholder.svg"}
-                          alt={homeTeam.name}
-                          className="w-20 h-20 object-contain mx-auto mb-3 rounded-full"
-                        />
-                      ) : (
-                        <div
-                          className="w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-2xl mx-auto mb-3"
-                          style={{ backgroundColor: homeTeam.color1 }}
-                        >
-                          {homeTeam.name.charAt(0)}
-                        </div>
-                      )}
-                      <p className="font-medium text-gray-700 text-sm">{game.home_team}</p>
-                    </div>
-
-                    {/* VS o Marcador */}
-                    <div className="text-center">
-                      {game.status === "finalizado" || game.status === "en_vivo" || game.status === "en vivo" ? (
-                        <div className="text-4xl font-bold text-gray-900">
-                          {game.home_score || 0} - {game.away_score || 0}
-                        </div>
-                      ) : (
-                        <div className="text-3xl font-bold text-gray-800">VS</div>
-                      )}
-                    </div>
-
-                    {/* Equipo Visitante */}
-                    <div className="text-center">
-                      {awayTeam.logo_url ? (
-                        <img
-                          src={awayTeam.logo_url || "/placeholder.svg"}
-                          alt={awayTeam.name}
-                          className="w-20 h-20 object-contain mx-auto mb-3 rounded-full"
-                        />
-                      ) : (
-                        <div
-                          className="w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-2xl mx-auto mb-3"
-                          style={{ backgroundColor: awayTeam.color1 }}
-                        >
-                          {awayTeam.name.charAt(0)}
-                        </div>
-                      )}
-                      <p className="font-medium text-gray-700 text-sm">{game.away_team}</p>
-                    </div>
-                  </div>
-
-                  {/* Badges - Exacto como la imagen */}
-                  <div className="flex justify-center gap-3 mb-6">
-                    <Badge className="bg-blue-400 text-white px-4 py-1">{getCategoryLabel(game.category)}</Badge>
-                    {getStatusBadge(game.status)}
-                  </div>
-
-                  {/* Información del partido - Exacto como la imagen */}
-                  <div className="space-y-3 text-center text-gray-700">
-                    <div className="flex items-center justify-center">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      <span>
-                        {new Date(game.game_date).toLocaleDateString("es-MX", {
-                          weekday: "long",
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                      <Clock className="w-4 h-4 mr-2" />
-                      <span>{game.game_time}</span>
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                      <MapPin className="w-4 h-4 mr-2" />
-                      <span>
-                        {game.venue} - {game.field}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-center">
-                      <Users className="w-4 h-4 mr-2" />
-                      <span>
-                        Árbitros:{" "}
-                        {game.referee1 && game.referee2
-                          ? `${game.referee1}, ${game.referee2}`
-                          : game.referee1 || game.referee2 || "Sin asignar"}
-                      </span>
-                    </div>
-
-                    {game.mvp && game.status === "finalizado" && (
-                      <div className="flex items-center justify-center text-yellow-600">
-                        <Star className="w-4 h-4 mr-2" />
-                        <span className="font-medium">MVP: {game.mvp}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Botón Compartir - Exacto como la imagen */}
-                  <div className="mt-6 text-center">
-                    <Button
-                      onClick={() => {
-                        setSelectedGame(game)
-                        setShareModalOpen(true)
-                      }}
-                      className="bg-white hover:bg-gray-50 text-gray-800 border border-gray-300 px-6 py-2 rounded-lg shadow-sm"
-                    >
-                      <Share2 className="w-4 h-4 mr-2" />
-                      Compartir
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-
-        {sortedGames.length === 0 && (
-          <div className="text-center py-12">
-            <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay partidos</h3>
-            <p className="text-gray-500">No se encontraron partidos con los filtros seleccionados.</p>
+                <option value="">Todas las categorías</option>
+                <option value="varonil-gold">Varonil Gold</option>
+                <option value="varonil-silver">Varonil Silver</option>
+                <option value="femenil-gold">Femenil Gold</option>
+                <option value="femenil-silver">Femenil Silver</option>
+                <option value="femenil-cooper">Femenil Cooper</option>
+                <option value="mixto-gold">Mixto Gold</option>
+                <option value="mixto-silver">Mixto Silver</option>
+              </select>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Todos los estados</option>
+                <option value="programado">Programados</option>
+                <option value="en_vivo">En Vivo</option>
+                <option value="finalizado">Finalizados</option>
+              </select>
+              <select
+                value={matchTypeFilter}
+                onChange={(e) => setMatchTypeFilter(e.target.value)}
+                className="px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Todos los tipos</option>
+                <option value="jornada">Jornada</option>
+                <option value="amistoso">Amistoso</option>
+                <option value="playoff">Playoff</option>
+              </select>
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Modal de Compartir */}
-      <Dialog open={shareModalOpen} onOpenChange={setShareModalOpen}>
-        <DialogContent className="max-w-md mx-auto p-0 overflow-hidden">
-          <div
-            id="share-modal-content"
-            className="bg-gradient-to-br from-blue-500 via-purple-600 to-orange-500 text-white"
-          >
-            {/* Header */}
-            <div className="p-6 text-center border-b border-white/20">
-              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Trophy className="w-6 h-6 text-white" />
-              </div>
-              <h2 className="text-xl font-bold">Liga Flag Durango</h2>
-              <p className="text-white/80 text-sm">20 años haciendo historia</p>
+      <div className="container mx-auto p-4 lg:p-6">
+        {liveGames.length > 0 && (
+          <section className="mb-16">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl font-bold text-gray-900 mb-4 flex items-center justify-center">
+                <div className="w-3 h-3 bg-red-500 rounded-full mr-3 animate-pulse"></div>🔴 PARTIDOS EN VIVO
+              </h2>
+              <p className="text-gray-600 text-lg">Partidos que se están jugando ahora mismo</p>
             </div>
+            <div className="grid grid-cols-1 gap-6">
+              {liveGames.map((game) => (
+                <Card
+                  key={game.id}
+                  ref={(el) => (gameCardRefs.current[game.id] = el)}
+                  className="border-2 border-red-500 shadow-2xl bg-red-500/10 backdrop-blur-sm hover:bg-red-500/20 transition-all duration-300"
+                >
+                  <CardContent className="p-6 lg:p-8">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                      <div className="flex items-center gap-8 flex-1">
+                        <div className="text-center min-w-[80px]">
+                          <p className="text-sm text-gray-600">
+                            {new Date(game.game_date).toLocaleDateString("es-ES")}
+                          </p>
+                          <p className="font-semibold text-gray-900">{game.game_time}</p>
+                        </div>
 
-            {/* Contenido del Partido */}
-            {selectedGame && (
-              <div className="p-6">
-                {/* Estado */}
-                <div className="text-center mb-4">
-                  {selectedGame.status === "finalizado" && (
-                    <div className="bg-green-500/20 border border-green-400 rounded-lg px-4 py-2 inline-block">
-                      <span className="text-green-200 font-bold">✅ RESULTADO FINAL</span>
-                    </div>
-                  )}
-                  {(selectedGame.status === "en_vivo" || selectedGame.status === "en vivo") && (
-                    <div className="bg-red-500/20 border border-red-400 rounded-lg px-4 py-2 inline-block animate-pulse">
-                      <span className="text-red-200 font-bold">🔴 EN VIVO</span>
-                    </div>
-                  )}
-                  {selectedGame.status === "programado" && (
-                    <div className="bg-blue-500/20 border border-blue-400 rounded-lg px-4 py-2 inline-block">
-                      <span className="text-blue-200 font-bold">📅 PRÓXIMO PARTIDO</span>
-                    </div>
-                  )}
-                </div>
+                        <div className="flex items-center justify-center gap-4 flex-1 max-w-2xl mx-auto">
+                          {renderTeam(game.home_team, true)}
 
-                {/* Equipos */}
-                <div className="grid grid-cols-3 items-center gap-4 mb-6">
-                  {/* Equipo Local */}
-                  <div className="text-center">
-                    {getTeamInfo(selectedGame.home_team).logo_url ? (
-                      <img
-                        src={getTeamInfo(selectedGame.home_team).logo_url || "/placeholder.svg"}
-                        alt={selectedGame.home_team}
-                        className="w-16 h-16 object-contain mx-auto mb-2"
-                      />
-                    ) : (
-                      <div
-                        className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-2 shadow-lg"
-                        style={{ backgroundColor: getTeamInfo(selectedGame.home_team).color1 }}
+                          <div className="flex flex-col items-center justify-center min-w-[120px]">
+                            <div className="text-4xl font-bold text-red-500 animate-pulse text-center">
+                              {game.home_score ?? 0} - {game.away_score ?? 0}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-1">EN VIVO</div>
+                          </div>
+
+                          {renderTeam(game.away_team, false)}
+                        </div>
+
+                        <div className="text-sm text-gray-600 min-w-[150px]">
+                          <p className="font-medium flex items-center">
+                            <MapPin className="w-4 h-4 mr-1" />
+                            {game.venue}
+                          </p>
+                          <p className="text-gray-500">{game.field}</p>
+                          <p className="text-gray-500 flex items-center mt-1">
+                            <Whistle className="w-4 h-4 mr-1" />
+                            {getReferees(game)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-wrap gap-2 justify-end">
+                          <Badge className={`${getCategoryColor(game.category)} text-white`}>
+                            {getCategoryLabel(game.category)}
+                          </Badge>
+                          <Badge className="bg-red-500 text-white animate-pulse">🔴 EN VIVO</Badge>
+                          {game.stage && game.stage !== "regular" && (
+                            <Badge variant="secondary">{getStageLabel(game.stage)}</Badge>
+                          )}
+                          {game.match_type === "amistoso" && <Badge className="bg-gray-600">Amistoso</Badge>}
+                          {game.jornada && <Badge className="bg-blue-600">J{game.jornada}</Badge>}
+                        </div>
+                        <Button
+                          onClick={() => shareGame(game)}
+                          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold"
+                          size="sm"
+                        >
+                          <Share2 className="w-4 h-4 mr-2" />
+                          Compartir
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section className="mb-16">
+          <div className="text-center mb-8">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4 flex items-center justify-center">
+              <Calendar className="w-8 h-8 mr-3 text-blue-400" />
+              Próximos Partidos
+            </h2>
+            <p className="text-gray-600 text-lg">Partidos programados para los próximos días</p>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {upcomingGames.length > 0 ? (
+              upcomingGames.map((game) => (
+                <Card
+                  key={game.id}
+                  ref={(el) => (gameCardRefs.current[game.id] = el)}
+                  className="shadow-xl hover:shadow-2xl transition-all duration-300 bg-white border-gray-200 hover:bg-gray-50 transform hover:scale-105"
+                >
+                  <CardHeader className="p-0">
+                    <div className="relative h-40 flex items-center justify-center bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-t-lg">
+                      <div className="absolute inset-0 flex items-center justify-center gap-6 p-4">
+                        {renderTeam(game.home_team)}
+                        <div className="text-2xl font-bold text-gray-900">VS</div>
+                        {renderTeam(game.away_team)}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      <Badge className={`${getCategoryColor(game.category)} text-white`}>
+                        {getCategoryLabel(game.category)}
+                      </Badge>
+                      <Badge className="bg-blue-600">Programado</Badge>
+                      {game.stage && game.stage !== "regular" && (
+                        <Badge variant="outline">{getStageLabel(game.stage)}</Badge>
+                      )}
+                    </div>
+                    <div className="text-center text-gray-600 space-y-2">
+                      <p className="flex items-center justify-center text-sm">
+                        <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+                        {new Date(game.game_date).toLocaleDateString("es-ES", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </p>
+                      <p className="flex items-center justify-center text-sm">
+                        <Clock className="w-4 h-4 mr-2 text-gray-500" />
+                        {game.game_time}
+                      </p>
+                      <p className="flex items-center justify-center text-sm">
+                        <MapPin className="w-4 h-4 mr-2 text-gray-500" />
+                        {game.venue} - {game.field}
+                      </p>
+                      <p className="flex items-center justify-center text-sm">
+                        <Whistle className="w-4 h-4 mr-2 text-gray-500" />
+                        Árbitros: {getReferees(game)}
+                      </p>
+                    </div>
+                    <div className="pt-2">
+                      <Button
+                        onClick={() => shareGame(game)}
+                        className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold"
+                        size="sm"
                       >
-                        {selectedGame.home_team.charAt(0)}
-                      </div>
-                    )}
-                    <p className="font-bold text-sm">{selectedGame.home_team}</p>
-                  </div>
-
-                  {/* Marcador */}
-                  <div className="text-center">
-                    {selectedGame.status === "finalizado" ||
-                    selectedGame.status === "en_vivo" ||
-                    selectedGame.status === "en vivo" ? (
-                      <div className="text-4xl font-bold">
-                        {selectedGame.home_score || 0} - {selectedGame.away_score || 0}
-                      </div>
-                    ) : (
-                      <div className="text-2xl font-bold text-white/80">VS</div>
-                    )}
-                  </div>
-
-                  {/* Equipo Visitante */}
-                  <div className="text-center">
-                    {getTeamInfo(selectedGame.away_team).logo_url ? (
-                      <img
-                        src={getTeamInfo(selectedGame.away_team).logo_url || "/placeholder.svg"}
-                        alt={selectedGame.away_team}
-                        className="w-16 h-16 object-contain mx-auto mb-2"
-                      />
-                    ) : (
-                      <div
-                        className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-2 shadow-lg"
-                        style={{ backgroundColor: getTeamInfo(selectedGame.away_team).color1 }}
-                      >
-                        {selectedGame.away_team.charAt(0)}
-                      </div>
-                    )}
-                    <p className="font-bold text-sm">{selectedGame.away_team}</p>
-                  </div>
-                </div>
-
-                {/* Información */}
-                <div className="space-y-2 text-center text-white/90 text-sm">
-                  <p className="font-semibold">{getCategoryLabel(selectedGame.category)}</p>
-                  <p>
-                    {new Date(selectedGame.game_date).toLocaleDateString("es-MX", {
-                      weekday: "long",
-                      day: "numeric",
-                      month: "long",
-                    })}{" "}
-                    - {selectedGame.game_time}
-                  </p>
-                  <p>
-                    {selectedGame.venue} - {selectedGame.field}
-                  </p>
-                  {selectedGame.mvp && selectedGame.status === "finalizado" && (
-                    <p className="text-yellow-300 font-semibold">⭐ MVP: {selectedGame.mvp}</p>
-                  )}
-                </div>
+                        <Share2 className="w-4 h-4 mr-2" />
+                        Compartir Partido
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full">
+                <Card className="bg-white border-gray-200">
+                  <CardContent className="p-12 text-center">
+                    <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay partidos programados</h3>
+                    <p className="text-gray-600">Los próximos partidos aparecerán aquí una vez que sean programados.</p>
+                  </CardContent>
+                </Card>
               </div>
             )}
           </div>
+        </section>
 
-          {/* Botón de Compartir */}
-          <div className="p-4 bg-white">
-            <DialogHeader className="mb-4">
-              <DialogTitle className="text-center text-gray-900">Compartir Partido</DialogTitle>
-            </DialogHeader>
-
-            <Button
-              onClick={captureAndShare}
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-semibold py-3"
-            >
-              <Share2 className="w-4 h-4 mr-2" />
-              Compartir
-            </Button>
-
-            <p className="text-xs text-gray-500 text-center mt-3">
-              Se descargará la imagen para compartir en tus redes sociales
-            </p>
+        <section className="mb-16">
+          <div className="text-center mb-8">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4 flex items-center justify-center">
+              <Trophy className="w-8 h-8 mr-3 text-green-400" />
+              Partidos Finalizados
+            </h2>
+            <p className="text-gray-600 text-lg">Resultados de los partidos más recientes</p>
           </div>
-        </DialogContent>
-      </Dialog>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {finishedGames.length > 0 ? (
+              finishedGames.map((game) => (
+                <Card
+                  key={game.id}
+                  ref={(el) => (gameCardRefs.current[game.id] = el)}
+                  className="shadow-xl hover:shadow-2xl transition-all duration-300 bg-white border-gray-200 hover:bg-gray-50 transform hover:scale-105"
+                >
+                  <CardHeader className="p-0">
+                    <div className="relative h-40 flex items-center justify-center bg-gradient-to-br from-green-500/20 to-blue-500/20 rounded-t-lg">
+                      <div className="absolute inset-0 flex items-center justify-center gap-6 p-4">
+                        {renderTeam(game.home_team)}
+                        <div className="text-3xl font-bold text-gray-900">
+                          {game.home_score ?? 0} - {game.away_score ?? 0}
+                        </div>
+                        {renderTeam(game.away_team)}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-4">
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      <Badge className={`${getCategoryColor(game.category)} text-white`}>
+                        {getCategoryLabel(game.category)}
+                      </Badge>
+                      <Badge className="bg-green-600">Finalizado</Badge>
+                      {game.stage && game.stage !== "regular" && (
+                        <Badge variant="outline">{getStageLabel(game.stage)}</Badge>
+                      )}
+                    </div>
+                    <div className="text-center text-gray-600 space-y-2">
+                      <p className="flex items-center justify-center text-sm">
+                        <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+                        {new Date(game.game_date).toLocaleDateString("es-ES", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </p>
+                      <p className="flex items-center justify-center text-sm">
+                        <MapPin className="w-4 h-4 mr-2 text-gray-500" />
+                        {game.venue} - {game.field}
+                      </p>
+                      <p className="flex items-center justify-center text-sm">
+                        <Whistle className="w-4 h-4 mr-2 text-gray-500" />
+                        Árbitros: {getReferees(game)}
+                      </p>
+                      {game.mvp && (
+                        <p className="flex items-center justify-center text-sm text-yellow-600">
+                          <Trophy className="w-4 h-4 mr-2" /> MVP: {game.mvp}
+                        </p>
+                      )}
+                    </div>
+                    <div className="pt-2">
+                      <Button
+                        onClick={() => shareGame(game)}
+                        className="w-full bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-semibold"
+                        size="sm"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Descargar Resultado
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full">
+                <Card className="bg-white border-gray-200">
+                  <CardContent className="p-12 text-center">
+                    <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay partidos finalizados</h3>
+                    <p className="text-gray-600">
+                      Los resultados de los partidos aparecerán aquí una vez que finalicen.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+
+      <section className="py-16" style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}>
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">¿Quieres participar?</h2>
+          <p className="text-white/90 text-lg mb-8">Únete a la Liga Flag Durango y forma parte de la acción</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              size="lg"
+              className="bg-white text-gray-900 hover:bg-gray-100 font-bold"
+              onClick={() => (window.location.href = "/register-team")}
+            >
+              <Users className="w-5 h-5 mr-2" />
+              Registrar Equipo
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent"
+              onClick={() => (window.location.href = "/register-coach")}
+            >
+              Registrar Coach
+            </Button>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
