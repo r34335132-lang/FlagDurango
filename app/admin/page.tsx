@@ -1000,19 +1000,19 @@ export default function AdminPage() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900 flex items-center justify-center">
-        <div className="text-white text-xl">Cargando dashboard...</div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-white to-gray-50 flex items-center justify-center">
+        <div className="text-gray-900 text-xl">Cargando dashboard...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-white to-gray-50">
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-white">Dashboard Admin</h1>
-            <p className="text-white/70">Bienvenido, {user.username}</p>
+            <h1 className="text-4xl font-bold text-gray-900">Dashboard Admin</h1>
+            <p className="text-gray-600">Bienvenido, {user.username}</p>
           </div>
           <div className="flex gap-4">
             <Button onClick={loadData} className="bg-blue-600 hover:bg-blue-700 text-white">
@@ -1026,7 +1026,7 @@ export default function AdminPage() {
             <Button
               onClick={() => (window.location.href = "/")}
               variant="outline"
-              className="text-white border-white/20 hover:bg-white/10"
+              className="text-gray-900 border-gray-300 hover:bg-gray-100"
             >
               Ver Sitio
             </Button>
@@ -1036,67 +1036,118 @@ export default function AdminPage() {
           </div>
         </div>
 
+        <Card className="mb-6 border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="text-orange-800 flex items-center">
+              <RefreshCw className="w-5 h-5 mr-2" />
+              Fusionar Categorías Varoniles
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-orange-700 mb-2">
+                  Fusiona las categorías Varonil Gold y Varonil Silver en una sola categoría "Varonil Libre"
+                </p>
+                <p className="text-sm text-orange-600">
+                  ⚠️ Esta acción no se puede deshacer. Afectará equipos, juegos y estadísticas.
+                </p>
+              </div>
+              <Button
+                onClick={async () => {
+                  if (!confirm("¿Estás seguro de fusionar las categorías varoniles? Esta acción no se puede deshacer."))
+                    return
+
+                  try {
+                    const response = await fetch("/api/admin/merge-varonil", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                    })
+
+                    const data = await response.json()
+
+                    if (data.success) {
+                      alert(
+                        `Fusión exitosa: ${data.data.equipos_actualizados} equipos y ${data.data.juegos_actualizados} juegos actualizados`,
+                      )
+                      loadData()
+                    } else {
+                      alert("Error: " + data.message)
+                    }
+                  } catch (error) {
+                    alert("Error de conexión")
+                  }
+                }}
+                className="bg-orange-600 hover:bg-orange-700 text-white"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Fusionar Categorías
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         <Tabs defaultValue="teams" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8 bg-white/10 backdrop-blur-sm">
+          <TabsList className="grid w-full grid-cols-9 bg-white border border-gray-200">
             <TabsTrigger
               value="teams"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900 text-white"
+              className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 text-gray-700"
             >
               <Users className="w-4 h-4 mr-2" />
               Equipos
             </TabsTrigger>
             <TabsTrigger
               value="games"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900 text-white"
+              className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 text-gray-700"
             >
               <Trophy className="w-4 h-4 mr-2" />
               Partidos
             </TabsTrigger>
             <TabsTrigger
               value="payments"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900 text-white"
+              className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 text-gray-700"
             >
               <DollarSign className="w-4 h-4 mr-2" />
               Pagos
             </TabsTrigger>
             <TabsTrigger
               value="debts"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900 text-white"
+              className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 text-gray-700"
             >
               <DollarSign className="w-4 h-4 mr-2" />
               Deudas
             </TabsTrigger>
             <TabsTrigger
               value="calendar"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900 text-white"
+              className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 text-gray-700"
             >
               <Calendar className="w-4 h-4 mr-2" />
               Calendario
             </TabsTrigger>
             <TabsTrigger
               value="coaches"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900 text-white"
+              className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 text-gray-700"
             >
               <UserCheck className="w-4 h-4 mr-2" />
               Entrenadores
             </TabsTrigger>
             <TabsTrigger
               value="wildbrowl"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900 text-white"
+              className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 text-gray-700"
             >
               <Target className="w-4 h-4 mr-2" />
               WildBrowl
             </TabsTrigger>
             <TabsTrigger
               value="config"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900 text-white"
+              className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 text-gray-700"
             >
               <Settings className="w-4 h-4 mr-2" />
               Configuración
             </TabsTrigger>
             <TabsTrigger
               value="mvps"
-              className="data-[state=active]:bg-white data-[state=active]:text-gray-900 text-white"
+              className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 text-gray-700"
             >
               <Star className="w-4 h-4 mr-2" />
               MVPs
@@ -1107,9 +1158,9 @@ export default function AdminPage() {
           <TabsContent value="teams">
             <div className="grid gap-6">
               {/* Crear equipo */}
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+              <Card className="bg-white border border-gray-200">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center">
+                  <CardTitle className="text-gray-900 flex items-center">
                     <Plus className="w-5 h-5 mr-2" />
                     Crear Nuevo Equipo
                   </CardTitle>
@@ -1117,23 +1168,23 @@ export default function AdminPage() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-white">Nombre del Equipo (sin sufijo)</Label>
+                      <Label className="text-gray-700">Nombre del Equipo (sin sufijo)</Label>
                       <Input
                         value={teamForm.name}
                         onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                         placeholder="Ej: Wildcats (se agregará VG automáticamente)"
                       />
-                      <p className="text-white/60 text-xs mt-1">
+                      <p className="text-gray-500 text-xs mt-1">
                         Se agregará automáticamente el sufijo según la categoría (VG, VS, FG, etc.)
                       </p>
                     </div>
                     <div>
-                      <Label className="text-white">Categoría</Label>
+                      <Label className="text-gray-700">Categoría</Label>
                       <select
                         value={teamForm.category}
                         onChange={(e) => setTeamForm({ ...teamForm, category: e.target.value })}
-                        className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+                        className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                       >
                         <option value="varonil-gold">Varonil Gold (VG)</option>
                         <option value="varonil-silver">Varonil Silver (VS)</option>
@@ -1146,21 +1197,21 @@ export default function AdminPage() {
                       </select>
                     </div>
                     <div>
-                      <Label className="text-white">Color 1</Label>
+                      <Label className="text-gray-700">Color 1</Label>
                       <Input
                         type="color"
                         value={teamForm.color1}
                         onChange={(e) => setTeamForm({ ...teamForm, color1: e.target.value })}
-                        className="bg-white/10 border-white/20"
+                        className="bg-white border-gray-300"
                       />
                     </div>
                     <div>
-                      <Label className="text-white">Color 2</Label>
+                      <Label className="text-gray-700">Color 2</Label>
                       <Input
                         type="color"
                         value={teamForm.color2}
                         onChange={(e) => setTeamForm({ ...teamForm, color2: e.target.value })}
-                        className="bg-white/10 border-white/20"
+                        className="bg-white border-gray-300"
                       />
                     </div>
                   </div>
@@ -1171,9 +1222,9 @@ export default function AdminPage() {
               </Card>
 
               {/* Agregar Jugador Rápido */}
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+              <Card className="bg-white border border-gray-200">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center">
+                  <CardTitle className="text-gray-900 flex items-center">
                     <Plus className="w-5 h-5 mr-2" />
                     Agregar Jugador Rápido
                   </CardTitle>
@@ -1181,30 +1232,30 @@ export default function AdminPage() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-white">Nombre</Label>
+                      <Label className="text-gray-700">Nombre</Label>
                       <Input
                         value={quickPlayer.name}
                         onChange={(e) => setQuickPlayer({ ...quickPlayer, name: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                         placeholder="Nombre del jugador"
                       />
                     </div>
                     <div>
-                      <Label className="text-white">Número</Label>
+                      <Label className="text-gray-700">Número</Label>
                       <Input
                         type="number"
                         value={quickPlayer.jersey_number}
                         onChange={(e) => setQuickPlayer({ ...quickPlayer, jersey_number: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white"
+                        className="bg-white border-gray-300 text-gray-900"
                         placeholder="0"
                       />
                     </div>
                     <div>
-                      <Label className="text-white">Posición</Label>
+                      <Label className="text-gray-700">Posición</Label>
                       <select
                         value={quickPlayer.position}
                         onChange={(e) => setQuickPlayer({ ...quickPlayer, position: e.target.value })}
-                        className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+                        className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                       >
                         <option value="">Seleccionar posición</option>
                         <option value="QB">Quarterback (QB)</option>
@@ -1218,11 +1269,11 @@ export default function AdminPage() {
                       </select>
                     </div>
                     <div>
-                      <Label className="text-white">Equipo</Label>
+                      <Label className="text-gray-700">Equipo</Label>
                       <select
                         value={quickPlayer.team_id}
                         onChange={(e) => setQuickPlayer({ ...quickPlayer, team_id: e.target.value })}
-                        className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+                        className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                       >
                         <option value="">Seleccionar equipo</option>
                         {teams.map((team) => (
@@ -1291,9 +1342,9 @@ export default function AdminPage() {
           {/* Nueva pestaña de Deudas Específicas */}
           <TabsContent value="debts">
             <div className="grid gap-6">
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+              <Card className="bg-white border border-gray-200">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center">
+                  <CardTitle className="text-gray-900 flex items-center">
                     <DollarSign className="w-5 h-5 mr-2" />
                     Registrar Deuda Específica
                   </CardTitle>
@@ -1301,11 +1352,11 @@ export default function AdminPage() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-white">Equipo</Label>
+                      <Label className="text-gray-700">Equipo</Label>
                       <select
                         value={debtForm.team_id}
                         onChange={(e) => setDebtForm({ ...debtForm, team_id: e.target.value })}
-                        className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+                        className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                       >
                         <option value="">Seleccionar equipo</option>
                         {teams.map((team) => (
@@ -1316,11 +1367,11 @@ export default function AdminPage() {
                       </select>
                     </div>
                     <div>
-                      <Label className="text-white">Tipo de Deuda</Label>
+                      <Label className="text-gray-700">Tipo de Deuda</Label>
                       <select
                         value={debtForm.type}
                         onChange={(e) => setDebtForm({ ...debtForm, type: e.target.value })}
-                        className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+                        className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                       >
                         <option value="arbitraje">Debe Arbitraje</option>
                         <option value="fianza">Debe Fianza</option>
@@ -1329,40 +1380,40 @@ export default function AdminPage() {
                       </select>
                     </div>
                     <div>
-                      <Label className="text-white">Monto</Label>
+                      <Label className="text-gray-700">Monto</Label>
                       <Input
                         type="number"
                         value={debtForm.amount}
                         onChange={(e) => setDebtForm({ ...debtForm, amount: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                         placeholder="300"
                       />
                     </div>
                     <div>
-                      <Label className="text-white">Fecha límite</Label>
+                      <Label className="text-gray-700">Fecha límite</Label>
                       <Input
                         type="date"
                         value={debtForm.due_date}
                         onChange={(e) => setDebtForm({ ...debtForm, due_date: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white"
+                        className="bg-white border-gray-300 text-gray-900"
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label className="text-white">Descripción</Label>
+                      <Label className="text-gray-700">Descripción</Label>
                       <Input
                         value={debtForm.description}
                         onChange={(e) => setDebtForm({ ...debtForm, description: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                         placeholder="Ej: Debe arbitraje por no presentar árbitro"
                       />
                     </div>
                     {debtForm.type === "arbitraje" && (
                       <div className="col-span-2">
-                        <Label className="text-white">Referencia del Partido (opcional)</Label>
+                        <Label className="text-gray-700">Referencia del Partido (opcional)</Label>
                         <Input
                           value={debtForm.game_reference}
                           onChange={(e) => setDebtForm({ ...debtForm, game_reference: e.target.value })}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                          className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                           placeholder="Ej: Wildcats VG vs Eagles VG - 15/08/2025"
                         />
                       </div>
@@ -1422,9 +1473,9 @@ export default function AdminPage() {
           {/* Resto de pestañas existentes... */}
           <TabsContent value="games">
             <div className="grid gap-6">
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+              <Card className="bg-white border border-gray-200">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center">
+                  <CardTitle className="text-gray-900 flex items-center">
                     <Plus className="w-5 h-5 mr-2" />
                     Programar Nuevo Partido
                   </CardTitle>
@@ -1432,22 +1483,22 @@ export default function AdminPage() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-white">Tipo de Juego</Label>
+                      <Label className="text-gray-700">Tipo de Juego</Label>
                       <select
                         value={gameForm.game_type}
                         onChange={(e) => setGameForm({ ...gameForm, game_type: e.target.value })}
-                        className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+                        className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                       >
                         <option value="flag">Flag Football</option>
                         <option value="wildbrowl">WildBrowl 1v1</option>
                       </select>
                     </div>
                     <div>
-                      <Label className="text-white">Categoría</Label>
+                      <Label className="text-gray-700">Categoría</Label>
                       <select
                         value={gameForm.category}
                         onChange={(e) => setGameForm({ ...gameForm, category: e.target.value })}
-                        className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+                        className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                       >
                         <option value="varonil-gold">Varonil Gold</option>
                         <option value="varonil-silver">Varonil Silver</option>
@@ -1460,11 +1511,11 @@ export default function AdminPage() {
                       </select>
                     </div>
                     <div>
-                      <Label className="text-white">Tipo de Partido</Label>
+                      <Label className="text-gray-700">Tipo de Partido</Label>
                       <select
                         value={gameForm.match_type}
                         onChange={(e) => setGameForm({ ...gameForm, match_type: e.target.value })}
-                        className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+                        className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                       >
                         <option value="jornada">Jornada</option>
                         <option value="semifinal">Semifinal</option>
@@ -1476,11 +1527,11 @@ export default function AdminPage() {
                     {gameForm.game_type === "flag" ? (
                       <>
                         <div>
-                          <Label className="text-white">Equipo Local</Label>
+                          <Label className="text-gray-700">Equipo Local</Label>
                           <select
                             value={gameForm.home_team}
                             onChange={(e) => setGameForm({ ...gameForm, home_team: e.target.value })}
-                            className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+                            className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                             required
                           >
                             <option value="">Seleccionar equipo</option>
@@ -1494,11 +1545,11 @@ export default function AdminPage() {
                           </select>
                         </div>
                         <div>
-                          <Label className="text-white">Equipo Visitante</Label>
+                          <Label className="text-gray-700">Equipo Visitante</Label>
                           <select
                             value={gameForm.away_team}
                             onChange={(e) => setGameForm({ ...gameForm, away_team: e.target.value })}
-                            className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+                            className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                             required
                           >
                             <option value="">Seleccionar equipo</option>
@@ -1515,76 +1566,76 @@ export default function AdminPage() {
                     ) : (
                       <>
                         <div>
-                          <Label className="text-white">Jugador 1</Label>
+                          <Label className="text-gray-700">Jugador 1</Label>
                           <Input
                             value={gameForm.home_team}
                             onChange={(e) => setGameForm({ ...gameForm, home_team: e.target.value })}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                            className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                             placeholder="Nombre del jugador 1"
                           />
                         </div>
                         <div>
-                          <Label className="text-white">Jugador 2</Label>
+                          <Label className="text-gray-700">Jugador 2</Label>
                           <Input
                             value={gameForm.away_team}
                             onChange={(e) => setGameForm({ ...gameForm, away_team: e.target.value })}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                            className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                             placeholder="Nombre del jugador 2"
                           />
                         </div>
                       </>
                     )}
                     <div>
-                      <Label className="text-white">Fecha</Label>
+                      <Label className="text-gray-700">Fecha</Label>
                       <Input
                         type="date"
                         value={gameForm.game_date}
                         onChange={(e) => setGameForm({ ...gameForm, game_date: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white"
+                        className="bg-white border-gray-300 text-gray-900"
                       />
                     </div>
                     <div>
-                      <Label className="text-white">Hora</Label>
+                      <Label className="text-gray-700">Hora</Label>
                       <Input
                         type="time"
                         value={gameForm.game_time}
                         onChange={(e) => setGameForm({ ...gameForm, game_time: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white"
+                        className="bg-white border-gray-300 text-gray-900"
                       />
                     </div>
                     <div>
-                      <Label className="text-white">Sede</Label>
+                      <Label className="text-gray-700">Sede</Label>
                       <Input
                         value={gameForm.venue}
                         onChange={(e) => setGameForm({ ...gameForm, venue: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                         placeholder="Ej: Unidad Deportiva Norte"
                       />
                     </div>
                     <div>
-                      <Label className="text-white">Campo</Label>
+                      <Label className="text-gray-700">Campo</Label>
                       <Input
                         value={gameForm.field}
                         onChange={(e) => setGameForm({ ...gameForm, field: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                         placeholder="Ej: Campo A, Campo 1, etc."
                       />
                     </div>
                     <div>
-                      <Label className="text-white">Árbitro Principal</Label>
+                      <Label className="text-gray-700">Árbitro Principal</Label>
                       <Input
                         value={gameForm.referee1}
                         onChange={(e) => setGameForm({ ...gameForm, referee1: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                         placeholder="Nombre del árbitro principal"
                       />
                     </div>
                     <div>
-                      <Label className="text-white">Árbitro Asistente</Label>
+                      <Label className="text-gray-700">Árbitro Asistente</Label>
                       <Input
                         value={gameForm.referee2}
                         onChange={(e) => setGameForm({ ...gameForm, referee2: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                         placeholder="Nombre del árbitro asistente (opcional)"
                       />
                     </div>
@@ -1595,15 +1646,15 @@ export default function AdminPage() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+              <Card className="bg-white border border-gray-200">
                 <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                  <CardTitle className="text-white">Partidos Programados</CardTitle>
+                  <CardTitle className="text-gray-900">Partidos Programados</CardTitle>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-white/80">Filtrar por categoría:</span>
+                    <span className="text-sm text-gray-700">Filtrar por categoría:</span>
                     <select
                       value={gamesCategoryFilter}
                       onChange={(e) => setGamesCategoryFilter(e.target.value)}
-                      className="p-2 rounded bg-white/10 border border-white/20 text-white"
+                      className="p-2 rounded bg-white border border-gray-300 text-gray-900"
                     >
                       <option value="">Todas</option>
                       <option value="varonil-gold">Varonil Gold</option>
@@ -1783,9 +1834,9 @@ export default function AdminPage() {
           {/* Pagos */}
           <TabsContent value="payments">
             <div className="grid gap-6">
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+              <Card className="bg-white border border-gray-200">
                 <CardHeader>
-                  <CardTitle className="text-white flex items-center">
+                  <CardTitle className="text-gray-900 flex items-center">
                     <DollarSign className="w-5 h-5 mr-2" />
                     Registrar Pago General
                   </CardTitle>
@@ -1793,11 +1844,11 @@ export default function AdminPage() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-white">Equipo</Label>
+                      <Label className="text-gray-700">Equipo</Label>
                       <select
                         value={paymentForm.team_id}
                         onChange={(e) => setPaymentForm({ ...paymentForm, team_id: e.target.value })}
-                        className="w-full p-2 rounded bg-white/10 border border-white/20 text-white"
+                        className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                       >
                         <option value="">Seleccionar equipo</option>
                         {teams.map((team) => (
@@ -1808,31 +1859,31 @@ export default function AdminPage() {
                       </select>
                     </div>
                     <div>
-                      <Label className="text-white">Monto</Label>
+                      <Label className="text-gray-700">Monto</Label>
                       <Input
                         type="number"
                         value={paymentForm.amount}
                         onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                         placeholder="1600"
                       />
                     </div>
                     <div className="col-span-2">
-                      <Label className="text-white">Descripción</Label>
+                      <Label className="text-gray-700">Descripción</Label>
                       <Input
                         value={paymentForm.description}
                         onChange={(e) => setPaymentForm({ ...paymentForm, description: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                         placeholder="Inscripción temporada"
                       />
                     </div>
                     <div>
-                      <Label className="text-white">Fecha límite</Label>
+                      <Label className="text-gray-700">Fecha límite</Label>
                       <Input
                         type="date"
                         value={paymentForm.due_date}
                         onChange={(e) => setPaymentForm({ ...paymentForm, due_date: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white"
+                        className="bg-white border-gray-300 text-gray-900"
                       />
                     </div>
                   </div>
@@ -1879,15 +1930,15 @@ export default function AdminPage() {
 
           {/* Calendario */}
           <TabsContent value="calendar">
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+            <Card className="bg-white border border-gray-200">
               <CardHeader>
-                <CardTitle className="text-white">Calendario de Partidos</CardTitle>
+                <CardTitle className="text-gray-900">Calendario de Partidos</CardTitle>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="text-center py-12">
-                  <Calendar className="w-16 h-16 text-white/50 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">Vista de Calendario</h3>
-                  <p className="text-white/70">
+                  <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Vista de Calendario</h3>
+                  <p className="text-gray-600">
                     Aquí se mostrará un calendario interactivo con todos los partidos programados.
                   </p>
                 </div>
@@ -1898,8 +1949,8 @@ export default function AdminPage() {
           <TabsContent value="coaches">
             <div className="grid gap-4">
               {coachPermissions.length === 0 ? (
-                <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-                  <CardContent className="p-6 text-white/80">No hay solicitudes de entrenadores.</CardContent>
+                <Card className="bg-white border border-gray-200">
+                  <CardContent className="p-6 text-gray-700">No hay solicitudes de entrenadores.</CardContent>
                 </Card>
               ) : (
                 coachPermissions.map((perm) => (
@@ -1937,18 +1988,18 @@ export default function AdminPage() {
           </TabsContent>
 
           <TabsContent value="wildbrowl">
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+            <Card className="bg-white border border-gray-200">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-gray-900 flex items-center gap-2">
                   <Target className="w-5 h-5" />
                   Administración WildBrowl
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="text-center py-8">
-                  <Target className="w-16 h-16 text-white/50 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">Panel de WildBrowl</h3>
-                  <p className="text-white/70 mb-6">Administra el torneo 1v1, participantes, brackets y resultados.</p>
+                  <Target className="w-16 h-16 text-orange-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Panel de WildBrowl</h3>
+                  <p className="text-gray-700 mb-6">Administra el torneo 1v1, participantes, brackets y resultados.</p>
                   <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto">
                     <Button
                       onClick={() => (window.location.href = "/wildbrowl/admin")}
@@ -1960,7 +2011,7 @@ export default function AdminPage() {
                     <Button
                       onClick={() => (window.location.href = "/wildbrowl")}
                       variant="outline"
-                      className="border-white/30 text-white hover:bg-white/10"
+                      className="border-gray-300 text-gray-900 hover:bg-gray-100"
                     >
                       Ver Página Pública
                     </Button>
@@ -1971,15 +2022,15 @@ export default function AdminPage() {
           </TabsContent>
 
           <TabsContent value="config">
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+            <Card className="bg-white border border-gray-200">
               <CardHeader>
-                <CardTitle className="text-white">Configuraciones de la Liga</CardTitle>
+                <CardTitle className="text-gray-900">Configuraciones de la Liga</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
-                  <div className="text-white">
+                  <div className="text-gray-900">
                     <div className="font-semibold">Temporada Iniciada</div>
-                    <div className="text-white/70 text-sm">Controla el estado de la temporada</div>
+                    <div className="text-gray-700 text-sm">Controla el estado de la temporada</div>
                   </div>
                   <Button onClick={toggleSeasonStatus} className="bg-blue-600 hover:bg-blue-700 text-white">
                     {systemConfig.season_started === "true" ? "Marcar como NO iniciada" : "Marcar como Iniciada"}
@@ -1987,9 +2038,9 @@ export default function AdminPage() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="text-white">
+                  <div className="text-gray-900">
                     <div className="font-semibold">WildBrowl 1v1</div>
-                    <div className="text-white/70 text-sm">Habilita o deshabilita el torneo 1v1</div>
+                    <div className="text-gray-700 text-sm">Habilita o deshabilita el torneo 1v1</div>
                   </div>
                   <Button onClick={toggleWildBrowl} className="bg-orange-600 hover:bg-orange-700 text-white">
                     {systemConfig.wildbrowl_enabled === "true" ? "Deshabilitar" : "Habilitar"}
@@ -1997,13 +2048,13 @@ export default function AdminPage() {
                 </div>
 
                 <div>
-                  <Label className="text-white">Fecha límite de inscripción</Label>
+                  <Label className="text-gray-700">Fecha límite de inscripción</Label>
                   <div className="flex gap-3 mt-2">
                     <Input
                       type="date"
                       value={systemConfig.registration_deadline || ""}
                       onChange={(e) => setSystemConfig((prev) => ({ ...prev, registration_deadline: e.target.value }))}
-                      className="bg-white/10 border-white/20 text-white"
+                      className="bg-white border-gray-300 text-gray-900"
                     />
                     <Button
                       onClick={() => updateConfig("registration_deadline", systemConfig.registration_deadline || "")}
@@ -2017,18 +2068,18 @@ export default function AdminPage() {
             </Card>
           </TabsContent>
           <TabsContent value="mvps">
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+            <Card className="bg-white border border-gray-200">
               <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
+                <CardTitle className="text-gray-900 flex items-center gap-2">
                   <Star className="w-5 h-5" />
                   Administración de MVPs
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="text-center py-8">
-                  <Star className="w-16 h-16 text-white/50 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white mb-2">Panel de MVPs</h3>
-                  <p className="text-white/70 mb-6">Administra los MVPs semanales y de juegos de la liga.</p>
+                  <Star className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Panel de MVPs</h3>
+                  <p className="text-gray-700 mb-6">Administra los MVPs semanales y de juegos de la liga.</p>
                   <div className="grid md:grid-cols-2 gap-4 max-w-2xl mx-auto">
                     <Button
                       onClick={() => (window.location.href = "/admin/mvps")}
@@ -2040,7 +2091,7 @@ export default function AdminPage() {
                     <Button
                       onClick={() => (window.location.href = "/estadisticas")}
                       variant="outline"
-                      className="border-white/30 text-white hover:bg-white/10"
+                      className="border-gray-300 text-gray-900 hover:bg-gray-100"
                     >
                       Ver Estadísticas MVP
                     </Button>
