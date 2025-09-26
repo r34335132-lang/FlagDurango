@@ -79,8 +79,7 @@ export default function EstadisticasPage() {
 
   const categories = [
     { value: "all", label: "Todas las Categorías" },
-    { value: "varonil-gold", label: "Varonil Gold" },
-    { value: "varonil-silver", label: "Varonil Silver" },
+    { value: "varonil-libre", label: "Varonil Libre" },
     { value: "femenil-gold", label: "Femenil Gold" },
     { value: "femenil-silver", label: "Femenil Silver" },
     { value: "femenil-cooper", label: "Femenil Cooper" },
@@ -178,7 +177,8 @@ export default function EstadisticasPage() {
     if (category.includes("femenil")) return "bg-pink-500"
     if (category.includes("mixto")) return "bg-orange-500"
     if (category === "teens") return "bg-green-500"
-    return "bg-blue-500"
+    if (category.includes("varonil")) return "bg-blue-500"
+    return "bg-gray-500"
   }
 
   const getPositionColor = (position: number) => {
@@ -309,6 +309,7 @@ export default function EstadisticasPage() {
                             "/placeholder.svg?height=128&width=128&query=foto-de-jugador-mvp" ||
                             "/placeholder.svg" ||
                             "/placeholder.svg" ||
+                            "/placeholder.svg" ||
                             "/placeholder.svg"
                           }
                           alt={filteredLatestMvp.players?.name || "MVP"}
@@ -337,6 +338,7 @@ export default function EstadisticasPage() {
                               src={
                                 mvp.players?.photo_url ||
                                 "/placeholder.svg?height=128&width=128&query=foto-de-jugador-mvp" ||
+                                "/placeholder.svg" ||
                                 "/placeholder.svg" ||
                                 "/placeholder.svg" ||
                                 "/placeholder.svg"

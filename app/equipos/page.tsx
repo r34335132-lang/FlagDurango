@@ -87,8 +87,7 @@ export default function TeamsPage() {
 
   const getCategoryLabel = (category: string) => {
     const labels: { [key: string]: string } = {
-      "varonil-gold": "Varonil Gold",
-      "varonil-silver": "Varonil Silver",
+      "varonil-libre": "Varonil Libre",
       "femenil-gold": "Femenil Gold",
       "femenil-silver": "Femenil Silver",
       "femenil-cooper": "Femenil Cooper",
@@ -101,8 +100,7 @@ export default function TeamsPage() {
 
   const getCategoryColor = (category: string) => {
     const colors: { [key: string]: string } = {
-      "varonil-gold": "bg-blue-500",
-      "varonil-silver": "bg-blue-400",
+      "varonil-libre": "bg-blue-500",
       "femenil-gold": "bg-pink-500",
       "femenil-silver": "bg-pink-400",
       "femenil-cooper": "bg-pink-600",
