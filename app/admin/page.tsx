@@ -189,7 +189,7 @@ export default function AdminPage() {
   // Form states
   const [teamForm, setTeamForm] = useState({
     name: "",
-    category: "varonil-gold",
+    category: "varonil-libre",
     captain_name: "",
     captain_phone: "",
     contact_name: "",
@@ -268,7 +268,7 @@ export default function AdminPage() {
     game_time: "",
     venue: "",
     field: "",
-    category: "varonil-gold",
+    category: "varonil-libre",
     referee1: "",
     referee2: "",
     status: "programado",
@@ -559,7 +559,7 @@ export default function AdminPage() {
       if (data.success) {
         setTeamForm({
           name: "",
-          category: "varonil-gold",
+          category: "varonil-libre",
           captain_name: "",
           captain_phone: "",
           contact_name: "",
@@ -810,7 +810,7 @@ export default function AdminPage() {
           game_time: "",
           venue: "",
           field: "",
-          category: "varonil-gold",
+          category: "varonil-libre",
           referee1: "",
           referee2: "",
           status: "programado",
@@ -836,12 +836,16 @@ export default function AdminPage() {
     home_score?: number,
     away_score?: number,
     mvp?: string,
+    referee1?: string,
+    referee2?: string,
   ) => {
     try {
       const updateData: any = { id, status }
       if (home_score !== undefined) updateData.home_score = home_score
       if (away_score !== undefined) updateData.away_score = away_score
       if (mvp) updateData.mvp = mvp
+      if (referee1 !== undefined) updateData.referee1 = referee1
+      if (referee2 !== undefined) updateData.referee2 = referee2
 
       const response = await fetch("/api/games", {
         method: "PUT",
@@ -1173,10 +1177,10 @@ export default function AdminPage() {
                         value={teamForm.name}
                         onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })}
                         className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
-                        placeholder="Ej: Wildcats (se agregará VG automáticamente)"
+                        placeholder="Ej: Wildcats (se agregará VL automáticamente)"
                       />
                       <p className="text-gray-500 text-xs mt-1">
-                        Se agregará automáticamente el sufijo según la categoría (VG, VS, FG, etc.)
+                        Se agregará automáticamente el sufijo según la categoría (VL, FG, FS, etc.)
                       </p>
                     </div>
                     <div>
@@ -1186,8 +1190,7 @@ export default function AdminPage() {
                         onChange={(e) => setTeamForm({ ...teamForm, category: e.target.value })}
                         className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                       >
-                        <option value="varonil-gold">Varonil Gold (VG)</option>
-                        <option value="varonil-silver">Varonil Silver (VS)</option>
+                        <option value="varonil-libre">Varonil Libre (VL)</option>
                         <option value="femenil-gold">Femenil Gold (FG)</option>
                         <option value="femenil-silver">Femenil Silver (FS)</option>
                         <option value="mixto-gold">Mixto Gold (MG)</option>
@@ -1500,8 +1503,7 @@ export default function AdminPage() {
                         onChange={(e) => setGameForm({ ...gameForm, category: e.target.value })}
                         className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                       >
-                        <option value="varonil-gold">Varonil Gold</option>
-                        <option value="varonil-silver">Varonil Silver</option>
+                        <option value="varonil-libre">Varonil Libre</option>
                         <option value="femenil-gold">Femenil Gold</option>
                         <option value="femenil-silver">Femenil Silver</option>
                         <option value="mixto-gold">Mixto Gold</option>
@@ -1657,8 +1659,7 @@ export default function AdminPage() {
                       className="p-2 rounded bg-white border border-gray-300 text-gray-900"
                     >
                       <option value="">Todas</option>
-                      <option value="varonil-gold">Varonil Gold</option>
-                      <option value="varonil-silver">Varonil Silver</option>
+                      <option value="varonil-libre">Varonil Libre</option>
                       <option value="femenil-gold">Femenil Gold</option>
                       <option value="femenil-silver">Femenil Silver</option>
                       <option value="femenil-cooper">Femenil Cooper</option>
@@ -1678,7 +1679,7 @@ export default function AdminPage() {
                             {game.home_team} vs {game.away_team}
                           </h3>
                           <div className="text-white/70 text-sm">
-                            {new Date(game.game_date).toLocaleDateString("es-ES")} - {game.game_time}
+                            {game.game_date} - {game.game_time}
                           </div>
                           <div className="text-white/70 text-sm">
                             {game.venue} - {game.field}
@@ -1818,6 +1819,8 @@ export default function AdminPage() {
                             editingGame.home_score,
                             editingGame.away_score,
                             editingGame.mvp,
+                            editingGame.referee1,
+                            editingGame.referee2,
                           )
                         }
                         className="bg-green-600 hover:bg-green-700 text-white"

@@ -55,19 +55,20 @@ export default function AdminMVPsPage() {
   const [mvps, setMvps] = useState<MVP[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState("varonil-gold")
+  const [selectedCategory, setSelectedCategory] = useState("varonil-libre")
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
   const [mvpForm, setMvpForm] = useState({
     player_id: "",
     mvp_type: "weekly" as "weekly" | "game",
-    category: "varonil-gold",
+    category: "varonil-libre",
     week_number: "",
     season: "2025",
     notes: "",
   })
 
   const categories = [
+    { value: "varonil-libre", label: "Varonil Libre" },
     { value: "varonil-gold", label: "Varonil Gold" },
     { value: "varonil-silver", label: "Varonil Silver" },
     { value: "femenil-gold", label: "Femenil Gold" },
@@ -433,6 +434,7 @@ export default function AdminMVPsPage() {
                             src={
                               mvp.players?.photo_url ||
                               "/placeholder.svg?height=40&width=40&query=foto-jugador" ||
+                              "/placeholder.svg" ||
                               "/placeholder.svg" ||
                               "/placeholder.svg" ||
                               "/placeholder.svg"
