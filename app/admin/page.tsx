@@ -1723,120 +1723,116 @@ export default function AdminPage() {
                 </CardContent>
               </Card>
 
-{/* Edit Game Modal */}
-{editingGame && (
-  <Card className="bg-white border border-gray-200 fixed inset-4 z-50 overflow-auto">
-    <CardHeader>
-      <CardTitle className="text-gray-900">
-        Editar Partido: {editingGame.home_team} vs {editingGame.away_team}
-      </CardTitle>
-    </CardHeader>
-    <CardContent className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label className="text-gray-900">Estado</Label>
-          <select
-            value={editingGame.status}
-            onChange={(e) => setEditingGame({ ...editingGame, status: e.target.value })}
-            className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
-          >
-            <option value="programado">Programado</option>
-            <option value="en vivo">En Vivo</option>
-            <option value="finalizado">Finalizado</option>
-          </select>
-        </div>
+              {/* Edit Game Modal */}
+              {editingGame && (
+                <Card className="bg-black border border-gray-200 fixed inset-4 z-50 overflow-auto">
+                  <CardHeader>
+                    <CardTitle className="text-black">
+                      Editar Partido: {editingGame.home_team} vs {editingGame.away_team}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-black">Estado</Label>
+                        <select
+                          value={editingGame.status}
+                          onChange={(e) => setEditingGame({ ...editingGame, status: e.target.value })}
+                          className="w-full p-2 rounded bg-black/10 border border-black/20 text-black"
+                        >
+                          <option value="programado">Programado</option>
+                          <option value="en vivo">En Vivo</option>
+                          <option value="finalizado">Finalizado</option>
+                        </select>
+                      </div>
+                      <div />
+                      <div>
+                        <Label className="text-black">Árbitro Principal</Label>
+                        <Input
+                          value={editingGame.referee1 || ""}
+                          onChange={(e) => setEditingGame({ ...editingGame, referee1: e.target.value })}
+                          className="bg-black/10 border-black/20 text-black placeholder:text-black/50"
+                          placeholder="Nombre del árbitro principal"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-black">Árbitro Asistente</Label>
+                        <Input
+                          value={editingGame.referee2 || ""}
+                          onChange={(e) => setEditingGame({ ...editingGame, referee2: e.target.value })}
+                          className="bg-black/10 border-black/20 text-black placeholder:text-black/50"
+                          placeholder="Nombre del árbitro asistente"
+                        />
+                      </div>
+                      {(editingGame.status === "en vivo" || editingGame.status === "finalizado") && (
+                        <>
+                          <div>
+                            <Label className="text-black">Marcador {editingGame.home_team}</Label>
+                            <Input
+                              type="number"
+                              value={editingGame.home_score ?? 0}
+                              onChange={(e) =>
+                                setEditingGame({ ...editingGame, home_score: Number.parseInt(e.target.value || "0") })
+                              }
+                              className="bg-black/10 border-black/20 text-black"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-black">Marcador {editingGame.away_team}</Label>
+                            <Input
+                              type="number"
+                              value={editingGame.away_score ?? 0}
+                              onChange={(e) =>
+                                setEditingGame({ ...editingGame, away_score: Number.parseInt(e.target.value || "0") })
+                              }
+                              className="bg-black/10 border-black/20 text-black"
+                            />
+                          </div>
+                        </>
+                      )}
+                      {editingGame.status === "finalizado" && (
+                        <div className="col-span-2">
+                          <Label className="text-black">MVP del Partido</Label>
+                          <Input
+                            value={editingGame.mvp || ""}
+                            onChange={(e) => setEditingGame({ ...editingGame, mvp: e.target.value })}
+                            className="bg-black/10 border-white/20 text-black placeholder:text-black/50"
+                            placeholder="Nombre del MVP (opcional)"
+                          />
+                        </div>
+                      )}
+                    </div>
 
-        <div />
-
-        <div>
-          <Label className="text-gray-900">Árbitro Principal</Label>
-          <Input
-            value={editingGame.referee1 || ""}
-            onChange={(e) => setEditingGame({ ...editingGame, referee1: e.target.value })}
-            className="bg-white border border-gray-300 text-gray-900 placeholder:text-gray-500"
-            placeholder="Nombre del árbitro principal"
-          />
-        </div>
-
-        <div>
-          <Label className="text-gray-900">Árbitro Asistente</Label>
-          <Input
-            value={editingGame.referee2 || ""}
-            onChange={(e) => setEditingGame({ ...editingGame, referee2: e.target.value })}
-            className="bg-white border border-gray-300 text-gray-900 placeholder:text-gray-500"
-            placeholder="Nombre del árbitro asistente"
-          />
-        </div>
-
-        {(editingGame.status === "en vivo" || editingGame.status === "finalizado") && (
-          <>
-            <div>
-              <Label className="text-gray-900">Marcador {editingGame.home_team}</Label>
-              <Input
-                type="number"
-                value={editingGame.home_score ?? 0}
-                onChange={(e) =>
-                  setEditingGame({ ...editingGame, home_score: Number.parseInt(e.target.value || "0") })
-                }
-                className="bg-white border border-gray-300 text-gray-900"
-              />
+                    <div className="flex gap-3 justify-end">
+                      <Button
+                        variant="outline"
+                        onClick={() => setEditingGame(null)}
+                        className="text-red border-black/20 hover:bg-black/10"
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        onClick={() =>
+                          updateGameStatus(
+                            editingGame.id,
+                            editingGame.status,
+                            editingGame.home_score,
+                            editingGame.away_score,
+                            editingGame.mvp,
+                            editingGame.referee1,
+                            editingGame.referee2,
+                          )
+                        }
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        Guardar Cambios
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
-            <div>
-              <Label className="text-gray-900">Marcador {editingGame.away_team}</Label>
-              <Input
-                type="number"
-                value={editingGame.away_score ?? 0}
-                onChange={(e) =>
-                  setEditingGame({ ...editingGame, away_score: Number.parseInt(e.target.value || "0") })
-                }
-                className="bg-white border border-gray-300 text-gray-900"
-              />
-            </div>
-          </>
-        )}
-
-        {editingGame.status === "finalizado" && (
-          <div className="col-span-2">
-            <Label className="text-gray-900">MVP del Partido</Label>
-            <Input
-              value={editingGame.mvp || ""}
-              onChange={(e) => setEditingGame({ ...editingGame, mvp: e.target.value })}
-              className="bg-white border border-gray-300 text-gray-900 placeholder:text-gray-500"
-              placeholder="Nombre del MVP (opcional)"
-            />
-          </div>
-        )}
-      </div>
-
-      <div className="flex gap-3 justify-end">
-        <Button
-          variant="outline"
-          onClick={() => setEditingGame(null)}
-          className="text-gray-900 border-gray-300 hover:bg-gray-100"
-        >
-          Cancelar
-        </Button>
-        <Button
-          onClick={() =>
-            updateGameStatus(
-              editingGame.id,
-              editingGame.status,
-              editingGame.home_score,
-              editingGame.away_score,
-              editingGame.mvp,
-              editingGame.referee1,
-              editingGame.referee2,
-            )
-          }
-          className="bg-green-600 hover:bg-green-700 text-white"
-        >
-          Guardar Cambios
-        </Button>
-      </div>
-    </CardContent>
-  </Card>
-)}
-
+          </TabsContent>
 
           {/* Pagos */}
           <TabsContent value="payments">
