@@ -1725,7 +1725,7 @@ export default function AdminPage() {
 
               {/* Edit Game Modal */}
               {editingGame && (
-                <Card className="bg-black border border-gray-200 fixed inset-4 z-50 overflow-auto">
+                <Card className="bg-white border border-gray-200 fixed inset-4 z-50 overflow-auto">
                   <CardHeader>
                     <CardTitle className="text-black">
                       Editar Partido: {editingGame.home_team} vs {editingGame.away_team}
