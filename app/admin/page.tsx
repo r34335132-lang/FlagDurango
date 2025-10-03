@@ -1725,7 +1725,7 @@ export default function AdminPage() {
 
               {/* Edit Game Modal */}
               {editingGame && (
-                <Card className="bg-white border border-gray-300 fixed inset-4 z-50 overflow-auto shadow-2xl">
+                <Card className="bg-black border border-gray-200 fixed inset-4 z-50 overflow-auto">
                   <CardHeader>
                     <CardTitle className="text-black">
                       Editar Partido: {editingGame.home_team} vs {editingGame.away_team}
@@ -1738,7 +1738,7 @@ export default function AdminPage() {
                         <select
                           value={editingGame.status}
                           onChange={(e) => setEditingGame({ ...editingGame, status: e.target.value })}
-                          className="w-full p-2 rounded bg-white border border-gray-300 text-black"
+                          className="w-full p-2 rounded bg-black/10 border border-black/20 text-black"
                         >
                           <option value="programado">Programado</option>
                           <option value="en vivo">En Vivo</option>
@@ -1751,7 +1751,7 @@ export default function AdminPage() {
                         <Input
                           value={editingGame.referee1 || ""}
                           onChange={(e) => setEditingGame({ ...editingGame, referee1: e.target.value })}
-                          className="bg-white border-gray-300 text-black placeholder:text-gray-400"
+                          className="bg-black/10 border-black/20 text-black placeholder:text-black/50"
                           placeholder="Nombre del árbitro principal"
                         />
                       </div>
@@ -1760,7 +1760,7 @@ export default function AdminPage() {
                         <Input
                           value={editingGame.referee2 || ""}
                           onChange={(e) => setEditingGame({ ...editingGame, referee2: e.target.value })}
-                          className="bg-white border-gray-300 text-black placeholder:text-gray-400"
+                          className="bg-black/10 border-black/20 text-black placeholder:text-black/50"
                           placeholder="Nombre del árbitro asistente"
                         />
                       </div>
@@ -1774,7 +1774,7 @@ export default function AdminPage() {
                               onChange={(e) =>
                                 setEditingGame({ ...editingGame, home_score: Number.parseInt(e.target.value || "0") })
                               }
-                              className="bg-white border-gray-300 text-black"
+                              className="bg-black/10 border-black/20 text-black"
                             />
                           </div>
                           <div>
@@ -1785,7 +1785,7 @@ export default function AdminPage() {
                               onChange={(e) =>
                                 setEditingGame({ ...editingGame, away_score: Number.parseInt(e.target.value || "0") })
                               }
-                              className="bg-white border-gray-300 text-black"
+                              className="bg-black/10 border-black/20 text-black"
                             />
                           </div>
                         </>
@@ -1796,7 +1796,7 @@ export default function AdminPage() {
                           <Input
                             value={editingGame.mvp || ""}
                             onChange={(e) => setEditingGame({ ...editingGame, mvp: e.target.value })}
-                            className="bg-white border-gray-300 text-black placeholder:text-gray-400"
+                            className="bg-black/10 border-white/20 text-black placeholder:text-black/50"
                             placeholder="Nombre del MVP (opcional)"
                           />
                         </div>
@@ -1807,7 +1807,7 @@ export default function AdminPage() {
                       <Button
                         variant="outline"
                         onClick={() => setEditingGame(null)}
-                        className="text-red-600 border-gray-300 hover:bg-gray-100"
+                        className="text-red border-black/20 hover:bg-black/10"
                       >
                         Cancelar
                       </Button>
