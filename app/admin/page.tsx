@@ -1675,16 +1675,16 @@ export default function AdminPage() {
                     .map((game) => (
                       <div key={game.id} className="flex items-center justify-between mb-4 p-4 bg-white/5 rounded">
                         <div>
-                          <h3 className="text-white font-semibold text-lg">
+                          <h3 className="text-gray-900 font-semibold text-lg">
                             {game.home_team} vs {game.away_team}
                           </h3>
-                          <div className="text-white/70 text-sm">
+                          <div className="text-gray-600 text-sm">
                             {game.game_date} - {game.game_time}
                           </div>
-                          <div className="text-white/70 text-sm">
+                          <div className="text-gray-600 text-sm">
                             {game.venue} - {game.field}
                           </div>
-                          <div className="text-white/70 text-sm">
+                          <div className="text-gray-600 text-sm">
                             Árbitros: {[game.referee1, game.referee2].filter(Boolean).join(", ") || "Sin asignar"}
                           </div>
                           {game.game_type && (
@@ -1698,7 +1698,7 @@ export default function AdminPage() {
                             {getStatusLabel(game.status)}
                           </Badge>
                           {game.status === "finalizado" && (
-                            <div className="text-white font-bold text-lg">
+                            <div className="text-gray-900 font-bold text-lg">
                               {game.home_score} - {game.away_score}
                             </div>
                           )}
