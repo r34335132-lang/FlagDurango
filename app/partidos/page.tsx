@@ -17,6 +17,7 @@ import {
   Filter,
   Share2,
   Download,
+  Info,
 } from "lucide-react"
 
 interface Game {
@@ -99,6 +100,7 @@ export default function GamesPage() {
       "femenil-cooper": "bg-pink-600",
       "varonil-silver": "bg-blue-400",
       "varonil-gold": "bg-blue-500",
+      "varonil-libre": "bg-blue-600",
       "mixto-silver": "bg-orange-400",
       "mixto-gold": "bg-orange-500",
     }
@@ -112,6 +114,7 @@ export default function GamesPage() {
       "femenil-cooper": "Femenil Cooper",
       "varonil-silver": "Varonil Silver",
       "varonil-gold": "Varonil Gold",
+      "varonil-libre": "Varonil Libre",
       "mixto-silver": "Mixto Silver",
       "mixto-gold": "Mixto Gold",
     }
@@ -239,33 +242,41 @@ export default function GamesPage() {
     try {
       const html2canvas = (await import("html2canvas")).default
 
-      // Create a temporary container for the share card
       const tempContainer = document.createElement("div")
       tempContainer.style.position = "absolute"
       tempContainer.style.left = "-9999px"
       tempContainer.style.top = "-9999px"
       document.body.appendChild(tempContainer)
 
-      // Create the share card component
+      const isAmistoso = game.match_type === "amistoso"
       const shareCardElement = document.createElement("div")
       shareCardElement.innerHTML = `
         <div style="width: 600px; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.15);">
-           Header with gradient 
           <div style="height: 80px; background: linear-gradient(135deg, #2563eb, #7c3aed, #dc2626); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold;">
             🏈 Liga Flag Durango 2025
           </div>
 
-           Status Badge 
           <div style="display: flex; justify-content: center; padding: 16px 0; background: #f8fafc;">
             <div style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 8px 24px; border-radius: 9999px; font-weight: bold; font-size: 18px;">
               🏈 ${game.status === "programado" ? "PRÓXIMO PARTIDO" : game.status === "en_vivo" || game.status === "en vivo" ? "EN VIVO" : "FINALIZADO"}
             </div>
           </div>
 
-           Teams and score section 
+          ${
+            isAmistoso
+              ? `
+          <div style="background: #fff7ed; border: 2px solid #fb923c; margin: 16px; padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
+            <svg style="width: 20px; height: 20px; color: #ea580c;" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+            </svg>
+            <span style="color: #9a3412; font-weight: 600; font-size: 14px;">🤝 Partido Amistoso - No cuenta para estadísticas</span>
+          </div>
+          `
+              : ""
+          }
+
           <div style="background: linear-gradient(135deg, #dbeafe, #e0e7ff); padding: 32px;">
             <div style="display: flex; align-items: center; justify-content: center; gap: 32px;">
-               Home team 
               <div style="display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1;">
                 <div style="height: 80px; width: 80px; border-radius: 50%; background: linear-gradient(135deg, ${getTeamColors(game.home_team).color1}, ${getTeamColors(game.home_team).color2}); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; margin-bottom: 12px; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
                   ${getTeamLogo(game.home_team) ? `<img src="${getTeamLogo(game.home_team)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />` : game.home_team.charAt(0)}
@@ -273,7 +284,6 @@ export default function GamesPage() {
                 <span style="font-weight: bold; font-size: 18px; color: #1f2937; text-align: center; max-width: 120px; line-height: 1.2;">${game.home_team}</span>
               </div>
 
-               VS or Score 
               <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 100px;">
                 ${
                   game.status === "finalizado"
@@ -284,7 +294,6 @@ export default function GamesPage() {
                 }
               </div>
 
-               Away team 
               <div style="display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1;">
                 <div style="height: 80px; width: 80px; border-radius: 50%; background: linear-gradient(135deg, ${getTeamColors(game.away_team).color1}, ${getTeamColors(game.away_team).color2}); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; margin-bottom: 12px; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
                   ${getTeamLogo(game.away_team) ? `<img src="${getTeamLogo(game.away_team)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />` : game.away_team.charAt(0)}
@@ -294,17 +303,15 @@ export default function GamesPage() {
             </div>
           </div>
 
-           Game information 
           <div style="padding: 24px; background: white; display: flex; flex-direction: column; gap: 16px;">
-             Category badge 
-            <div style="display: flex; justify-content: center;">
-              <span style="background: ${getCategoryColor(game.category).replace("bg-", "")}; color: white; padding: 4px 16px; border-radius: 9999px; font-size: 14px; font-weight: 600;">
+            <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 8px;">
+              <span style="background: ${getCategoryColor(game.category).replace("bg-", "").replace("-400", "").replace("-500", "").replace("-600", "")}; color: white; padding: 4px 16px; border-radius: 9999px; font-size: 14px; font-weight: 600;">
                 ${getCategoryLabel(game.category)}
               </span>
               ${game.status === "programado" ? '<span style="background: #2563eb; color: white; padding: 4px 16px; border-radius: 9999px; font-size: 14px; font-weight: 600; margin-left: 8px;">Programado</span>' : ""}
+              ${isAmistoso ? '<span style="background: #ea580c; color: white; padding: 4px 16px; border-radius: 9999px; font-size: 14px; font-weight: 600;">🤝 Amistoso</span>' : ""}
             </div>
 
-             Date 
             <div style="display: flex; align-items: center; justify-content: center; color: #374151; font-size: 18px;">
               <svg style="width: 20px; height: 20px; margin-right: 8px; color: #3b82f6;" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"></path>
@@ -317,7 +324,6 @@ export default function GamesPage() {
               })}
             </div>
 
-             Time 
             <div style="display: flex; align-items: center; justify-content: center; color: #374151; font-size: 18px;">
               <svg style="width: 20px; height: 20px; margin-right: 8px; color: #3b82f6;" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"></path>
@@ -325,7 +331,6 @@ export default function GamesPage() {
               ${game.game_time}
             </div>
 
-             Venue 
             <div style="display: flex; align-items: center; justify-content: center; color: #374151; font-size: 18px;">
               <svg style="width: 20px; height: 20px; margin-right: 8px; color: #3b82f6;" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd"></path>
@@ -333,7 +338,6 @@ export default function GamesPage() {
               ${game.venue} - ${game.field}
             </div>
 
-             Referees 
             <div style="display: flex; align-items: center; justify-content: center; color: #374151; font-size: 18px;">
               <svg style="width: 20px; height: 20px; margin-right: 8px; color: #3b82f6;" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"></path>
@@ -342,7 +346,6 @@ export default function GamesPage() {
             </div>
           </div>
 
-           Footer 
           <div style="background: #1f2937; color: white; text-align: center; padding: 16px;">
             <div style="font-size: 20px; font-weight: bold;">Liga Flag Durango</div>
             <div style="font-size: 14px; color: #9ca3af;">20 años haciendo historia</div>
@@ -352,20 +355,17 @@ export default function GamesPage() {
 
       tempContainer.appendChild(shareCardElement)
 
-      // Generate the image
       const canvas = await html2canvas(shareCardElement.firstElementChild as HTMLElement, {
         backgroundColor: "white",
         scale: 2,
         useCORS: true,
         allowTaint: true,
         width: 600,
-        height: 800,
+        height: isAmistoso ? 880 : 800,
       })
 
-      // Clean up
       document.body.removeChild(tempContainer)
 
-      // Download the image
       canvas.toBlob((blob) => {
         if (blob) {
           const url = URL.createObjectURL(blob)
@@ -448,6 +448,7 @@ export default function GamesPage() {
                 className="px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Todas las categorías</option>
+                <option value="varonil-libre">Varonil Libre</option>
                 <option value="varonil-gold">Varonil Gold</option>
                 <option value="varonil-silver">Varonil Silver</option>
                 <option value="femenil-gold">Femenil Gold</option>
@@ -491,72 +492,85 @@ export default function GamesPage() {
               <p className="text-gray-600 text-lg">Partidos que se están jugando ahora mismo</p>
             </div>
             <div className="grid grid-cols-1 gap-6">
-              {liveGames.map((game) => (
-                <Card
-                  key={game.id}
-                  ref={(el) => (gameCardRefs.current[game.id] = el)}
-                  className="border-2 border-red-500 shadow-2xl bg-red-500/10 backdrop-blur-sm hover:bg-red-500/20 transition-all duration-300"
-                >
-                  <CardContent className="p-6 lg:p-8">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                      <div className="flex items-center gap-8 flex-1">
-                        <div className="text-center min-w-[80px]">
-                          <p className="text-sm text-gray-600">
-                            {new Date(game.game_date).toLocaleDateString("es-ES")}
-                          </p>
-                          <p className="font-semibold text-gray-900">{game.game_time}</p>
+              {liveGames.map((game) => {
+                const isAmistoso = game.match_type === "amistoso"
+                return (
+                  <Card
+                    key={game.id}
+                    ref={(el) => (gameCardRefs.current[game.id] = el)}
+                    className="border-2 border-red-500 shadow-2xl bg-red-500/10 backdrop-blur-sm hover:bg-red-500/20 transition-all duration-300"
+                  >
+                    <CardContent className="p-6 lg:p-8">
+                      {isAmistoso && (
+                        <div className="mb-4 p-3 bg-orange-50 border-l-4 border-orange-500 rounded">
+                          <div className="flex items-center gap-2 text-orange-800">
+                            <Info className="w-5 h-5" />
+                            <span className="font-semibold text-sm">
+                              🤝 Partido Amistoso - No cuenta para estadísticas oficiales
+                            </span>
+                          </div>
                         </div>
-
-                        <div className="flex items-center justify-center gap-4 flex-1 max-w-2xl mx-auto">
-                          {renderTeam(game.home_team, true)}
-
-                          <div className="flex flex-col items-center justify-center min-w-[120px]">
-                            <div className="text-4xl font-bold text-red-500 animate-pulse text-center">
-                              {game.home_score ?? 0} - {game.away_score ?? 0}
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">EN VIVO</div>
+                      )}
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                        <div className="flex items-center gap-8 flex-1">
+                          <div className="text-center min-w-[80px]">
+                            <p className="text-sm text-gray-600">
+                              {new Date(game.game_date).toLocaleDateString("es-ES")}
+                            </p>
+                            <p className="font-semibold text-gray-900">{game.game_time}</p>
                           </div>
 
-                          {renderTeam(game.away_team, false)}
-                        </div>
+                          <div className="flex items-center justify-center gap-4 flex-1 max-w-2xl mx-auto">
+                            {renderTeam(game.home_team, true)}
 
-                        <div className="text-sm text-gray-600 min-w-[150px]">
-                          <p className="font-medium flex items-center">
-                            <MapPin className="w-4 h-4 mr-1" />
-                            {game.venue}
-                          </p>
-                          <p className="text-gray-500">{game.field}</p>
-                          <p className="text-gray-500 flex items-center mt-1">
-                            <Whistle className="w-4 h-4 mr-1" />
-                            {getReferees(game)}
-                          </p>
+                            <div className="flex flex-col items-center justify-center min-w-[120px]">
+                              <div className="text-4xl font-bold text-red-500 animate-pulse text-center">
+                                {game.home_score ?? 0} - {game.away_score ?? 0}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">EN VIVO</div>
+                            </div>
+
+                            {renderTeam(game.away_team, false)}
+                          </div>
+
+                          <div className="text-sm text-gray-600 min-w-[150px]">
+                            <p className="font-medium flex items-center">
+                              <MapPin className="w-4 h-4 mr-1" />
+                              {game.venue}
+                            </p>
+                            <p className="text-gray-500">{game.field}</p>
+                            <p className="text-gray-500 flex items-center mt-1">
+                              <Whistle className="w-4 h-4 mr-1" />
+                              {getReferees(game)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <div className="flex flex-wrap gap-2 justify-end">
+                            <Badge className={`${getCategoryColor(game.category)} text-white`}>
+                              {getCategoryLabel(game.category)}
+                            </Badge>
+                            <Badge className="bg-red-500 text-white animate-pulse">🔴 EN VIVO</Badge>
+                            {isAmistoso && <Badge className="bg-orange-500 text-white">🤝 Amistoso</Badge>}
+                            {game.stage && game.stage !== "regular" && (
+                              <Badge variant="secondary">{getStageLabel(game.stage)}</Badge>
+                            )}
+                            {game.jornada && <Badge className="bg-blue-600">J{game.jornada}</Badge>}
+                          </div>
+                          <Button
+                            onClick={() => shareGame(game)}
+                            className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold"
+                            size="sm"
+                          >
+                            <Share2 className="w-4 h-4 mr-2" />
+                            Compartir
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex flex-col gap-2">
-                        <div className="flex flex-wrap gap-2 justify-end">
-                          <Badge className={`${getCategoryColor(game.category)} text-white`}>
-                            {getCategoryLabel(game.category)}
-                          </Badge>
-                          <Badge className="bg-red-500 text-white animate-pulse">🔴 EN VIVO</Badge>
-                          {game.stage && game.stage !== "regular" && (
-                            <Badge variant="secondary">{getStageLabel(game.stage)}</Badge>
-                          )}
-                          {game.match_type === "amistoso" && <Badge className="bg-gray-600">Amistoso</Badge>}
-                          {game.jornada && <Badge className="bg-blue-600">J{game.jornada}</Badge>}
-                        </div>
-                        <Button
-                          onClick={() => shareGame(game)}
-                          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold"
-                          size="sm"
-                        >
-                          <Share2 className="w-4 h-4 mr-2" />
-                          Compartir
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           </section>
         )}
@@ -571,67 +585,82 @@ export default function GamesPage() {
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {upcomingGames.length > 0 ? (
-              upcomingGames.map((game) => (
-                <Card
-                  key={game.id}
-                  ref={(el) => (gameCardRefs.current[game.id] = el)}
-                  className="shadow-xl hover:shadow-2xl transition-all duration-300 bg-white border-gray-200 hover:bg-gray-50 transform hover:scale-105"
-                >
-                  <CardHeader className="p-0">
-                    <div className="relative h-40 flex items-center justify-center bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-t-lg">
-                      <div className="absolute inset-0 flex items-center justify-center gap-6 p-4">
-                        {renderTeam(game.home_team)}
-                        <div className="text-2xl font-bold text-gray-900">VS</div>
-                        {renderTeam(game.away_team)}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6 space-y-4">
-                    <div className="flex flex-wrap gap-2 justify-center">
-                      <Badge className={`${getCategoryColor(game.category)} text-white`}>
-                        {getCategoryLabel(game.category)}
-                      </Badge>
-                      <Badge className="bg-blue-600">Programado</Badge>
-                      {game.stage && game.stage !== "regular" && (
-                        <Badge variant="outline">{getStageLabel(game.stage)}</Badge>
-                      )}
-                    </div>
-                    <div className="text-center text-gray-600 space-y-2">
-                      <p className="flex items-center justify-center text-sm">
-                        <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-                        {new Date(game.game_date).toLocaleDateString("es-ES", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </p>
-                      <p className="flex items-center justify-center text-sm">
-                        <Clock className="w-4 h-4 mr-2 text-gray-500" />
-                        {game.game_time}
-                      </p>
-                      <p className="flex items-center justify-center text-sm">
-                        <MapPin className="w-4 h-4 mr-2 text-gray-500" />
-                        {game.venue} - {game.field}
-                      </p>
-                      <p className="flex items-center justify-center text-sm">
-                        <Whistle className="w-4 h-4 mr-2 text-gray-500" />
-                        Árbitros: {getReferees(game)}
-                      </p>
-                    </div>
-                    <div className="pt-2">
-                      <Button
-                        onClick={() => shareGame(game)}
-                        className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold"
-                        size="sm"
+              upcomingGames.map((game) => {
+                const isAmistoso = game.match_type === "amistoso"
+                return (
+                  <Card
+                    key={game.id}
+                    ref={(el) => (gameCardRefs.current[game.id] = el)}
+                    className="shadow-xl hover:shadow-2xl transition-all duration-300 bg-white border-gray-200 hover:bg-gray-50 transform hover:scale-105"
+                  >
+                    <CardHeader className="p-0">
+                      <div
+                        className={`relative h-40 flex items-center justify-center rounded-t-lg ${isAmistoso ? "bg-gradient-to-br from-gray-400/20 to-gray-500/20" : "bg-gradient-to-br from-blue-500/20 to-purple-500/20"}`}
                       >
-                        <Share2 className="w-4 h-4 mr-2" />
-                        Compartir Partido
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+                        <div className="absolute inset-0 flex items-center justify-center gap-6 p-4">
+                          {renderTeam(game.home_team)}
+                          <div className="text-2xl font-bold text-gray-900">VS</div>
+                          {renderTeam(game.away_team)}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-4">
+                      {isAmistoso && (
+                        <div className="p-2 bg-orange-50 border border-orange-200 rounded-lg">
+                          <div className="flex items-center gap-1 text-orange-800 text-xs">
+                            <Info className="w-3 h-3" />
+                            <span className="font-medium">🤝 Amistoso - No cuenta para estadísticas</span>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        <Badge className={`${getCategoryColor(game.category)} text-white`}>
+                          {getCategoryLabel(game.category)}
+                        </Badge>
+                        <Badge className={isAmistoso ? "bg-orange-500" : "bg-blue-600"}>
+                          {isAmistoso ? "🤝 Amistoso" : "Programado"}
+                        </Badge>
+                        {game.stage && game.stage !== "regular" && (
+                          <Badge variant="outline">{getStageLabel(game.stage)}</Badge>
+                        )}
+                      </div>
+                      <div className="text-center text-gray-600 space-y-2">
+                        <p className="flex items-center justify-center text-sm">
+                          <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+                          {new Date(game.game_date).toLocaleDateString("es-ES", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </p>
+                        <p className="flex items-center justify-center text-sm">
+                          <Clock className="w-4 h-4 mr-2 text-gray-500" />
+                          {game.game_time}
+                        </p>
+                        <p className="flex items-center justify-center text-sm">
+                          <MapPin className="w-4 h-4 mr-2 text-gray-500" />
+                          {game.venue} - {game.field}
+                        </p>
+                        <p className="flex items-center justify-center text-sm">
+                          <Whistle className="w-4 h-4 mr-2 text-gray-500" />
+                          Árbitros: {getReferees(game)}
+                        </p>
+                      </div>
+                      <div className="pt-2">
+                        <Button
+                          onClick={() => shareGame(game)}
+                          className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold"
+                          size="sm"
+                        >
+                          <Share2 className="w-4 h-4 mr-2" />
+                          Compartir Partido
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })
             ) : (
               <div className="col-span-full">
                 <Card className="bg-white border-gray-200">
@@ -656,70 +685,85 @@ export default function GamesPage() {
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {finishedGames.length > 0 ? (
-              finishedGames.map((game) => (
-                <Card
-                  key={game.id}
-                  ref={(el) => (gameCardRefs.current[game.id] = el)}
-                  className="shadow-xl hover:shadow-2xl transition-all duration-300 bg-white border-gray-200 hover:bg-gray-50 transform hover:scale-105"
-                >
-                  <CardHeader className="p-0">
-                    <div className="relative h-40 flex items-center justify-center bg-gradient-to-br from-green-500/20 to-blue-500/20 rounded-t-lg">
-                      <div className="absolute inset-0 flex items-center justify-center gap-6 p-4">
-                        {renderTeam(game.home_team)}
-                        <div className="text-3xl font-bold text-gray-900">
-                          {game.home_score ?? 0} - {game.away_score ?? 0}
-                        </div>
-                        {renderTeam(game.away_team)}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6 space-y-4">
-                    <div className="flex flex-wrap gap-2 justify-center">
-                      <Badge className={`${getCategoryColor(game.category)} text-white`}>
-                        {getCategoryLabel(game.category)}
-                      </Badge>
-                      <Badge className="bg-green-600">Finalizado</Badge>
-                      {game.stage && game.stage !== "regular" && (
-                        <Badge variant="outline">{getStageLabel(game.stage)}</Badge>
-                      )}
-                    </div>
-                    <div className="text-center text-gray-600 space-y-2">
-                      <p className="flex items-center justify-center text-sm">
-                        <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-                        {new Date(game.game_date).toLocaleDateString("es-ES", {
-                          weekday: "long",
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </p>
-                      <p className="flex items-center justify-center text-sm">
-                        <MapPin className="w-4 h-4 mr-2 text-gray-500" />
-                        {game.venue} - {game.field}
-                      </p>
-                      <p className="flex items-center justify-center text-sm">
-                        <Whistle className="w-4 h-4 mr-2 text-gray-500" />
-                        Árbitros: {getReferees(game)}
-                      </p>
-                      {game.mvp && (
-                        <p className="flex items-center justify-center text-sm text-yellow-600">
-                          <Trophy className="w-4 h-4 mr-2" /> MVP: {game.mvp}
-                        </p>
-                      )}
-                    </div>
-                    <div className="pt-2">
-                      <Button
-                        onClick={() => shareGame(game)}
-                        className="w-full bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-semibold"
-                        size="sm"
+              finishedGames.map((game) => {
+                const isAmistoso = game.match_type === "amistoso"
+                return (
+                  <Card
+                    key={game.id}
+                    ref={(el) => (gameCardRefs.current[game.id] = el)}
+                    className="shadow-xl hover:shadow-2xl transition-all duration-300 bg-white border-gray-200 hover:bg-gray-50 transform hover:scale-105"
+                  >
+                    <CardHeader className="p-0">
+                      <div
+                        className={`relative h-40 flex items-center justify-center rounded-t-lg ${isAmistoso ? "bg-gradient-to-br from-gray-400/20 to-gray-500/20" : "bg-gradient-to-br from-green-500/20 to-blue-500/20"}`}
                       >
-                        <Download className="w-4 h-4 mr-2" />
-                        Descargar Resultado
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+                        <div className="absolute inset-0 flex items-center justify-center gap-6 p-4">
+                          {renderTeam(game.home_team)}
+                          <div className="text-3xl font-bold text-gray-900">
+                            {game.home_score ?? 0} - {game.away_score ?? 0}
+                          </div>
+                          {renderTeam(game.away_team)}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-6 space-y-4">
+                      {isAmistoso && (
+                        <div className="p-2 bg-orange-50 border border-orange-200 rounded-lg">
+                          <div className="flex items-center gap-1 text-orange-800 text-xs">
+                            <Info className="w-3 h-3" />
+                            <span className="font-medium">🤝 Amistoso - No contó para estadísticas</span>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        <Badge className={`${getCategoryColor(game.category)} text-white`}>
+                          {getCategoryLabel(game.category)}
+                        </Badge>
+                        <Badge className={isAmistoso ? "bg-orange-500" : "bg-green-600"}>
+                          {isAmistoso ? "🤝 Amistoso" : "Finalizado"}
+                        </Badge>
+                        {game.stage && game.stage !== "regular" && (
+                          <Badge variant="outline">{getStageLabel(game.stage)}</Badge>
+                        )}
+                      </div>
+                      <div className="text-center text-gray-600 space-y-2">
+                        <p className="flex items-center justify-center text-sm">
+                          <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+                          {new Date(game.game_date).toLocaleDateString("es-ES", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </p>
+                        <p className="flex items-center justify-center text-sm">
+                          <MapPin className="w-4 h-4 mr-2 text-gray-500" />
+                          {game.venue} - {game.field}
+                        </p>
+                        <p className="flex items-center justify-center text-sm">
+                          <Whistle className="w-4 h-4 mr-2 text-gray-500" />
+                          Árbitros: {getReferees(game)}
+                        </p>
+                        {game.mvp && !isAmistoso && (
+                          <p className="flex items-center justify-center text-sm text-yellow-600">
+                            <Trophy className="w-4 h-4 mr-2" /> MVP: {game.mvp}
+                          </p>
+                        )}
+                      </div>
+                      <div className="pt-2">
+                        <Button
+                          onClick={() => shareGame(game)}
+                          className="w-full bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-semibold"
+                          size="sm"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Descargar Resultado
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })
             ) : (
               <div className="col-span-full">
                 <Card className="bg-white border-gray-200">

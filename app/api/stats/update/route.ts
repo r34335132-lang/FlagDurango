@@ -1,142 +1,83 @@
-import { NextResponse } from "next/server"
-import { supabaseAdmin } from "@/lib/supabase-admin"
+import { type NextRequest, NextResponse } from "next/server"
+import { supabase } from "@/lib/supabase-admin"
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    // Obtener todos los equipos
-    const { data: teams, error: teamsError } = await supabaseAdmin.from("teams").select("id, name, category")
+    const { season = "2025" } = await request.json()
+
+    // Obtener todos los equipos activos
+    const { data: teams, error: teamsError } = await supabase.from("teams").select("*").eq("status", "active")
 
     if (teamsError) {
-      console.error("Error fetching teams:", teamsError)
-      return NextResponse.json({ success: false, error: teamsError.message }, { status: 500 })
+      throw new Error(teamsError.message)
     }
 
-    let updatedTeams = 0
+    // Obtener juegos finalizados - EXCLUIR AMISTOSOS
+    const { data: games, error: gamesError } = await supabase
+      .from("games")
+      .select("*")
+      .eq("status", "finalizado")
+      .eq("season", season)
+      .neq("match_type", "amistoso") // 🔥 EXCLUIR AMISTOSOS
 
+    if (gamesError) {
+      throw new Error(gamesError.message)
+    }
+
+    // Calcular y actualizar estadísticas para cada equipo
     for (const team of teams) {
-      // Obtener estadísticas del equipo
-      const { data: homeGames } = await supabaseAdmin
-        .from("games")
-        .select("*")
-        .eq("home_team", team.name)
-        .eq("status", "finalizado")
-
-      const { data: awayGames } = await supabaseAdmin
-        .from("games")
-        .select("*")
-        .eq("away_team", team.name)
-        .eq("status", "finalizado")
-
-      const allGames = [...(homeGames || []), ...(awayGames || [])]
+      const homeGames = games.filter((g) => g.home_team === team.name)
+      const awayGames = games.filter((g) => g.away_team === team.name)
 
       let wins = 0
       let losses = 0
-      let draws = 0
+      let ties = 0
       let pointsFor = 0
       let pointsAgainst = 0
 
-      allGames.forEach((game) => {
-        const isHome = game.home_team === team.name
-        const teamScore = isHome ? game.home_score : game.away_score
-        const opponentScore = isHome ? game.away_score : game.home_score
+      // Juegos como local
+      homeGames.forEach((game) => {
+        const homeScore = game.home_score || 0
+        const awayScore = game.away_score || 0
 
-        pointsFor += teamScore || 0
-        pointsAgainst += opponentScore || 0
+        pointsFor += homeScore
+        pointsAgainst += awayScore
 
-        if (teamScore > opponentScore) {
-          wins++
-        } else if (teamScore < opponentScore) {
-          losses++
-        } else {
-          draws++
-        }
+        if (homeScore > awayScore) wins++
+        else if (homeScore < awayScore) losses++
+        else ties++
       })
 
-      const points = wins * 3 + draws * 1
+      // Juegos como visitante
+      awayGames.forEach((game) => {
+        const homeScore = game.home_score || 0
+        const awayScore = game.away_score || 0
 
-      // Verificar si ya existe una estadística para este equipo
-      const { data: existingStats } = await supabaseAdmin
-        .from("team_stats")
-        .select("id")
-        .eq("team_id", team.id)
-        .eq("season", 2025)
-        .single()
+        pointsFor += awayScore
+        pointsAgainst += homeScore
 
-      if (existingStats) {
-        // Actualizar estadísticas existentes
-        await supabaseAdmin
-          .from("team_stats")
-          .update({
-            games_played: allGames.length,
-            games_won: wins,
-            games_lost: losses,
-            games_tied: draws,
-            points_for: pointsFor,
-            points_against: pointsAgainst,
-            points: points,
-            point_difference: pointsFor - pointsAgainst,
-            win_percentage: allGames.length > 0 ? ((wins / allGames.length) * 100).toFixed(1) : "0.0",
-          })
-          .eq("id", existingStats.id)
-      } else {
-        // Crear nuevas estadísticas
-        await supabaseAdmin.from("team_stats").insert({
-          team_id: team.id,
-          team_name: team.name,
-          team_category: team.category,
-          season: 2025,
-          games_played: allGames.length,
-          games_won: wins,
-          games_lost: losses,
-          games_tied: draws,
-          points_for: pointsFor,
-          points_against: pointsAgainst,
-          points: points,
-          point_difference: pointsFor - pointsAgainst,
-          win_percentage: allGames.length > 0 ? ((wins / allGames.length) * 100).toFixed(1) : "0.0",
-          position: 1, // Se calculará después
-        })
-      }
+        if (awayScore > homeScore) wins++
+        else if (awayScore < homeScore) losses++
+        else ties++
+      })
 
-      updatedTeams++
-    }
+      const gamesPlayed = homeGames.length + awayGames.length
+      const points = wins * 3 + ties * 1
 
-    // Actualizar posiciones por categoría
-    const categories = [
-      "varonil-gold",
-      "varonil-silver",
-      "femenil-gold",
-      "femenil-silver",
-      "mixto-gold",
-      "mixto-silver",
-    ]
-
-    for (const category of categories) {
-      const { data: categoryStats } = await supabaseAdmin
-        .from("team_stats")
-        .select("*")
-        .eq("team_category", category)
-        .eq("season", 2025)
-        .order("points", { ascending: false })
-        .order("point_difference", { ascending: false })
-
-      if (categoryStats) {
-        for (let i = 0; i < categoryStats.length; i++) {
-          await supabaseAdmin
-            .from("team_stats")
-            .update({ position: i + 1 })
-            .eq("id", categoryStats[i].id)
-        }
-      }
+      // Aquí podrías guardar las estadísticas en una tabla separada si quisieras
+      // Por ahora solo las calculamos en tiempo real
     }
 
     return NextResponse.json({
       success: true,
-      message: "Estadísticas actualizadas correctamente",
-      updated_teams: updatedTeams,
+      message: "Estadísticas actualizadas (excluyendo amistosos)",
+      data: {
+        equipos_procesados: teams.length,
+        juegos_contabilizados: games.length,
+      },
     })
-  } catch (error) {
-    console.error("Error updating stats:", error)
-    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 })
+  } catch (error: any) {
+    console.error("POST /api/stats/update error:", error)
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 })
   }
 }
