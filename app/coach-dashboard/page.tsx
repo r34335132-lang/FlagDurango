@@ -9,30 +9,17 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  Users,
-  Trophy,
-  Calendar,
-  MapPin,
-  Clock,
-  Plus,
-  AlertCircle,
-  CheckCircle,
-  Mail,
-  Phone,
-  RefreshCw,
-  LogOut,
-  Zap,
-  CreditCard,
-  Filter,
-  ImageIcon,
-  Edit,
-  Trash2,
-} from "lucide-react"
+import { Trophy, Users, Calendar, Plus, Edit, Trash2, DollarSign, Clock, Target, Star } from "lucide-react"
 
-import { toast } from "@/components/ui/use-toast"
+interface CoachDashboardUser {
+  id: number
+  email: string
+  role: string
+  name?: string
+  phone?: string
+  approved?: boolean
+  paid?: boolean
+}
 
 interface Team {
   id: number
@@ -41,19 +28,25 @@ interface Team {
   logo_url?: string
   color1: string
   color2: string
+  coordinator_name?: string
+  coordinator_phone?: string
+  captain_photo_url?: string
   captain_name?: string
   captain_phone?: string
-  coach_id?: number
   coach_name?: string
-  paid: boolean
-  created_at: string
-  stats?: {
-    games_played: number
-    wins: number
-    losses: number
-    draws: number
-    points: number
-  }
+  coach_phone?: string
+  paid?: boolean
+  coach_id?: number
+  created_at?: string
+}
+
+interface Player {
+  id: number
+  name: string
+  position: string
+  photo_url?: string
+  jersey_number?: number
+  team_id: number
 }
 
 interface Game {
@@ -68,17 +61,28 @@ interface Game {
   field: string
   category: string
   status: string
+  mvp?: string
   match_type?: string
   jornada?: number
 }
 
-interface Player {
-  id: number
+interface GameForm {
+  home_team: string
+  away_team: string
+  game_date: string
+  game_time: string
+  venue: string
+  field: string
+  category: string
+  match_type: string
+  jornada?: number
+}
+
+interface PlayerForm {
   name: string
-  jersey_number: number
   position: string
-  photo_url?: string
-  team_id: number
+  jersey_number: string
+  photo_url: string
 }
 
 interface CoachUser {
@@ -86,6 +90,7 @@ interface CoachUser {
   username: string
   email: string
   role: string
+  created_at?: string
 }
 
 interface PotentialMatch {
@@ -99,20 +104,18 @@ interface PotentialMatch {
 
 export default function CoachDashboard() {
   const router = useRouter()
-  const [user, setUser] = useState<CoachUser | null>(null)
+  const [user, setUser] = useState<CoachDashboardUser | null>(null)
   const [teams, setTeams] = useState<Team[]>([])
   const [allTeams, setAllTeams] = useState<Team[]>([])
-  const [games, setGames] = useState<Game[]>([])
   const [players, setPlayers] = useState<Player[]>([])
+  const [games, setGames] = useState<Game[]>([])
   const [potentialMatches, setPotentialMatches] = useState<PotentialMatch[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [autoAssigning, setAutoAssigning] = useState(false)
   const [payingTeam, setPayingTeam] = useState<number | null>(null)
-  const [editingPlayer, setEditingPlayer] = useState<any>(null)
-  const [showPlayerForm, setShowPlayerForm] = useState(false)
-  const [activeTab, setActiveTab] = useState("teams")
+  const [activeTab, setActiveTab] = useState("overview")
 
   // Filtros para juegos
   const [gameFilter, setGameFilter] = useState({
@@ -130,15 +133,45 @@ export default function CoachDashboard() {
     logo_url: "",
     captain_name: "",
     captain_phone: "",
+    contact_name: "",
+    contact_phone: "",
+    contact_email: "",
+    is_institutional: false,
+    coordinator_name: "",
+    coordinator_phone: "",
   })
 
-  const [playerForm, setPlayerForm] = useState({
+  // Forms
+  const [gameForm, setGameForm] = useState<GameForm>({
+    home_team: "",
+    away_team: "",
+    game_date: "",
+    game_time: "",
+    venue: "Polideportivo Mario Vázquez Raña",
+    field: "Campo A",
+    category: "",
+    match_type: "jornada",
+    jornada: 1,
+  })
+
+  const [playerForm, setPlayerForm] = useState<PlayerForm>({
+    name: "",
+    position: "QB",
+    jersey_number: "",
+    photo_url: "",
+  })
+
+  const [playerFormOld, setPlayerFormOld] = useState({
     name: "",
     jersey_number: "",
     position: "",
     photo_url: "",
     team_id: "",
   })
+
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null)
+  const [showGameForm, setShowGameForm] = useState(false)
+  const [showPlayerForm, setShowPlayerForm] = useState(false)
 
   useEffect(() => {
     // Verificar autenticación
@@ -165,7 +198,7 @@ export default function CoachDashboard() {
 
   useEffect(() => {
     if (user) {
-      loadData()
+      loadDataOld()
     }
   }, [user])
 
@@ -197,7 +230,7 @@ export default function CoachDashboard() {
 
     return teamsWithoutCoach
       .map((team) => {
-        const teamCreatedAt = new Date(team.created_at)
+        const teamCreatedAt = new Date(team.created_at || Date.now())
         const timeDiffHours = Math.abs(teamCreatedAt.getTime() - userCreatedAt.getTime()) / (1000 * 60 * 60)
         const similarityScore = calculateSimilarity(team.captain_name || "", user.username)
 
@@ -207,7 +240,7 @@ export default function CoachDashboard() {
           captain_name: team.captain_name || "",
           similarity_score: similarityScore,
           time_difference_hours: timeDiffHours,
-          team_created: team.created_at,
+          team_created: team.created_at || "",
         }
       })
       .filter((match) => match.similarity_score > 0 || match.time_difference_hours < 2)
@@ -220,7 +253,7 @@ export default function CoachDashboard() {
       })
   }
 
-  const loadData = async () => {
+  const loadDataOld = async () => {
     if (!user?.id) return
 
     try {
@@ -324,7 +357,7 @@ export default function CoachDashboard() {
             .map((m) => m.team_name)
             .join(", ")}`,
         )
-        await loadData() // Recargar datos
+        await loadDataOld() // Recargar datos
       } else {
         setError("Error al asignar equipos automáticamente")
       }
@@ -350,7 +383,7 @@ export default function CoachDashboard() {
       const data = await response.json()
       if (data.success) {
         setSuccess("Equipo asignado exitosamente")
-        await loadData()
+        await loadDataOld()
       } else {
         setError(data.message)
       }
@@ -381,7 +414,7 @@ export default function CoachDashboard() {
 
       if (data.success) {
         console.log("✅ Equipo creado exitosamente")
-        await loadData()
+        await loadDataOld()
         setTeamForm({
           name: "",
           category: "",
@@ -390,6 +423,12 @@ export default function CoachDashboard() {
           logo_url: "",
           captain_name: "",
           captain_phone: "",
+          contact_name: "",
+          contact_phone: "",
+          contact_email: "",
+          is_institutional: false,
+          coordinator_name: "",
+          coordinator_phone: "",
         })
         setError(null)
         setSuccess("Equipo creado exitosamente")
@@ -403,44 +442,31 @@ export default function CoachDashboard() {
     }
   }
 
-  const createPlayer = async (e: React.FormEvent) => {
+  const createPlayerOld = async (e: React.FormEvent) => {
     e.preventDefault()
 
     try {
-      const isEditing = editingPlayer !== null
-      const method = isEditing ? "PUT" : "POST"
-      const url = "/api/players"
-
-      const response = await fetch(url, {
-        method: method,
+      const response = await fetch("/api/players", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...(isEditing && { id: editingPlayer.id }),
-          ...playerForm,
-          jersey_number: Number.parseInt(playerForm.jersey_number),
-          team_id: Number.parseInt(playerForm.team_id),
+          ...playerFormOld,
+          jersey_number: Number.parseInt(playerFormOld.jersey_number),
+          team_id: Number.parseInt(playerFormOld.team_id),
         }),
       })
 
       const data = await response.json()
       if (data.success) {
-        await loadData()
-        setPlayerForm({ name: "", jersey_number: "", position: "", photo_url: "", team_id: "" })
-        setEditingPlayer(null)
-        setShowPlayerForm(false)
+        await loadDataOld()
+        setPlayerFormOld({ name: "", jersey_number: "", position: "", photo_url: "", team_id: "" })
         setError(null)
-        setSuccess(isEditing ? "Jugador editado exitosamente" : "Jugador agregado exitosamente")
-        setActiveTab("players")
+        setSuccess("Jugador agregado exitosamente")
       } else {
         setError(data.message)
       }
     } catch (error) {
-      setError(
-        "Error al " +
-          (editingPlayer ? "editar" : "crear") +
-          " jugador: " +
-          (error instanceof Error ? error.message : "Error desconocido"),
-      )
+      setError("Error al crear jugador: " + (error instanceof Error ? error.message : "Error desconocido"))
     }
   }
 
@@ -459,7 +485,7 @@ export default function CoachDashboard() {
           team_name: team.name,
           user_email: user?.email || "coach@ligaflagdurango.com",
           title: `Inscripción Liga Flag Durango - ${team.name}`,
-          amount: 1600, // ✅ CAMBIADO DE 1500 A 1600
+          amount: 1600,
         }),
       })
 
@@ -467,6 +493,7 @@ export default function CoachDashboard() {
       console.log("💳 Respuesta MercadoPago:", data)
 
       if (data.success) {
+        // Redirigir en la misma ventana en lugar de popup para evitar bloqueos
         const paymentUrl = data.data.init_point || data.data.sandbox_init_point
         if (paymentUrl) {
           window.location.href = paymentUrl
@@ -477,11 +504,6 @@ export default function CoachDashboard() {
       } else {
         console.error("❌ Error en MercadoPago:", data)
         setError(`Error al crear el pago: ${data.message}`)
-
-        // Mostrar información de debug si está disponible
-        if (data.debug) {
-          console.error("🐛 Debug info:", data.debug)
-        }
       }
     } catch (error) {
       console.error("💥 Error en pago:", error)
@@ -498,16 +520,38 @@ export default function CoachDashboard() {
 
   const getCategoryLabel = (category: string) => {
     const labels: { [key: string]: string } = {
+      varonil_gold: "Varonil Gold",
       "varonil-gold": "Varonil Gold",
+      varonil_silver: "Varonil Silver",
       "varonil-silver": "Varonil Silver",
+      femenil_gold: "Femenil Gold",
       "femenil-gold": "Femenil Gold",
+      femenil_silver: "Femenil Silver",
       "femenil-silver": "Femenil Silver",
+      femenil_cooper: "Femenil Cooper",
       "femenil-cooper": "Femenil Cooper",
+      mixto_gold: "Mixto Gold",
       "mixto-gold": "Mixto Gold",
+      mixto_silver: "Mixto Silver",
       "mixto-silver": "Mixto Silver",
-      teens: "Teens",
     }
     return labels[category] || category
+  }
+
+  const getPositionLabel = (position: string) => {
+    const positions: { [key: string]: string } = {
+      QB: "Quarterback",
+      RB: "Running Back",
+      WR: "Wide Receiver",
+      TE: "Tight End",
+      C: "Center",
+      LB: "Linebacker",
+      DB: "Defensive Back",
+      S: "Safety",
+      RU: "Rush",
+      CB: "Corner Back",
+    }
+    return positions[position] || position
   }
 
   const getMyGames = () => {
@@ -542,7 +586,7 @@ export default function CoachDashboard() {
     return games
       .filter((g) => myTeamNames.includes(g.home_team) || myTeamNames.includes(g.away_team))
       .filter((g) => g.status === "finalizado")
-      .sort((a, b) => new Date(b.game_date).getTime() - new Date(a.game_date).getTime())
+      .sort((a, b) => new Date(b.game_date).getTime() - new Date(a.date_date).getTime())
       .slice(0, 5)
   }
 
@@ -551,869 +595,835 @@ export default function CoachDashboard() {
     return players.filter((p) => myTeamIds.includes(p.team_id))
   }
 
-  const handleEditPlayer = (player: any) => {
-    setEditingPlayer(player)
-    setPlayerForm({
-      name: player.name,
-      jersey_number: player.jersey_number?.toString() || "",
-      position: player.position || "",
-      team_id: player.team_id?.toString() || "",
-      photo_url: player.photo_url || "",
-    })
-    setShowPlayerForm(true)
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }
-
-  const handleDeletePlayer = async (playerId: number) => {
-    if (!confirm("¿Estás seguro de que quieres eliminar este jugador?")) {
-      return
-    }
-
-    try {
-      const response = await fetch(`/api/players?id=${playerId}`, {
-        method: "DELETE",
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        setPlayers(players.filter((p) => p.id !== playerId))
-        toast({
-          title: "Éxito",
-          description: "Jugador eliminado correctamente",
-        })
-      } else {
-        toast({
-          title: "Error",
-          description: result.message || "Error al eliminar jugador",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      console.error("Error deleting player:", error)
-      toast({
-        title: "Error",
-        description: "Error al eliminar jugador",
-        variant: "destructive",
-      })
-    }
-  }
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-gray-900 text-xl">Cargando dashboard...</div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-white text-xl">Cargando dashboard...</div>
+        </div>
       </div>
     )
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardContent className="p-6 text-center">
-            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold mb-2">Acceso Denegado</h2>
-            <p className="text-gray-600 mb-4">Debes iniciar sesión como coach para acceder al dashboard.</p>
-            <Button onClick={() => router.push("/login")}>Iniciar Sesión</Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-white text-xl">Acceso no autorizado</div>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-white">
-      <section
-        className="relative py-20 overflow-hidden"
-        style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
-      >
+      {/* Hero Section - Responsive */}
+      <section className="relative py-12 md:py-20 overflow-hidden bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500">
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-block bg-green-400/95 backdrop-blur-sm text-gray-900 px-6 py-2 rounded-full font-bold mb-6">
-              {"🏈 Dashboard del Coach"}
+            <div className="inline-block bg-green-400/95 backdrop-blur-sm text-gray-900 px-4 md:px-6 py-2 rounded-full font-bold mb-4 md:mb-6 text-sm md:text-base">
+              {"🏈 Dashboard Coach - Liga Flag Durango"}
             </div>
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
-              Bienvenido
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6">
+              Dashboard
               <span className="block bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-                {user.username}
+                Coach
               </span>
             </h1>
-            <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
-              Gestiona tus equipos, jugadores y partidos desde un solo lugar.
-              <span className="block mt-2 text-yellow-300 font-semibold">
-                ¡{teams.length} equipos bajo tu dirección!
-              </span>
+            <p className="text-lg md:text-xl lg:text-2xl text-white/90 mb-6 md:mb-8 leading-relaxed px-4">
+              Bienvenido, <span className="text-yellow-300 font-semibold">{user.name || user.email}</span>
+              <span className="block mt-2">Gestiona tu equipo y jugadores desde aquí.</span>
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+
+            {/* Botones de navegación - Responsive */}
+            <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center px-4">
               <Button
-                onClick={loadData}
                 size="lg"
-                className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold"
+                className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-black font-bold text-sm md:text-base"
+                onClick={() => (window.location.href = "/coach-dashboard")}
               >
-                <RefreshCw className="w-5 h-5 mr-2" />
-                Recargar Datos
+                <Trophy className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                Mi Dashboard
               </Button>
               <Button
-                onClick={() => router.push("/")}
-                size="lg"
-                className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white font-bold"
-              >
-                <Trophy className="w-5 h-5 mr-2" />
-                Ver Liga
-              </Button>
-              <Button
-                onClick={logout}
                 size="lg"
                 variant="outline"
-                className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent"
+                className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent text-sm md:text-base"
+                onClick={() => (window.location.href = "/")}
               >
-                <LogOut className="w-5 h-5 mr-2" />
-                Cerrar Sesión
+                Ir al Inicio
               </Button>
-            </div>
-            <div className="flex items-center justify-center gap-6 mt-8 text-white/80">
-              <div className="flex items-center gap-2">
-                <Mail className="w-5 h-5" />
-                <span>{user.email}</span>
-              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Auto-assign section */}
-        {potentialMatches.length > 0 && teams.length === 0 && (
-          <Card className="mb-8 bg-gradient-to-r from-green-500 to-blue-500 border-0 text-white">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Zap className="w-6 h-6" />
-                ¡Equipos Detectados Automáticamente!
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-4 text-white">
-                Hemos encontrado <strong>{potentialMatches.length} equipo(s)</strong> que podrían ser tuyos basándose en
-                nombres similares y fechas de creación cercanas.
-              </p>
-              <div className="grid md:grid-cols-2 gap-4 mb-4">
-                {potentialMatches.slice(0, 4).map((match) => (
-                  <div key={match.team_id} className="bg-white/10 rounded-lg p-3">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h4 className="font-semibold text-white">{match.team_name}</h4>
-                        <p className="text-sm opacity-80 text-white">Capitán: {match.captain_name}</p>
-                      </div>
-                      <Button
-                        onClick={() => assignSpecificTeam(match.team_id)}
-                        size="sm"
-                        className="bg-white text-blue-600 hover:bg-gray-100"
-                      >
-                        Asignar
-                      </Button>
-                    </div>
-                    <div className="text-xs opacity-70 text-white">
-                      Similitud: {match.similarity_score}/5 | Tiempo: {match.time_difference_hours.toFixed(1)}h
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={autoAssignBestMatches}
-                  disabled={autoAssigning}
-                  className="bg-white text-blue-600 hover:bg-gray-100"
+      {/* Gradient separator */}
+      <div className="h-2 bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500" />
+
+      {/* Main Content - Responsive Grid */}
+      <div className="container mx-auto px-4 py-6 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+          {/* Sidebar - Responsive */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl p-4 md:p-6 border border-gray-200 shadow-sm">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-4 md:mb-6">Panel de Control</h2>
+
+              {/* Navigation - Stack on mobile */}
+              <div className="space-y-2 md:space-y-3">
+                <button
+                  onClick={() => setActiveTab("overview")}
+                  className={`w-full text-left px-3 md:px-4 py-2 md:py-3 rounded-lg transition-all text-sm md:text-base ${
+                    activeTab === "overview"
+                      ? "bg-blue-600 text-white font-semibold"
+                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
                 >
-                  <Zap className="w-4 h-4 mr-2" />
-                  {autoAssigning ? "Asignando..." : "Asignar Mejores Matches Automáticamente"}
-                </Button>
+                  📊 Resumen General
+                </button>
+                <button
+                  onClick={() => setActiveTab("teams")}
+                  className={`w-full text-left px-3 md:px-4 py-2 md:py-3 rounded-lg transition-all text-sm md:text-base ${
+                    activeTab === "teams"
+                      ? "bg-blue-600 text-white font-semibold"
+                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  🏈 Mis Equipos ({teams.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab("players")}
+                  className={`w-full text-left px-3 md:px-4 py-2 md:py-3 rounded-lg transition-all text-sm md:text-base ${
+                    activeTab === "players"
+                      ? "bg-blue-600 text-white font-semibold"
+                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  👥 Jugadores ({getMyPlayers().length})
+                </button>
+                <button
+                  onClick={() => setActiveTab("games")}
+                  className={`w-full text-left px-3 md:px-4 py-2 md:py-3 rounded-lg transition-all text-sm md:text-base ${
+                    activeTab === "games"
+                      ? "bg-blue-600 text-white font-semibold"
+                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  🎯 Partidos ({getMyGames().length})
+                </button>
+                <button
+                  onClick={() => setActiveTab("create")}
+                  className={`w-full text-left px-3 md:px-4 py-2 md:py-3 rounded-lg transition-all text-sm md:text-base ${
+                    activeTab === "create"
+                      ? "bg-blue-600 text-white font-semibold"
+                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  ➕ Crear Equipo
+                </button>
+              </div>
+
+              {/* User Info - Responsive */}
+              <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-200">
+                <div className="text-gray-600 text-xs md:text-sm">
+                  <p className="break-all">👤 {user.email}</p>
+                  <p>🎖️ Coach</p>
+                </div>
                 <Button
-                  onClick={() => setPotentialMatches([])}
+                  onClick={logout}
                   variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10"
+                  size="sm"
+                  className="mt-3 md:mt-4 w-full border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900 text-xs md:text-sm bg-transparent"
                 >
-                  Ignorar Sugerencias
+                  Cerrar Sesión
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          </div>
 
-        {/* Error/Success Display */}
-        {error && (
-          <Alert className="mb-8 border-red-200 bg-red-50">
-            <AlertCircle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-700">{error}</AlertDescription>
-            <Button variant="ghost" size="sm" onClick={() => setError(null)} className="ml-auto">
-              Cerrar
-            </Button>
-          </Alert>
-        )}
+          {/* Main Content Area - Responsive */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl p-4 md:p-6 border border-gray-200 shadow-sm min-h-[400px] md:min-h-[600px]">
+              {/* Mensajes de estado */}
+              {error && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
+              )}
 
-        {success && (
-          <Alert className="mb-8 border-green-200 bg-green-50">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-700">{success}</AlertDescription>
-            <Button variant="ghost" size="sm" onClick={() => setSuccess(null)} className="ml-auto">
-              Cerrar
-            </Button>
-          </Alert>
-        )}
+              {success && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+                  {success}
+                </div>
+              )}
 
-        {/* Stats Cards */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
-            <CardContent className="p-6 text-center">
-              <Users className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-              <h3 className="text-3xl font-bold text-gray-900">{teams.length}</h3>
-              <p className="text-gray-600">Mis Equipos</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
-            <CardContent className="p-6 text-center">
-              <Trophy className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-              <h3 className="text-3xl font-bold text-gray-900">{getUpcomingGames().length}</h3>
-              <p className="text-gray-600">Próximos Partidos</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
-            <CardContent className="p-6 text-center">
-              <Users className="w-12 h-12 text-green-500 mx-auto mb-4" />
-              <h3 className="text-3xl font-bold text-gray-900">{getMyPlayers().length}</h3>
-              <p className="text-gray-600">Mis Jugadores</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-white border-gray-200 hover:shadow-lg transition-all">
-            <CardContent className="p-6 text-center">
-              <CheckCircle className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-              <h3 className="text-3xl font-bold text-gray-900">{teams.filter((t) => t.paid).length}</h3>
-              <p className="text-gray-600">Equipos Pagados</p>
-            </CardContent>
-          </Card>
-        </div>
+              {/* Overview Tab */}
+              {activeTab === "overview" && (
+                <div className="space-y-6">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Resumen General</h2>
 
-        {/* Tabs */}
-        <Tabs defaultValue="teams" className="space-y-6" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-white border border-gray-200">
-            <TabsTrigger
-              value="teams"
-              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-700"
-            >
-              Equipos ({teams.length})
-            </TabsTrigger>
-            <TabsTrigger
-              value="games"
-              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-700"
-            >
-              Mis Partidos ({getMyGames().length})
-            </TabsTrigger>
-            <TabsTrigger
-              value="players"
-              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-700"
-            >
-              Jugadores ({getMyPlayers().length})
-            </TabsTrigger>
-          </TabsList>
+                  {/* Stats Cards - Responsive Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <Card className="bg-white border-gray-200">
+                      <CardContent className="p-4 text-center">
+                        <Trophy className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+                        <h3 className="text-2xl font-bold text-gray-900">{teams.length}</h3>
+                        <p className="text-gray-600 text-sm">Equipos</p>
+                      </CardContent>
+                    </Card>
 
-          {/* Equipos Tab */}
-          <TabsContent value="teams" className="space-y-6">
-            {/* Crear Equipo */}
-            <Card className="bg-white border-gray-200">
-              <CardHeader>
-                <CardTitle className="text-gray-900 flex items-center gap-2">
-                  <Plus className="w-5 h-5" />
-                  Crear Nuevo Equipo
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={createTeam} className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-gray-700">Nombre del Equipo (sin sufijo)</Label>
-                    <Input
-                      value={teamForm.name}
-                      onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
-                      placeholder="Ej: Wildcats (se agregará VG automáticamente)"
-                      required
-                    />
-                    <p className="text-gray-500 text-xs mt-1">
-                      Se agregará automáticamente el sufijo según la categoría (VG, VS, FG, etc.)
-                    </p>
+                    <Card className="bg-white border-gray-200">
+                      <CardContent className="p-4 text-center">
+                        <Users className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                        <h3 className="text-2xl font-bold text-gray-900">{getMyPlayers().length}</h3>
+                        <p className="text-gray-600 text-sm">Jugadores</p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-white border-gray-200">
+                      <CardContent className="p-4 text-center">
+                        <Calendar className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                        <h3 className="text-2xl font-bold text-gray-900">{getMyGames().length}</h3>
+                        <p className="text-gray-600 text-sm">Partidos</p>
+                      </CardContent>
+                    </Card>
                   </div>
-                  <div>
-                    <Label className="text-gray-700">Categoría</Label>
-                    <select
-                      value={teamForm.category}
-                      onChange={(e) => setTeamForm({ ...teamForm, category: e.target.value })}
-                      className="w-full px-3 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
+
+                  {/* Quick Actions - Responsive */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Card className="bg-white border-gray-200">
+                      <CardHeader>
+                        <CardTitle className="text-gray-900 text-lg">Próximos Partidos</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {getUpcomingGames().length > 0 ? (
+                          <div className="space-y-2">
+                            {getUpcomingGames()
+                              .slice(0, 3)
+                              .map((game) => (
+                                <div key={game.id} className="text-sm text-gray-700 p-2 bg-gray-50 rounded">
+                                  <div className="font-medium">
+                                    {game.home_team} vs {game.away_team}
+                                  </div>
+                                  <div className="text-gray-600">
+                                    {game.game_date} - {game.game_time}
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 text-sm">No hay partidos programados</p>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-white border-gray-200">
+                      <CardHeader>
+                        <CardTitle className="text-gray-900 text-lg">Resultados Recientes</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {getRecentResults().length > 0 ? (
+                          <div className="space-y-2">
+                            {getRecentResults()
+                              .slice(0, 3)
+                              .map((game) => (
+                                <div key={game.id} className="text-sm text-gray-700 p-2 bg-gray-50 rounded">
+                                  <div className="font-medium">
+                                    {game.home_team} vs {game.away_team}
+                                  </div>
+                                  <div className="text-gray-600">
+                                    {game.home_score} - {game.away_score}
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 text-sm">No hay resultados recientes</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              )}
+
+              {/* Teams Tab */}
+              {activeTab === "teams" && (
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Mis Equipos</h2>
+                    <Button
+                      onClick={() => setActiveTab("create")}
+                      className="bg-green-600 hover:bg-green-700 text-white"
                     >
-                      <option value="">Seleccionar categoría</option>
-                      <option value="varonil-gold">Varonil Gold</option>
-                      <option value="varonil-silver">Varonil Silver</option>
-                      <option value="femenil-gold">Femenil Gold</option>
-                      <option value="femenil-silver">Femenil Silver</option>
-                      <option value="femenil-cooper">Femenil Cooper</option>
-                      <option value="mixto-gold">Mixto Gold</option>
-                      <option value="mixto-silver">Mixto Silver</option>
-                      <option value="teens">Teens</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label className="text-gray-700">Nombre del Capitán</Label>
-                    <Input
-                      value={teamForm.captain_name}
-                      onChange={(e) => setTeamForm({ ...teamForm, captain_name: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
-                      placeholder="Nombre del capitán"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-gray-700">Teléfono del Capitán</Label>
-                    <Input
-                      value={teamForm.captain_phone}
-                      onChange={(e) => setTeamForm({ ...teamForm, captain_phone: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
-                      placeholder="(618) 123-4567"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-gray-700">Color Primario</Label>
-                    <Input
-                      type="color"
-                      value={teamForm.color1}
-                      onChange={(e) => setTeamForm({ ...teamForm, color1: e.target.value })}
-                      className="bg-white border-gray-300 h-10"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-gray-700">Color Secundario</Label>
-                    <Input
-                      type="color"
-                      value={teamForm.color2}
-                      onChange={(e) => setTeamForm({ ...teamForm, color2: e.target.value })}
-                      className="bg-white border-gray-300 h-10"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label className="text-gray-700">URL del Logo (opcional)</Label>
-                    <Input
-                      value={teamForm.logo_url}
-                      onChange={(e) => setTeamForm({ ...teamForm, logo_url: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
-                      placeholder="https://ejemplo.com/logo.png"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                       <Plus className="w-4 h-4 mr-2" />
                       Crear Equipo
                     </Button>
                   </div>
-                </form>
-              </CardContent>
-            </Card>
 
-            {/* Lista de Equipos */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {teams.map((team) => (
-                <Card
-                  key={team.id}
-                  className="bg-white border-gray-200 hover:shadow-lg transition-all transform hover:scale-105"
-                >
-                  <CardHeader>
-                    <div className="flex items-center gap-4">
-                      <div
-                        className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"
-                        style={{
-                          background: `linear-gradient(to right, ${team.color1}, ${team.color2})`,
-                        }}
-                      >
-                        {team.logo_url ? (
-                          <img
-                            src={team.logo_url || "/placeholder.svg"}
-                            alt="Logo"
-                            className="w-full h-full rounded-full object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.style.display = "none"
-                              const parent = target.parentElement
-                              if (parent) {
-                                parent.innerHTML = team.name.charAt(0)
-                              }
-                            }}
-                          />
-                        ) : (
-                          team.name.charAt(0)
-                        )}
-                      </div>
-                      <div>
-                        <CardTitle className="text-gray-900 text-lg">{team.name}</CardTitle>
-                        <Badge className="bg-blue-600 text-white">{getCategoryLabel(team.category)}</Badge>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {team.captain_name && (
-                      <div className="text-gray-700/80 text-sm">
-                        <strong>Capitán:</strong> {team.captain_name}
-                      </div>
-                    )}
-                    {team.captain_phone && (
-                      <div className="text-gray-700/80 text-sm flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
-                        {team.captain_phone}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge className={team.paid ? "bg-green-600" : "bg-red-600"}>
-                        {team.paid ? "Pagado" : "Pendiente"}
-                      </Badge>
-                      <Badge variant="outline" className="text-gray-700 border-gray-300">
-                        ID: {team.id}
-                      </Badge>
-                    </div>
-                    {!team.paid && (
-                      <Button
-                        onClick={() => handlePayment(team)}
-                        disabled={payingTeam === team.id}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <CreditCard className="w-4 h-4 mr-2" />
-                        {payingTeam === team.id ? "Procesando..." : "Pagar Inscripción ($1,600)"}
-                      </Button>
-                    )}
-                    <div className="text-gray-700/60 text-xs">💡 Los $300 de fianza se pagan en efectivo al Staff</div>
-                    {team.stats && (
-                      <div className="bg-gray-50 rounded p-3 text-sm text-gray-700/80">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>Partidos: {team.stats.games_played}</div>
-                          <div>Puntos: {team.stats.points}</div>
-                          <div>Ganados: {team.stats.wins}</div>
-                          <div>Perdidos: {team.stats.losses}</div>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {teams.length === 0 && (
-              <Card className="bg-white border-gray-200">
-                <CardContent className="p-12 text-center">
-                  <Users className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No tienes equipos asignados</h3>
-                  <p className="text-gray-700 mb-4">
-                    {potentialMatches.length > 0
-                      ? "Revisa las sugerencias automáticas arriba o crea un nuevo equipo."
-                      : "Crea tu primer equipo usando el formulario de arriba."}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* Partidos Tab */}
-          <TabsContent value="games" className="space-y-6">
-            {/* Filtros */}
-            <Card className="bg-white border-gray-200">
-              <CardHeader>
-                <CardTitle className="text-gray-900 flex items-center gap-2">
-                  <Filter className="w-5 h-5" />
-                  Filtros de Partidos
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <Label className="text-gray-700">Estado</Label>
-                    <select
-                      value={gameFilter.status}
-                      onChange={(e) => setGameFilter({ ...gameFilter, status: e.target.value })}
-                      className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
-                    >
-                      <option value="all">Todos</option>
-                      <option value="programado">Programados</option>
-                      <option value="en_vivo">En Vivo</option>
-                      <option value="finalizado">Finalizados</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label className="text-gray-700">Categoría</Label>
-                    <select
-                      value={gameFilter.category}
-                      onChange={(e) => setGameFilter({ ...gameFilter, category: e.target.value })}
-                      className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
-                    >
-                      <option value="all">Todas</option>
-                      <option value="varonil-gold">Varonil Gold</option>
-                      <option value="varonil-silver">Varonil Silver</option>
-                      <option value="femenil-gold">Femenil Gold</option>
-                      <option value="femenil-silver">Femenil Silver</option>
-                      <option value="femenil-cooper">Femenil Cooper</option>
-                      <option value="mixto-gold">Mixto Gold</option>
-                      <option value="mixto-silver">Mixto Silver</option>
-                      <option value="teens">Teens</option>
-                    </select>
-                  </div>
-                  <div>
-                    <Label className="text-gray-700">Equipo</Label>
-                    <select
-                      value={gameFilter.team}
-                      onChange={(e) => setGameFilter({ ...gameFilter, team: e.target.value })}
-                      className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
-                    >
-                      <option value="all">Todos mis equipos</option>
+                  {teams.length === 0 ? (
+                    <Card className="bg-white border-gray-200">
+                      <CardContent className="p-8 text-center">
+                        <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">No tienes equipos</h3>
+                        <p className="text-gray-600 mb-4">Crea tu primer equipo para comenzar</p>
+                        <Button onClick={() => setActiveTab("create")} className="bg-blue-600 hover:bg-blue-700">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Crear Equipo
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {teams.map((team) => (
-                        <option key={team.id} value={team.name}>
-                          {team.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Próximos Partidos */}
-            {getUpcomingGames().length > 0 && (
-              <Card className="bg-white border-gray-200">
-                <CardHeader>
-                  <CardTitle className="text-gray-900 flex items-center gap-2">
-                    <Calendar className="w-5 h-5" />
-                    Próximos Partidos
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {getUpcomingGames().map((game) => (
-                      <div key={game.id} className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="text-gray-900 font-semibold">
-                            {game.home_team} vs {game.away_team}
-                          </h4>
-                          <Badge className="bg-blue-600 text-white">{getCategoryLabel(game.category)}</Badge>
-                        </div>
-                        <div className="text-gray-600 text-sm space-y-1">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4" />
-                            {new Date(game.game_date).toLocaleDateString("es-ES")}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4" />
-                            {game.game_time}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4" />
-                            {game.venue} - {game.field}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Resultados Recientes */}
-            {getRecentResults().length > 0 && (
-              <Card className="bg-white border-gray-200">
-                <CardHeader>
-                  <CardTitle className="text-gray-900 flex items-center gap-2">
-                    <Trophy className="w-5 h-5" />
-                    Resultados Recientes
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {getRecentResults().map((game) => (
-                      <div key={game.id} className="bg-gray-50 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <h4 className="text-gray-900 font-semibold">
-                            {game.home_team} vs {game.away_team}
-                          </h4>
-                          <Badge className="bg-green-600 text-white">Finalizado</Badge>
-                        </div>
-                        <div className="text-center mb-2">
-                          <div className="text-2xl font-bold text-gray-900">
-                            {game.home_score} - {game.away_score}
-                          </div>
-                        </div>
-                        <div className="text-gray-600 text-sm text-center">
-                          {new Date(game.game_date).toLocaleDateString("es-ES")} - {game.venue}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Todos los Partidos Filtrados */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {getMyGames().map((game) => (
-                <Card key={game.id} className="bg-white border-gray-200">
-                  <CardHeader>
-                    <CardTitle className="text-gray-900 text-lg">
-                      {game.home_team} vs {game.away_team}
-                    </CardTitle>
-                    <div className="flex gap-2 flex-wrap">
-                      <Badge className="bg-blue-600 text-white">{getCategoryLabel(game.category)}</Badge>
-                      <Badge
-                        className={
-                          game.status === "finalizado"
-                            ? "bg-green-600 text-white"
-                            : game.status === "en_vivo"
-                              ? "bg-red-600 text-white"
-                              : "bg-yellow-600 text-white"
-                        }
-                      >
-                        {game.status === "en_vivo"
-                          ? "En Vivo"
-                          : game.status === "finalizado"
-                            ? "Finalizado"
-                            : "Programado"}
-                      </Badge>
-                      {game.match_type === "amistoso" && <Badge className="bg-gray-600 text-white">Amistoso</Badge>}
-                      {game.jornada && <Badge className="bg-purple-600 text-white">J{game.jornada}</Badge>}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {game.home_score !== null && game.away_score !== null && (
-                      <div className="text-center">
-                        <div className="text-3xl font-bold text-gray-900">
-                          {game.home_score} - {game.away_score}
-                        </div>
-                      </div>
-                    )}
-                    <div className="text-gray-600 text-sm space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        {new Date(game.game_date).toLocaleDateString("es-ES")}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4" />
-                        {game.game_time}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4" />
-                        {game.venue} - {game.field}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {getMyGames().length === 0 && (
-              <Card className="bg-white border-gray-200">
-                <CardContent className="p-12 text-center">
-                  <Trophy className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay partidos</h3>
-                  <p className="text-gray-700">
-                    {teams.length === 0
-                      ? "Primero asigna o crea un equipo para ver sus partidos."
-                      : "No hay partidos que coincidan con los filtros seleccionados."}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          {/* Jugadores Tab */}
-          <TabsContent value="players" className="space-y-6">
-            {/* Crear Jugador */}
-            {teams.length > 0 && (
-              <Card className="bg-white border-gray-200">
-                <CardHeader>
-                  <CardTitle className="text-gray-900 flex items-center gap-2">
-                    <Plus className="w-5 h-5" />
-                    Agregar Nuevo Jugador
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={createPlayer} className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="text-gray-700">Nombre del Jugador</Label>
-                      <Input
-                        value={playerForm.name}
-                        onChange={(e) => setPlayerForm({ ...playerForm, name: e.target.value })}
-                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
-                        placeholder="Nombre completo"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-gray-700">Número de Jersey</Label>
-                      <Input
-                        type="number"
-                        value={playerForm.jersey_number}
-                        onChange={(e) => setPlayerForm({ ...playerForm, jersey_number: e.target.value })}
-                        className="bg-white border-gray-300 text-gray-900"
-                        min="0"
-                        max="99"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-gray-700">Posición</Label>
-                      <select
-                        value={playerForm.position}
-                        onChange={(e) => setPlayerForm({ ...playerForm, position: e.target.value })}
-                        className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
-                        required
-                      >
-                        <option value="">Seleccionar posición</option>
-                        <option value="QB">Quarterback (QB)</option>
-                        <option value="RB">Running Back (RB)</option>
-                        <option value="WR">Wide Receiver (WR)</option>
-                        <option value="TE">Tight End (TE)</option>
-                        <option value="RU">Rusher (RU)</option>
-                        <option value="LB">Linebacker (LB)</option>
-                        <option value="DB">Defensive Back (DB)</option>
-                        <option value="CB">Corner Back (CB)</option>
-                        <option value="C">Center (C)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <Label className="text-gray-700">Equipo</Label>
-                      <select
-                        value={playerForm.team_id}
-                        onChange={(e) => setPlayerForm({ ...playerForm, team_id: e.target.value })}
-                        className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
-                        required
-                      >
-                        <option value="">Seleccionar equipo</option>
-                        {teams.map((team) => (
-                          <option key={team.id} value={team.id}>
-                            {team.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label className="text-gray-700 flex items-center gap-2">
-                        <ImageIcon className="w-4 h-4" />
-                        URL de la Foto del Jugador (opcional)
-                      </Label>
-                      <Input
-                        value={playerForm.photo_url}
-                        onChange={(e) => setPlayerForm({ ...playerForm, photo_url: e.target.value })}
-                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
-                        placeholder="https://ejemplo.com/foto-jugador.jpg"
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Agregar Jugador
-                      </Button>
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Lista de Jugadores */}
-            <div className="space-y-8">
-              {teams.map((team) => {
-                const teamPlayers = getMyPlayers().filter((player) => player.team_id === team.id)
-
-                return (
-                  <div key={team.id}>
-                    <div className="mb-4">
-                      <div
-                        className="rounded-lg p-4 text-white"
-                        style={{ background: `linear-gradient(to right, ${team.color1}, ${team.color2})` }}
-                      >
-                        <h3 className="text-xl font-bold flex items-center gap-2">
-                          <Users className="w-6 h-6" />
-                          {team.name}
-                          <Badge className="bg-white/20 text-white ml-2">{teamPlayers.length} jugadores</Badge>
-                        </h3>
-                      </div>
-                    </div>
-
-                    {teamPlayers.length > 0 ? (
-                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {teamPlayers.map((player) => (
-                          <Card key={player.id} className="bg-white border-gray-200 hover:shadow-lg transition-all">
-                            <CardContent className="p-6">
-                              <div className="text-center">
-                                <div className="w-16 h-16 mx-auto mb-4 rounded-full overflow-hidden">
-                                  {player.photo_url ? (
-                                    <img
-                                      src={player.photo_url || "/placeholder.svg"}
-                                      alt={player.name}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        const target = e.target as HTMLImageElement
-                                        target.style.display = "none"
-                                        const parent = target.parentElement
-                                        if (parent) {
-                                          parent.innerHTML = `<div class="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl">#${player.jersey_number}</div>`
-                                        }
-                                      }}
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                                      #{player.jersey_number}
-                                    </div>
-                                  )}
-                                </div>
-                                <h3 className="text-lg font-semibold text-gray-900 mb-2">{player.name}</h3>
-                                <Badge className="bg-blue-600 text-white mb-2">{player.position}</Badge>
-                                <p className="text-gray-600 text-sm">#{player.jersey_number}</p>
-
-                                <div className="flex justify-center gap-2 mt-4">
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="bg-blue-600/20 border-blue-400 text-blue-200 hover:bg-blue-600/40"
-                                    onClick={() => handleEditPlayer(player)}
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="bg-red-600/20 border-red-400 text-red-200 hover:bg-red-600/40"
-                                    onClick={() => handleDeletePlayer(player.id)}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
+                        <Card key={team.id} className="bg-white border-gray-200">
+                          <CardHeader>
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <CardTitle className="text-gray-900 text-lg">{team.name}</CardTitle>
+                                <p className="text-gray-600 text-sm">{getCategoryLabel(team.category)}</p>
                               </div>
+                              <Badge className={team.paid ? "bg-green-600" : "bg-yellow-600"}>
+                                {team.paid ? "Pagado" : "Pendiente"}
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2 text-sm text-gray-700">
+                              <div>
+                                <span className="text-gray-600">Capitán:</span> {team.captain_name || "No asignado"}
+                              </div>
+                              <div>
+                                <span className="text-gray-600">Teléfono:</span> {team.captain_phone || "No asignado"}
+                              </div>
+                              <div className="flex items-center gap-2 mt-4">
+                                <div
+                                  className="w-4 h-4 rounded-full border border-gray-300"
+                                  style={{ backgroundColor: team.color1 }}
+                                ></div>
+                                <div
+                                  className="w-4 h-4 rounded-full border border-gray-300"
+                                  style={{ backgroundColor: team.color2 }}
+                                ></div>
+                                <span className="text-gray-600 text-xs">Colores del equipo</span>
+                              </div>
+                            </div>
+
+                            {!team.paid && (
+                              <div className="mt-4">
+                                <Button
+                                  onClick={() => handlePayment(team)}
+                                  disabled={payingTeam === team.id}
+                                  className="w-full bg-green-600 hover:bg-green-700"
+                                >
+                                  {payingTeam === team.id ? (
+                                    <>
+                                      <Clock className="w-4 h-4 mr-2 animate-spin" />
+                                      Procesando...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <DollarSign className="w-4 h-4 mr-2" />
+                                      Pagar Inscripción ($1,600)
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Equipos disponibles para asignar */}
+                  {potentialMatches.length > 0 && (
+                    <div className="mt-8">
+                      <h3 className="text-xl font-bold text-gray-900 mb-4">Equipos Disponibles para Asignar</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {potentialMatches.slice(0, 4).map((match) => (
+                          <Card key={match.team_id} className="bg-white border-gray-200">
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start mb-2">
+                                <h4 className="font-semibold text-gray-900">{match.team_name}</h4>
+                                <Badge className="bg-blue-600 text-xs">Score: {match.similarity_score}</Badge>
+                              </div>
+                              <p className="text-gray-600 text-sm mb-3">Capitán: {match.captain_name}</p>
+                              <Button
+                                onClick={() => assignSpecificTeam(match.team_id)}
+                                size="sm"
+                                className="w-full bg-blue-600 hover:bg-blue-700"
+                              >
+                                Asignar a mi cuenta
+                              </Button>
                             </CardContent>
                           </Card>
                         ))}
                       </div>
-                    ) : (
-                      <div className="text-center p-4">No hay jugadores en este equipo.</div>
+
+                      {potentialMatches.length > 0 && (
+                        <div className="mt-4 text-center">
+                          <Button
+                            onClick={autoAssignBestMatches}
+                            disabled={autoAssigning}
+                            className="bg-purple-600 hover:bg-purple-700"
+                          >
+                            {autoAssigning ? (
+                              <>
+                                <Clock className="w-4 h-4 mr-2 animate-spin" />
+                                Asignando...
+                              </>
+                            ) : (
+                              <>
+                                <Target className="w-4 h-4 mr-2" />
+                                Auto-asignar Mejores Matches
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Players Tab */}
+              {activeTab === "players" && (
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Mis Jugadores</h2>
+                    {teams.length > 0 && (
+                      <Button
+                        onClick={() => setActiveTab("add-player")}
+                        className="bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Agregar Jugador
+                      </Button>
                     )}
                   </div>
-                )
-              })}
-            </div>
 
-            {getMyPlayers().length === 0 && (
-              <Card className="bg-white border-gray-200">
-                <CardContent className="p-12 text-center">
-                  <Users className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No tienes jugadores</h3>
-                  <p className="text-gray-700">
-                    {teams.length === 0
-                      ? "Primero asigna o crea un equipo para poder agregar jugadores."
-                      : "Agrega jugadores a tus equipos usando el formulario de arriba."}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
+                  {getMyPlayers().length === 0 ? (
+                    <Card className="bg-white border-gray-200">
+                      <CardContent className="p-8 text-center">
+                        <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">No tienes jugadores</h3>
+                        <p className="text-gray-600 mb-4">
+                          {teams.length === 0
+                            ? "Primero crea un equipo para agregar jugadores"
+                            : "Agrega jugadores a tu equipo"}
+                        </p>
+                        {teams.length > 0 && (
+                          <Button onClick={() => setActiveTab("add-player")} className="bg-blue-600 hover:bg-blue-700">
+                            <Plus className="w-4 h-4 mr-2" />
+                            Agregar Jugador
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {getMyPlayers().map((player) => {
+                        const team = teams.find((t) => t.id === player.team_id)
+                        return (
+                          <Card key={player.id} className="bg-white border-gray-200">
+                            <CardContent className="p-4">
+                              <div className="mb-4 flex justify-center">
+                                {player.photo_url ? (
+                                  <img
+                                    src={player.photo_url || "/placeholder.svg"}
+                                    alt={player.name}
+                                    className="w-48 h-48 rounded-full object-cover border-4 border-gray-300 shadow-lg"
+                                    onError={(e) => {
+                                      e.currentTarget.src = "/placeholder.svg?height=192&width=192"
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-48 h-48 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center border-4 border-gray-300 shadow-lg">
+                                    <span className="text-5xl font-bold text-white">{player.name.charAt(0)}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="text-center mb-3">
+                                <h4 className="font-bold text-gray-900 text-lg">{player.name}</h4>
+                                <p className="text-gray-600 text-sm">{getPositionLabel(player.position)}</p>
+                                {player.jersey_number && (
+                                  <Badge className="bg-blue-600 mt-2">#{player.jersey_number}</Badge>
+                                )}
+                              </div>
+                              <p className="text-gray-600 text-xs text-center mb-3">
+                                Equipo: {team?.name || "Sin equipo"}
+                              </p>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex-1 border-blue-300 text-blue-600 hover:bg-blue-50 bg-transparent"
+                                  onClick={() => {
+                                    console.log("Edit player:", player.id)
+                                    setEditingPlayer(player)
+                                    setActiveTab("edit-player")
+                                  }}
+                                >
+                                  <Edit className="w-3 h-3 mr-1" />
+                                  Editar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="border-red-300 text-red-600 hover:bg-red-50 bg-transparent"
+                                  onClick={() => {
+                                    if (confirm(`¿Eliminar a ${player.name}?`)) {
+                                      console.log("Delete player:", player.id)
+                                    }
+                                  }}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Games Tab */}
+              {activeTab === "games" && (
+                <div className="space-y-6">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Mis Partidos</h2>
+
+                  {getMyGames().length === 0 ? (
+                    <Card className="bg-white border-gray-200">
+                      <CardContent className="p-8 text-center">
+                        <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">No tienes partidos</h3>
+                        <p className="text-gray-600">Los partidos aparecerán aquí cuando sean programados</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="space-y-4">
+                      {getMyGames().map((game) => (
+                        <Card key={game.id} className="bg-white border-gray-200">
+                          <CardContent className="p-4">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                              <div>
+                                <h4 className="font-semibold text-gray-900 text-lg">
+                                  {game.home_team} vs {game.away_team}
+                                </h4>
+                                <p className="text-gray-600 text-sm">
+                                  {getCategoryLabel(game.category)} • {game.game_date} • {game.game_time}
+                                </p>
+                                <p className="text-gray-600 text-sm">
+                                  {game.venue} - {game.field}
+                                </p>
+                              </div>
+                              <div className="flex flex-col items-end gap-2">
+                                <Badge
+                                  className={
+                                    game.status === "finalizado"
+                                      ? "bg-gray-600"
+                                      : game.status === "en_vivo"
+                                        ? "bg-red-600"
+                                        : "bg-blue-600"
+                                  }
+                                >
+                                  {game.status === "finalizado"
+                                    ? "Finalizado"
+                                    : game.status === "en_vivo"
+                                      ? "En Vivo"
+                                      : "Programado"}
+                                </Badge>
+                                {game.status === "finalizado" && (
+                                  <div className="text-gray-900 font-bold">
+                                    {game.home_score} - {game.away_score}
+                                  </div>
+                                )}
+                                {game.mvp && (
+                                  <div className="flex items-center text-yellow-500 text-sm">
+                                    <Star className="w-3 h-3 mr-1" />
+                                    MVP: {game.mvp}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Create Team Tab */}
+              {activeTab === "create" && (
+                <div className="space-y-6">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Crear Nuevo Equipo</h2>
+
+                  <Card className="bg-white border-gray-200">
+                    <CardContent className="p-6">
+                      <form onSubmit={createTeam} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-gray-900">Nombre del Equipo</Label>
+                            <Input
+                              value={teamForm.name}
+                              onChange={(e) => setTeamForm({ ...teamForm, name: e.target.value })}
+                              className="bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                              placeholder="Nombre del equipo"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <Label className="text-gray-900">Categoría</Label>
+                            <select
+                              value={teamForm.category}
+                              onChange={(e) => setTeamForm({ ...teamForm, category: e.target.value })}
+                              className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
+                              required
+                            >
+                              <option value="">Seleccionar categoría</option>
+                              <option value="varonil-gold">Varonil Gold</option>
+                              <option value="varonil-silver">Varonil Silver</option>
+                              <option value="femenil-gold">Femenil Gold</option>
+                              <option value="femenil-silver">Femenil Silver</option>
+                              <option value="femenil-cooper">Femenil Cooper</option>
+                              <option value="mixto-gold">Mixto Gold</option>
+                              <option value="mixto-silver">Mixto Silver</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-gray-900">Nombre del Capitán</Label>
+                            <Input
+                              value={teamForm.captain_name}
+                              onChange={(e) => setTeamForm({ ...teamForm, captain_name: e.target.value })}
+                              className="bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                              placeholder="Nombre completo del capitán"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <Label className="text-gray-900">Teléfono del Capitán</Label>
+                            <Input
+                              value={teamForm.captain_phone}
+                              onChange={(e) => setTeamForm({ ...teamForm, captain_phone: e.target.value })}
+                              className="bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                              placeholder="Número de teléfono"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-gray-900">Color Primario</Label>
+                            <Input
+                              type="color"
+                              value={teamForm.color1}
+                              onChange={(e) => setTeamForm({ ...teamForm, color1: e.target.value })}
+                              className="bg-white border-gray-300 h-10"
+                            />
+                          </div>
+
+                          <div>
+                            <Label className="text-gray-900">Color Secundario</Label>
+                            <Input
+                              type="color"
+                              value={teamForm.color2}
+                              onChange={(e) => setTeamForm({ ...teamForm, color2: e.target.value })}
+                              className="bg-white border-gray-300 h-10"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label className="text-gray-900">URL del Logo (opcional)</Label>
+                          <Input
+                            value={teamForm.logo_url}
+                            onChange={(e) => setTeamForm({ ...teamForm, logo_url: e.target.value })}
+                            className="bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                            placeholder="https://ejemplo.com/logo.png"
+                          />
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                          <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700">
+                            <Plus className="w-4 h-4 mr-2" />
+                            Crear Equipo
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setActiveTab("overview")}
+                            className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      </form>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Add Player Tab */}
+              {activeTab === "add-player" && (
+                <div className="space-y-6">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Agregar Jugador</h2>
+
+                  <Card className="bg-white border-gray-200">
+                    <CardContent className="p-6">
+                      <form onSubmit={createPlayerOld} className="space-y-4">
+                        <div>
+                          <Label className="text-gray-900">Equipo</Label>
+                          <select
+                            value={playerFormOld.team_id}
+                            onChange={(e) => setPlayerFormOld({ ...playerFormOld, team_id: e.target.value })}
+                            className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
+                            required
+                          >
+                            <option value="">Seleccionar equipo</option>
+                            {teams.map((team) => (
+                              <option key={team.id} value={team.id}>
+                                {team.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-gray-900">Nombre del Jugador</Label>
+                            <Input
+                              value={playerFormOld.name}
+                              onChange={(e) => setPlayerFormOld({ ...playerFormOld, name: e.target.value })}
+                              className="bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                              placeholder="Nombre completo"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <Label className="text-gray-900">Número de Jersey</Label>
+                            <Input
+                              type="number"
+                              value={playerFormOld.jersey_number}
+                              onChange={(e) => setPlayerFormOld({ ...playerFormOld, jersey_number: e.target.value })}
+                              className="bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                              placeholder="Número"
+                              min="1"
+                              max="99"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label className="text-gray-900">Posición</Label>
+                          <select
+                            value={playerFormOld.position}
+                            onChange={(e) => setPlayerFormOld({ ...playerFormOld, position: e.target.value })}
+                            className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
+                            required
+                          >
+                            <option value="">Seleccionar posición</option>
+                            <option value="QB">Quarterback (QB)</option>
+                            <option value="RB">Running Back (RB)</option>
+                            <option value="WR">Wide Receiver (WR)</option>
+                            <option value="TE">Tight End (TE)</option>
+                            <option value="C">Center (C)</option>
+                            <option value="LB">Linebacker (LB)</option>
+                            <option value="DB">Defensive Back (DB)</option>
+                            <option value="S">Safety (S)</option>
+                            <option value="RU">Rush (RU)</option>
+                            <option value="CB">Corner Back (CB)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <Label className="text-gray-900">URL de Foto (opcional)</Label>
+                          <Input
+                            value={playerFormOld.photo_url}
+                            onChange={(e) => setPlayerFormOld({ ...playerFormOld, photo_url: e.target.value })}
+                            className="bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                            placeholder="https://ejemplo.com/foto.jpg"
+                          />
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                          <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700">
+                            <Plus className="w-4 h-4 mr-2" />
+                            Agregar Jugador
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setActiveTab("players")}
+                            className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      </form>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Edit Player Tab */}
+              {activeTab === "edit-player" && editingPlayer && (
+                <div className="space-y-6">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Editar Jugador</h2>
+                  <Card className="bg-white border-gray-200">
+                    <CardContent className="p-6">
+                      <div className="text-gray-700">Formulario de edición para {editingPlayer.name}</div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setActiveTab("players")}
+                        className="mt-4 border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                      >
+                        Volver a Jugadores
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* Footer CTA - Responsive */}
+      <section className="py-12 md:py-16 bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">¿Necesitas ayuda?</h2>
+          <p className="text-white/90 text-base md:text-lg mb-6 md:mb-8 px-4">
+            Contacta al administrador si tienes dudas sobre tu equipo o jugadores
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center px-4">
+            <Button
+              size="lg"
+              className="bg-white text-gray-900 hover:bg-gray-100 font-bold text-sm md:text-base"
+              onClick={() => (window.location.href = "/")}
+            >
+              <Trophy className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+              Ir al Inicio
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-white text-white hover:bg-white hover:text-gray-900 bg-transparent text-sm md:text-base"
+              onClick={() => (window.location.href = "/partidos")}
+            >
+              Ver Partidos
+            </Button>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
