@@ -83,6 +83,7 @@ interface PlayerForm {
   position: string
   jersey_number: string
   photo_url: string
+  team_id: string // Changed to string to match the input value type
 }
 
 interface CoachUser {
@@ -159,6 +160,7 @@ export default function CoachDashboard() {
     position: "QB",
     jersey_number: "",
     photo_url: "",
+    team_id: "", // Initialize as empty string
   })
 
   const [playerFormOld, setPlayerFormOld] = useState({
@@ -442,31 +444,55 @@ export default function CoachDashboard() {
     }
   }
 
-  const createPlayerOld = async (e: React.FormEvent) => {
+  const createPlayer = async (e: React.FormEvent) => {
     e.preventDefault()
+    // Ensure playerForm.team_id is a number if it's not empty
+    const teamId = playerForm.team_id ? Number.parseInt(playerForm.team_id, 10) : undefined
+    const jerseyNumber = playerForm.jersey_number ? Number.parseInt(playerForm.jersey_number, 10) : undefined
+
+    if (teamId === undefined || isNaN(teamId)) {
+      setError("Por favor, selecciona un equipo válido.")
+      return
+    }
+    if (jerseyNumber === undefined || isNaN(jerseyNumber) || jerseyNumber < 1 || jerseyNumber > 99) {
+      setError("Por favor, ingresa un número de jersey válido (1-99).")
+      return
+    }
+
+    // Determine if it's an update or create operation based on editingPlayer
+    const method = editingPlayer ? "PUT" : "POST"
+    const url = editingPlayer ? `/api/players/${editingPlayer.id}` : "/api/players"
 
     try {
-      const response = await fetch("/api/players", {
-        method: "POST",
+      const response = await fetch(url, {
+        method: method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...playerFormOld,
-          jersey_number: Number.parseInt(playerFormOld.jersey_number),
-          team_id: Number.parseInt(playerFormOld.team_id),
+          ...playerForm,
+          team_id: teamId,
+          jersey_number: jerseyNumber,
+          // If editing, we might need the player ID as well, depending on the API.
+          // Assuming the API handles it via URL for PUT.
         }),
       })
 
       const data = await response.json()
       if (data.success) {
-        await loadDataOld()
-        setPlayerFormOld({ name: "", jersey_number: "", position: "", photo_url: "", team_id: "" })
+        await loadDataOld() // Recargar datos
+        setSuccess(`Jugador ${editingPlayer ? "actualizado" : "agregado"} exitosamente`)
+        setActiveTab("players") // Navigate back to players tab
+        setEditingPlayer(null) // Reset editing player
+        setPlayerForm({ name: "", jersey_number: "", position: "QB", photo_url: "", team_id: "" }) // Reset form
         setError(null)
-        setSuccess("Jugador agregado exitosamente")
       } else {
         setError(data.message)
       }
     } catch (error) {
-      setError("Error al crear jugador: " + (error instanceof Error ? error.message : "Error desconocido"))
+      console.error("💥 Error en createPlayer/updatePlayer:", error)
+      setError(
+        `Error al ${editingPlayer ? "actualizar" : "crear"} jugador: ` +
+          (error instanceof Error ? error.message : "Error desconocido"),
+      )
     }
   }
 
@@ -991,7 +1017,10 @@ export default function CoachDashboard() {
                     <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Mis Jugadores</h2>
                     {teams.length > 0 && (
                       <Button
-                        onClick={() => setActiveTab("add-player")}
+                        onClick={() => {
+                          setActiveTab("add-player")
+                          setPlayerForm({ name: "", jersey_number: "", position: "QB", photo_url: "", team_id: "" }) // Reset form when switching to add player
+                        }}
                         className="bg-green-600 hover:bg-green-700 text-white"
                       >
                         <Plus className="w-4 h-4 mr-2" />
@@ -1057,8 +1086,14 @@ export default function CoachDashboard() {
                                   variant="outline"
                                   className="flex-1 border-blue-300 text-blue-600 hover:bg-blue-50 bg-transparent"
                                   onClick={() => {
-                                    console.log("Edit player:", player.id)
                                     setEditingPlayer(player)
+                                    setPlayerForm({
+                                      name: player.name,
+                                      jersey_number: player.jersey_number?.toString() || "",
+                                      position: player.position,
+                                      photo_url: player.photo_url || "",
+                                      team_id: player.team_id.toString(),
+                                    })
                                     setActiveTab("edit-player")
                                   }}
                                 >
@@ -1071,6 +1106,7 @@ export default function CoachDashboard() {
                                   className="border-red-300 text-red-600 hover:bg-red-50 bg-transparent"
                                   onClick={() => {
                                     if (confirm(`¿Eliminar a ${player.name}?`)) {
+                                      // TODO: Implement delete player API call
                                       console.log("Delete player:", player.id)
                                     }
                                   }}
@@ -1277,12 +1313,12 @@ export default function CoachDashboard() {
 
                   <Card className="bg-white border-gray-200">
                     <CardContent className="p-6">
-                      <form onSubmit={createPlayerOld} className="space-y-4">
+                      <form onSubmit={createPlayer} className="space-y-4">
                         <div>
                           <Label className="text-gray-900">Equipo</Label>
                           <select
-                            value={playerFormOld.team_id}
-                            onChange={(e) => setPlayerFormOld({ ...playerFormOld, team_id: e.target.value })}
+                            value={playerForm.team_id}
+                            onChange={(e) => setPlayerForm({ ...playerForm, team_id: e.target.value })}
                             className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                             required
                           >
@@ -1299,8 +1335,8 @@ export default function CoachDashboard() {
                           <div>
                             <Label className="text-gray-900">Nombre del Jugador</Label>
                             <Input
-                              value={playerFormOld.name}
-                              onChange={(e) => setPlayerFormOld({ ...playerFormOld, name: e.target.value })}
+                              value={playerForm.name}
+                              onChange={(e) => setPlayerForm({ ...playerForm, name: e.target.value })}
                               className="bg-white border-gray-300 text-gray-900 placeholder-gray-400"
                               placeholder="Nombre completo"
                               required
@@ -1311,8 +1347,8 @@ export default function CoachDashboard() {
                             <Label className="text-gray-900">Número de Jersey</Label>
                             <Input
                               type="number"
-                              value={playerFormOld.jersey_number}
-                              onChange={(e) => setPlayerFormOld({ ...playerFormOld, jersey_number: e.target.value })}
+                              value={playerForm.jersey_number}
+                              onChange={(e) => setPlayerForm({ ...playerForm, jersey_number: e.target.value })}
                               className="bg-white border-gray-300 text-gray-900 placeholder-gray-400"
                               placeholder="Número"
                               min="1"
@@ -1324,8 +1360,8 @@ export default function CoachDashboard() {
                         <div>
                           <Label className="text-gray-900">Posición</Label>
                           <select
-                            value={playerFormOld.position}
-                            onChange={(e) => setPlayerFormOld({ ...playerFormOld, position: e.target.value })}
+                            value={playerForm.position}
+                            onChange={(e) => setPlayerForm({ ...playerForm, position: e.target.value })}
                             className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                             required
                           >
@@ -1346,8 +1382,8 @@ export default function CoachDashboard() {
                         <div>
                           <Label className="text-gray-900">URL de Foto (opcional)</Label>
                           <Input
-                            value={playerFormOld.photo_url}
-                            onChange={(e) => setPlayerFormOld({ ...playerFormOld, photo_url: e.target.value })}
+                            value={playerForm.photo_url}
+                            onChange={(e) => setPlayerForm({ ...playerForm, photo_url: e.target.value })}
                             className="bg-white border-gray-300 text-gray-900 placeholder-gray-400"
                             placeholder="https://ejemplo.com/foto.jpg"
                           />
@@ -1377,17 +1413,105 @@ export default function CoachDashboard() {
               {activeTab === "edit-player" && editingPlayer && (
                 <div className="space-y-6">
                   <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6">Editar Jugador</h2>
+
                   <Card className="bg-white border-gray-200">
                     <CardContent className="p-6">
-                      <div className="text-gray-700">Formulario de edición para {editingPlayer.name}</div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setActiveTab("players")}
-                        className="mt-4 border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                      >
-                        Volver a Jugadores
-                      </Button>
+                      <form onSubmit={createPlayer} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-gray-900">Nombre del Jugador</Label>
+                            <Input
+                              value={playerForm.name}
+                              onChange={(e) => setPlayerForm({ ...playerForm, name: e.target.value })}
+                              className="bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                              placeholder="Nombre completo"
+                              required
+                            />
+                          </div>
+
+                          <div>
+                            <Label className="text-gray-900">Número de Jersey</Label>
+                            <Input
+                              type="number"
+                              value={playerForm.jersey_number}
+                              onChange={(e) => setPlayerForm({ ...playerForm, jersey_number: e.target.value })}
+                              className="bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                              placeholder="Número"
+                              min="1"
+                              max="99"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label className="text-gray-900">Posición</Label>
+                          <select
+                            value={playerForm.position}
+                            onChange={(e) => setPlayerForm({ ...playerForm, position: e.target.value })}
+                            className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
+                            required
+                          >
+                            <option value="">Seleccionar posición</option>
+                            <option value="QB">Quarterback (QB)</option>
+                            <option value="RB">Running Back (RB)</option>
+                            <option value="WR">Wide Receiver (WR)</option>
+                            <option value="TE">Tight End (TE)</option>
+                            <option value="C">Center (C)</option>
+                            <option value="LB">Linebacker (LB)</option>
+                            <option value="DB">Defensive Back (DB)</option>
+                            <option value="S">Safety (S)</option>
+                            <option value="RU">Rush (RU)</option>
+                            <option value="CB">Corner Back (CB)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <Label className="text-gray-900">Equipo</Label>
+                          <select
+                            value={playerForm.team_id}
+                            onChange={(e) => setPlayerForm({ ...playerForm, team_id: e.target.value })}
+                            className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
+                            required
+                          >
+                            <option value="">Seleccionar equipo</option>
+                            {teams.map((team) => (
+                              <option key={team.id} value={team.id}>
+                                {team.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <Label className="text-gray-900">URL de Foto (opcional)</Label>
+                          <Input
+                            value={playerForm.photo_url}
+                            onChange={(e) => setPlayerForm({ ...playerForm, photo_url: e.target.value })}
+                            className="bg-white border-gray-300 text-gray-900 placeholder-gray-400"
+                            placeholder="https://ejemplo.com/foto.jpg"
+                          />
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                          <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700">
+                            <Edit className="w-4 h-4 mr-2" />
+                            Guardar Cambios
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setActiveTab("players")
+                              setEditingPlayer(null)
+                              setPlayerForm({ name: "", jersey_number: "", position: "", photo_url: "", team_id: "" })
+                            }}
+                            className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      </form>
                     </CardContent>
                   </Card>
                 </div>
