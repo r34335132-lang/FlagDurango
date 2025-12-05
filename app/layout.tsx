@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from "next"
 import "./globals.css"
 import { Navigation } from "@/components/navigation"
 import { NavGuard } from "@/components/nav-guard"
-
+import { SasaPromoBanner } from "@/components/sasa-promo-banner"
 
 export const metadata: Metadata = {
   title: "Liga Flag Durango - 20 Años Haciendo Historia",
@@ -90,14 +90,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
       <body className="min-h-screen bg-white antialiased">
+        <SasaPromoBanner />
+
         {/* Navbar global blanca. NavGuard la oculta en dashboards */}
         <NavGuard>
           <Navigation />
         </NavGuard>
         <main>{children}</main>
-
-
-
 
         {/* Service Worker Registration */}
         <script
