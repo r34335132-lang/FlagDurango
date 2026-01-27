@@ -511,7 +511,7 @@ export default function CoachDashboard() {
           team_name: team.name,
           user_email: user?.email || "coach@ligaflagdurango.com",
           title: `Inscripción Liga Flag Durango - ${team.name}`,
-          amount: 1600,
+          amount: 600,
         }),
       })
 
@@ -947,7 +947,7 @@ export default function CoachDashboard() {
                                   ) : (
                                     <>
                                       <DollarSign className="w-4 h-4 mr-2" />
-                                      Pagar Inscripción ($1,600)
+                                      Pagar Inscripción ($600)
                                     </>
                                   )}
                                 </Button>
