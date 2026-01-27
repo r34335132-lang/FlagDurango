@@ -194,7 +194,7 @@ export default function HomePage() {
               </div>
               <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight">
                 <span className="block">Temporada</span>
-                <span className="block text-white">Otoño 2025</span>
+                <span className="block text-white">Primavera 2026</span>
               </h1>
 
               {/* Countdown */}
