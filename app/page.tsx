@@ -190,7 +190,7 @@ export default function HomePage() {
 
             <div className="container mx-auto px-4 relative z-10 text-center">
               <div className="inline-block bg-yellow-400/95 backdrop-blur-sm text-gray-900 px-8 py-3 rounded-full font-bold mb-8 border border-black/10 shadow-lg">
-                {"🏆 Temporada Otoño 2025 - ¡Inscripciones Abiertas!"}
+                {"🏆 Temporada Primavera 2026 - ¡Inscripciones Abiertas!"}
               </div>
               <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight">
                 <span className="block">Temporada</span>
@@ -273,7 +273,7 @@ export default function HomePage() {
                 </h1>
                 <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
                   20 años haciendo historia en el flag football de Durango.
-                  <span className="block mt-2 text-yellow-300 font-semibold">¡La temporada 2025 está en marcha!</span>
+                  <span className="block mt-2 text-yellow-300 font-semibold">¡La temporada 2026 está en marcha!</span>
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button
@@ -405,11 +405,11 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* Convocatoria Otoño 2025 */}
+          {/* Convocatoria Primavera 2026 */}
           <section className="py-20 bg-gray-50">
             <div className="container mx-auto px-4">
               <h2 className="text-4xl md:text-5xl font-black text-center text-gray-900 mb-4">
-                Convocatoria Otoño 2025
+                Convocatoria Primavera 2026
               </h2>
               <p className="text-xl text-center text-gray-600 mb-16">Todo lo que necesitas saber para participar</p>
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -417,7 +417,7 @@ export default function HomePage() {
                   <CardContent className="p-6 text-center">
                     <img src="/images/cierre.png" alt="Cierre de Inscripción" className="w-12 h-12 mx-auto mb-4" />
                     <h3 className="font-bold text-gray-900 mb-2">Cierre de Inscripción</h3>
-                    <div className="text-3xl font-black text-gray-900">15 Sep</div>
+                    <div className="text-3xl font-black text-gray-900">17 Feb</div>
                     <div className="text-gray-600">2025</div>
                   </CardContent>
                 </Card>
@@ -426,7 +426,7 @@ export default function HomePage() {
                   <CardContent className="p-6 text-center">
                     <img src="/images/inscripciones.png" alt="Inscripción" className="w-12 h-12 mx-auto mb-4" />
                     <h3 className="font-bold text-gray-900 mb-2">Inscripción</h3>
-                    <div className="text-3xl font-black text-gray-900">$1,600</div>
+                    <div className="text-3xl font-black text-gray-900">$600</div>
                     <div className="text-gray-600">Por equipo</div>
                   </CardContent>
                 </Card>
@@ -471,7 +471,7 @@ export default function HomePage() {
                   <CardContent className="p-6 text-center">
                     <img src="/images/arbitraje.png" alt="Arbitraje" className="w-12 h-12 mx-auto mb-4" />
                     <h3 className="font-bold text-gray-900 mb-2">Arbitraje</h3>
-                    <div className="text-3xl font-black text-gray-900">$300</div>
+                    <div className="text-3xl font-black text-gray-900">$180</div>
                     <div className="text-gray-600">Por juego</div>
                   </CardContent>
                 </Card>
