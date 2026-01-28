@@ -222,7 +222,7 @@ export default function EstadisticasPage() {
             <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
               Estadísticas
               <span className="block bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-                2025
+                2026
               </span>
             </h1>
             <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
