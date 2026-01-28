@@ -253,7 +253,7 @@ export default function GamesPage() {
       shareCardElement.innerHTML = `
         <div style="width: 600px; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.15);">
           <div style="height: 80px; background: linear-gradient(135deg, #2563eb, #7c3aed, #dc2626); display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold;">
-            🏈 Liga Flag Durango 2025
+            🏈 Liga Flag Durango 2026
           </div>
 
           <div style="display: flex; justify-content: center; padding: 16px 0; background: #f8fafc;">
