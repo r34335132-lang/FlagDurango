@@ -16,6 +16,21 @@ export async function GET(request: NextRequest) {
         position,
         photo_url,
         team_id,
+        user_id,
+        birth_date,
+        phone,
+        personal_email,
+        address,
+        emergency_contact,
+        emergency_phone,
+        blood_type,
+        seasons_played,
+        playing_since,
+        medical_conditions,
+        cedula_url,
+        profile_completed,
+        admin_verified,
+        category_verified,
         created_at,
         teams!players_team_id_fkey (
           id,
@@ -160,7 +175,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     console.log("📝 Updating player with data:", body)
 
-    const { id, name, jersey_number, position, photo_url, team_id } = body
+    const { id, name, jersey_number, position, photo_url, team_id, admin_verified, category_verified } = body
 
     if (!id) {
       return NextResponse.json(
@@ -178,6 +193,8 @@ export async function PUT(request: NextRequest) {
     if (position !== undefined) updateData.position = position || null
     if (photo_url !== undefined) updateData.photo_url = photo_url || null
     if (team_id !== undefined) updateData.team_id = Number(team_id)
+    if (admin_verified !== undefined) updateData.admin_verified = admin_verified
+    if (category_verified !== undefined) updateData.category_verified = category_verified
 
     const { data: updatedPlayer, error } = await supabase
       .from("players")

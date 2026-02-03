@@ -1,0 +1,145 @@
+import { type NextRequest, NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
+
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get("user_id")
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "ID de usuario requerido" },
+        { status: 400 }
+      )
+    }
+
+    const { data: player, error } = await supabase
+      .from("players")
+      .select(`
+        *,
+        teams!players_team_id_fkey (
+          id,
+          name,
+          category,
+          logo_url
+        )
+      `)
+      .eq("user_id", Number(userId))
+      .single()
+
+    if (error || !player) {
+      return NextResponse.json(
+        { success: false, message: "Perfil de jugador no encontrado" },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: player,
+    })
+  } catch (error) {
+    console.error("Error fetching player profile:", error)
+    return NextResponse.json(
+      { success: false, message: "Error interno del servidor" },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const {
+      user_id,
+      birth_date,
+      phone,
+      personal_email,
+      address,
+      emergency_contact,
+      emergency_phone,
+      blood_type,
+      seasons_played,
+      playing_since,
+      medical_conditions,
+      cedula_url,
+      photo_url,
+    } = body
+
+    if (!user_id) {
+      return NextResponse.json(
+        { success: false, message: "ID de usuario requerido" },
+        { status: 400 }
+      )
+    }
+
+    // Verificar que el jugador existe y pertenece al usuario
+    const { data: existingPlayer, error: checkError } = await supabase
+      .from("players")
+      .select("id")
+      .eq("user_id", Number(user_id))
+      .single()
+
+    if (checkError || !existingPlayer) {
+      return NextResponse.json(
+        { success: false, message: "Jugador no encontrado" },
+        { status: 404 }
+      )
+    }
+
+    // Preparar datos para actualizar
+    const updateData: any = {
+      profile_completed: true,
+    }
+
+    if (birth_date) updateData.birth_date = birth_date
+    if (phone) updateData.phone = phone
+    if (personal_email) updateData.personal_email = personal_email
+    if (address) updateData.address = address
+    if (emergency_contact) updateData.emergency_contact = emergency_contact
+    if (emergency_phone) updateData.emergency_phone = emergency_phone
+    if (blood_type) updateData.blood_type = blood_type
+    if (seasons_played !== undefined) updateData.seasons_played = Number(seasons_played)
+    if (playing_since) updateData.playing_since = playing_since
+    if (medical_conditions !== undefined) updateData.medical_conditions = medical_conditions
+    if (cedula_url) updateData.cedula_url = cedula_url
+    if (photo_url) updateData.photo_url = photo_url
+
+    const { data: updatedPlayer, error } = await supabase
+      .from("players")
+      .update(updateData)
+      .eq("user_id", Number(user_id))
+      .select(`
+        *,
+        teams!players_team_id_fkey (
+          id,
+          name,
+          category,
+          logo_url
+        )
+      `)
+      .single()
+
+    if (error) {
+      console.error("Error updating player profile:", error)
+      return NextResponse.json(
+        { success: false, message: "Error al actualizar el perfil" },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: updatedPlayer,
+      message: "Perfil actualizado exitosamente",
+    })
+  } catch (error) {
+    console.error("Error updating player profile:", error)
+    return NextResponse.json(
+      { success: false, message: "Error interno del servidor" },
+      { status: 500 }
+    )
+  }
+}
