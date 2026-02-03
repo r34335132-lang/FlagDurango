@@ -27,7 +27,7 @@ export default function LoginPage() {
         } else if (user.role === "player") {
           router.push("/player")
         } else if (user.role === "coach") {
-          router.push("/coach")
+          router.push("/coach-dashboard")
         } else {
           router.push("/coach-dashboard")
         }
@@ -83,8 +83,8 @@ export default function LoginPage() {
         console.log("Redirigiendo a player portal")
         router.push("/player")
       } else if (user.role === "coach") {
-        console.log("Redirigiendo a coach portal")
-        router.push("/coach")
+        console.log("Redirigiendo a coach dashboard")
+        router.push("/coach-dashboard")
       } else {
         console.log("Redirigiendo a coach-dashboard")
         router.push("/coach-dashboard")

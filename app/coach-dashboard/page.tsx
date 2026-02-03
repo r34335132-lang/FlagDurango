@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Trophy, Users, Calendar, Plus, Edit, Trash2, DollarSign, Clock, Target, Star } from "lucide-react"
+import { Trophy, Users, Calendar, Plus, Edit, Trash2, DollarSign, Clock, Target, Star, UserPlus, Key, Copy, Check } from "lucide-react"
 
 interface CoachDashboardUser {
   id: number
@@ -47,6 +47,15 @@ interface Player {
   photo_url?: string
   jersey_number?: number
   team_id: number
+  user_id?: number
+  profile_completed?: boolean
+}
+
+interface PlayerCredentials {
+  player_id: number
+  player_name: string
+  email: string
+  password: string
 }
 
 interface Game {
@@ -117,6 +126,9 @@ export default function CoachDashboard() {
   const [autoAssigning, setAutoAssigning] = useState(false)
   const [payingTeam, setPayingTeam] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState("overview")
+  const [creatingAccount, setCreatingAccount] = useState<number | null>(null)
+  const [playerCredentials, setPlayerCredentials] = useState<PlayerCredentials | null>(null)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
 
   // Filtros para juegos
   const [gameFilter, setGameFilter] = useState({
@@ -493,6 +505,56 @@ export default function CoachDashboard() {
         `Error al ${editingPlayer ? "actualizar" : "crear"} jugador: ` +
           (error instanceof Error ? error.message : "Error desconocido"),
       )
+}
+    }
+  }
+
+  // Función para crear cuenta de jugador
+  const createPlayerAccount = async (player: Player) => {
+    setCreatingAccount(player.id)
+    setError(null)
+    setPlayerCredentials(null)
+
+    try {
+      const response = await fetch("/api/auth/register-player", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          player_id: player.id,
+          player_name: player.name,
+        }),
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setPlayerCredentials({
+          player_id: player.id,
+          player_name: player.name,
+          email: data.credentials.email,
+          password: data.credentials.password,
+        })
+        setSuccess("Cuenta creada exitosamente. Comparte las credenciales con el jugador.")
+        await loadDataOld()
+      } else {
+        setError(data.message || "Error al crear la cuenta")
+      }
+    } catch (error) {
+      console.error("Error creando cuenta:", error)
+      setError("Error al crear la cuenta del jugador")
+    } finally {
+      setCreatingAccount(null)
+    }
+  }
+
+  // Función para copiar al portapapeles
+  const copyToClipboard = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedField(field)
+      setTimeout(() => setCopiedField(null), 2000)
+    } catch (err) {
+      console.error("Error copiando:", err)
     }
   }
 
@@ -1080,39 +1142,78 @@ export default function CoachDashboard() {
                               <p className="text-gray-600 text-xs text-center mb-3">
                                 Equipo: {team?.name || "Sin equipo"}
                               </p>
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="flex-1 border-blue-300 text-blue-600 hover:bg-blue-50 bg-transparent"
-                                  onClick={() => {
-                                    setEditingPlayer(player)
-                                    setPlayerForm({
-                                      name: player.name,
-                                      jersey_number: player.jersey_number?.toString() || "",
-                                      position: player.position,
-                                      photo_url: player.photo_url || "",
-                                      team_id: player.team_id.toString(),
-                                    })
-                                    setActiveTab("edit-player")
-                                  }}
-                                >
-                                  <Edit className="w-3 h-3 mr-1" />
-                                  Editar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-red-300 text-red-600 hover:bg-red-50 bg-transparent"
-                                  onClick={() => {
-                                    if (confirm(`¿Eliminar a ${player.name}?`)) {
-                                      // TODO: Implement delete player API call
-                                      console.log("Delete player:", player.id)
-                                    }
-                                  }}
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
+                              
+                              {/* Estado de cuenta */}
+                              <div className="text-center mb-3">
+                                {player.user_id ? (
+                                  <Badge className="bg-green-100 text-green-800">
+                                    <Check className="w-3 h-3 mr-1" />
+                                    Tiene cuenta
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-gray-100 text-gray-600">
+                                    Sin cuenta
+                                  </Badge>
+                                )}
+                              </div>
+
+                              <div className="flex flex-col gap-2">
+                                {/* Botón crear cuenta si no tiene */}
+                                {!player.user_id && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => createPlayerAccount(player)}
+                                    disabled={creatingAccount === player.id}
+                                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                                  >
+                                    {creatingAccount === player.id ? (
+                                      <>
+                                        <Clock className="w-3 h-3 mr-1 animate-spin" />
+                                        Creando...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <UserPlus className="w-3 h-3 mr-1" />
+                                        Crear Cuenta
+                                      </>
+                                    )}
+                                  </Button>
+                                )}
+
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1 border-blue-300 text-blue-600 hover:bg-blue-50 bg-transparent"
+                                    onClick={() => {
+                                      setEditingPlayer(player)
+                                      setPlayerForm({
+                                        name: player.name,
+                                        jersey_number: player.jersey_number?.toString() || "",
+                                        position: player.position,
+                                        photo_url: player.photo_url || "",
+                                        team_id: player.team_id.toString(),
+                                      })
+                                      setActiveTab("edit-player")
+                                    }}
+                                  >
+                                    <Edit className="w-3 h-3 mr-1" />
+                                    Editar
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-red-300 text-red-600 hover:bg-red-50 bg-transparent"
+                                    onClick={() => {
+                                      if (confirm(`¿Eliminar a ${player.name}?`)) {
+                                        // TODO: Implement delete player API call
+                                        console.log("Delete player:", player.id)
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
                               </div>
                             </CardContent>
                           </Card>
@@ -1520,6 +1621,106 @@ export default function CoachDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Modal de Credenciales del Jugador */}
+      {playerCredentials && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="bg-white max-w-md w-full">
+            <CardHeader>
+              <CardTitle className="text-gray-900 flex items-center gap-2">
+                <Key className="w-5 h-5 text-green-600" />
+                Cuenta Creada Exitosamente
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-gray-600 text-sm">
+                Se ha creado la cuenta para <strong>{playerCredentials.player_name}</strong>. 
+                Comparte estas credenciales con el jugador para que pueda iniciar sesion y completar su perfil.
+              </p>
+
+              <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                <div>
+                  <Label className="text-gray-500 text-xs">Correo electronico</Label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 bg-white p-2 rounded text-sm border text-gray-900 break-all">
+                      {playerCredentials.email}
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(playerCredentials.email, "email")}
+                      className="shrink-0"
+                    >
+                      {copiedField === "email" ? (
+                        <Check className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-gray-500 text-xs">Contrasena</Label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 bg-white p-2 rounded text-sm border text-gray-900 font-mono">
+                      {playerCredentials.password}
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(playerCredentials.password, "password")}
+                      className="shrink-0"
+                    >
+                      {copiedField === "password" ? (
+                        <Check className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg">
+                <p className="text-amber-800 text-xs">
+                  <strong>Importante:</strong> El jugador debe iniciar sesion en /login y completar su perfil 
+                  subiendo su cedula y datos personales para verificar que esta en la categoria correcta.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    const text = `Hola ${playerCredentials.player_name}!\n\nTu cuenta de jugador ha sido creada:\n\nCorreo: ${playerCredentials.email}\nContrasena: ${playerCredentials.password}\n\nInicia sesion en la pagina de la liga y completa tu perfil.`
+                    copyToClipboard(text, "all")
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  {copiedField === "all" ? (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copiar Todo
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setPlayerCredentials(null)}
+                  className="border-gray-300"
+                >
+                  Cerrar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Footer CTA - Responsive */}
       <section className="py-12 md:py-16 bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500">
