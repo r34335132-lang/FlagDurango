@@ -505,7 +505,6 @@ export default function CoachDashboard() {
         `Error al ${editingPlayer ? "actualizar" : "crear"} jugador: ` +
           (error instanceof Error ? error.message : "Error desconocido"),
       )
-}
     }
   }
 
