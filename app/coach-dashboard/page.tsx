@@ -510,8 +510,18 @@ export default function CoachDashboard() {
     }
   }
 
-  // Función para crear cuenta de jugador
-  const createPlayerAccount = async (player: Player) => {
+  // Función para crear cuenta de jugador con email y password manual
+  const createPlayerAccount = async (player: Player, email: string, password: string) => {
+    if (!email || !password) {
+      setError("El correo y la contraseña son requeridos")
+      return
+    }
+
+    if (password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres")
+      return
+    }
+
     setCreatingAccount(player.id)
     setError(null)
     setPlayerCredentials(null)
@@ -523,6 +533,8 @@ export default function CoachDashboard() {
         body: JSON.stringify({
           player_id: player.id,
           player_name: player.name,
+          email: email,
+          password: password,
         }),
       })
 
@@ -532,10 +544,12 @@ export default function CoachDashboard() {
         setPlayerCredentials({
           player_id: player.id,
           player_name: player.name,
-          email: data.credentials.email,
-          password: data.credentials.password,
+          email: email,
+          password: password,
         })
-        setSuccess("Cuenta creada exitosamente. Comparte las credenciales con el jugador.")
+        setSuccess("Cuenta creada exitosamente.")
+        setShowAccountForm(null)
+        setAccountForm({ email: "", password: "" })
         await loadDataOld()
       } else {
         setError(data.message || "Error al crear la cuenta")
@@ -1163,21 +1177,14 @@ export default function CoachDashboard() {
                                 {!player.user_id && (
                                   <Button
                                     size="sm"
-                                    onClick={() => createPlayerAccount(player)}
-                                    disabled={creatingAccount === player.id}
+                                    onClick={() => {
+                                      setShowAccountForm(player)
+                                      setAccountForm({ email: "", password: "" })
+                                    }}
                                     className="w-full bg-green-600 hover:bg-green-700 text-white"
                                   >
-                                    {creatingAccount === player.id ? (
-                                      <>
-                                        <Clock className="w-3 h-3 mr-1 animate-spin" />
-                                        Creando...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <UserPlus className="w-3 h-3 mr-1" />
-                                        Crear Cuenta
-                                      </>
-                                    )}
+                                    <UserPlus className="w-3 h-3 mr-1" />
+                                    Crear Cuenta
                                   </Button>
                                 )}
 
@@ -1622,6 +1629,82 @@ export default function CoachDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Modal para crear cuenta - Coach escribe email y password */}
+      {showAccountForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="bg-white max-w-md w-full">
+            <CardHeader>
+              <CardTitle className="text-gray-900 flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-green-600" />
+                Crear Cuenta para {showAccountForm.name}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-gray-600 text-sm">
+                Escribe el correo y contraseña que deseas asignar a este jugador.
+              </p>
+
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="player-email" className="text-gray-700">Correo electronico</Label>
+                  <Input
+                    id="player-email"
+                    type="email"
+                    placeholder="jugador@ejemplo.com"
+                    value={accountForm.email}
+                    onChange={(e) => setAccountForm({ ...accountForm, email: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="player-password" className="text-gray-700">Contraseña</Label>
+                  <Input
+                    id="player-password"
+                    type="text"
+                    placeholder="Minimo 6 caracteres"
+                    value={accountForm.password}
+                    onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">La contraseña sera visible para que puedas compartirla con el jugador.</p>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  onClick={() => createPlayerAccount(showAccountForm, accountForm.email, accountForm.password)}
+                  disabled={creatingAccount === showAccountForm.id || !accountForm.email || !accountForm.password}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  {creatingAccount === showAccountForm.id ? (
+                    <>
+                      <Clock className="w-4 h-4 mr-2 animate-spin" />
+                      Creando...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Crear Cuenta
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowAccountForm(null)
+                    setAccountForm({ email: "", password: "" })
+                  }}
+                  className="border-gray-300"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Modal de Credenciales del Jugador */}
       {playerCredentials && (
