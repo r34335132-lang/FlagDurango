@@ -129,6 +129,8 @@ export default function CoachDashboard() {
   const [creatingAccount, setCreatingAccount] = useState<number | null>(null)
   const [playerCredentials, setPlayerCredentials] = useState<PlayerCredentials | null>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [showAccountForm, setShowAccountForm] = useState<Player | null>(null)
+  const [accountForm, setAccountForm] = useState({ email: "", password: "" })
 
   // Filtros para juegos
   const [gameFilter, setGameFilter] = useState({
