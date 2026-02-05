@@ -532,7 +532,7 @@ export default function CoachDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           player_id: player.id,
-          player_name: player.name,
+          coach_user_id: user!.id,
           email: email,
           password: password,
         }),

@@ -31,7 +31,7 @@ function generateEmail(name: string, teamName: string): string {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { player_id, coach_user_id } = body
+    const { player_id, coach_user_id, email: manualEmail, password: manualPassword } = body
 
     console.log("📝 Coach registrando cuenta para jugador:", { player_id, coach_user_id })
 
@@ -88,18 +88,20 @@ export async function POST(req: NextRequest) {
     }
 
     const teamName = (player.teams as any)?.name || "team"
-    const generatedEmail = generateEmail(player.name, teamName)
-    const generatedPassword = generatePassword(8)
+    
+    // Usar email/password manual si el coach los proporcionó, sino generar automáticamente
+    const finalEmail = manualEmail && manualEmail.trim() ? manualEmail.trim() : generateEmail(player.name, teamName)
+    const finalPassword = manualPassword && manualPassword.trim() ? manualPassword.trim() : generatePassword(8)
 
     // Hash de la contraseña
-    const hashedPassword = await bcrypt.hash(generatedPassword, 12)
+    const hashedPassword = await bcrypt.hash(finalPassword, 12)
 
     // Crear usuario para el jugador
     const { data: newUser, error: userError } = await supabase
       .from("users")
       .insert({
-        username: generatedEmail.split("@")[0],
-        email: generatedEmail,
+        username: finalEmail.split("@")[0],
+        email: finalEmail,
         password_hash: hashedPassword,
         role: "player",
         status: "active",
@@ -140,8 +142,8 @@ export async function POST(req: NextRequest) {
       data: {
         player_id: player.id,
         player_name: player.name,
-        email: generatedEmail,
-        password: generatedPassword, // Solo se muestra una vez al coach
+        email: finalEmail,
+        password: finalPassword, // Solo se muestra una vez al coach
         user_id: newUser.id,
       },
     })
