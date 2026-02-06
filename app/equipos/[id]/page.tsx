@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Navigation } from "@/components/navigation"
-import { Users, Trophy, Star, Phone, Mail, MapPin, Calendar, Clock } from "lucide-react"
+import { Users, Trophy, Star, Phone, MapPin, Calendar, Clock, CheckCircle, XCircle, User, Upload, Loader2 } from "lucide-react"
 
 interface Team {
   id: number
@@ -18,10 +18,19 @@ interface Team {
   captain_name?: string
   captain_phone?: string
   captain_photo_url?: string
+  coach_id?: number
+  coach_name?: string
+  coach_phone?: string
+  coach_photo_url?: string
   is_institutional: boolean
   coordinator_name?: string
   coordinator_phone?: string
   paid?: boolean
+}
+
+interface AttendanceRecord {
+  player_id: number
+  attended: boolean
 }
 
 interface Player {
@@ -56,6 +65,71 @@ export default function TeamPage() {
   const [games, setGames] = useState<Game[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [attendanceMap, setAttendanceMap] = useState<Record<number, { attended: number; total: number }>>({})
+  const [loggedUserId, setLoggedUserId] = useState<number | null>(null)
+  const [uploadingCoachPhoto, setUploadingCoachPhoto] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const coachPhotoRef = useRef<HTMLInputElement>(null)
+  const logoRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    try {
+      const userData = localStorage.getItem("user")
+      if (userData) {
+        const u = JSON.parse(userData)
+        setLoggedUserId(u.id || null)
+      }
+    } catch {}
+  }, [])
+
+  const isCoach = team?.coach_id != null && loggedUserId != null && team.coach_id === loggedUserId
+
+  const handleUploadFile = async (file: File, folder: string): Promise<string | null> => {
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("folder", folder)
+    const res = await fetch("/api/upload", { method: "POST", body: formData })
+    const data = await res.json()
+    return data.success ? data.url : null
+  }
+
+  const handleCoachPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !team) return
+    setUploadingCoachPhoto(true)
+    try {
+      const url = await handleUploadFile(file, "coach-photos")
+      if (url) {
+        await fetch("/api/teams", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: team.id, coach_photo_url: url }),
+        })
+        setTeam((prev) => prev ? { ...prev, coach_photo_url: url } : prev)
+      }
+    } catch {}
+    setUploadingCoachPhoto(false)
+    if (coachPhotoRef.current) coachPhotoRef.current.value = ""
+  }
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !team) return
+    setUploadingLogo(true)
+    try {
+      const url = await handleUploadFile(file, "team-logos")
+      if (url) {
+        await fetch("/api/teams", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: team.id, logo_url: url }),
+        })
+        setTeam((prev) => prev ? { ...prev, logo_url: url } : prev)
+      }
+    } catch {}
+    setUploadingLogo(false)
+    if (logoRef.current) logoRef.current.value = ""
+  }
 
   useEffect(() => {
     const loadTeamData = async () => {
@@ -82,11 +156,37 @@ export default function TeamPage() {
           const gamesData = await gamesResponse.json()
 
           if (gamesData.success) {
-            // Filtrar partidos donde este equipo participa (como local o visitante)
             const teamGames = (gamesData.data || []).filter(
               (game: Game) => game.home_team === teamInfo.name || game.away_team === teamInfo.name,
             )
             setGames(teamGames)
+
+            // Fetch attendance for all completed games
+            const completedGames = teamGames.filter((g: Game) => g.status === "finalizado")
+            const playersList = teamData.players || []
+            if (completedGames.length > 0 && playersList.length > 0) {
+              const attendanceResults: Record<number, { attended: number; total: number }> = {}
+              playersList.forEach((p: Player) => {
+                attendanceResults[p.id] = { attended: 0, total: completedGames.length }
+              })
+
+              const attendancePromises = completedGames.map((game: Game) =>
+                fetch(`/api/attendance?game_id=${game.id}`).then((r) => r.json()),
+              )
+              const attendanceData = await Promise.all(attendancePromises)
+
+              attendanceData.forEach((res) => {
+                if (res.success && res.data) {
+                  res.data.forEach((record: AttendanceRecord) => {
+                    if (attendanceResults[record.player_id] && record.attended) {
+                      attendanceResults[record.player_id].attended += 1
+                    }
+                  })
+                }
+              })
+
+              setAttendanceMap(attendanceResults)
+            }
           }
         }
       } catch (err) {
@@ -176,28 +276,49 @@ export default function TeamPage() {
               ← Volver a Equipos
             </Button>
 
-            <div className="w-32 h-32 mx-auto mb-6 rounded-full overflow-hidden border-4 border-white/20 shadow-2xl">
-              {team.logo_url ? (
-                <img
-                  src={team.logo_url || "/placeholder.svg"}
-                  alt={`Logo de ${team.name}`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.style.display = "none"
-                    const fallback = target.nextElementSibling as HTMLElement
-                    if (fallback) fallback.classList.remove("hidden")
+            <div className="relative w-32 h-32 mx-auto mb-6">
+              <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white/20 shadow-2xl">
+                {team.logo_url ? (
+                  <img
+                    src={team.logo_url || "/placeholder.svg"}
+                    alt={`Logo de ${team.name}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.style.display = "none"
+                      const fallback = target.nextElementSibling as HTMLElement
+                      if (fallback) fallback.classList.remove("hidden")
+                    }}
+                  />
+                ) : null}
+                <div
+                  className={`w-full h-full flex items-center justify-center text-white font-bold text-4xl ${team.logo_url ? "hidden" : ""}`}
+                  style={{
+                    background: `linear-gradient(135deg, ${team.color1}, ${team.color2})`,
                   }}
-                />
-              ) : null}
-              <div
-                className={`w-full h-full flex items-center justify-center text-white font-bold text-4xl ${team.logo_url ? "hidden" : ""}`}
-                style={{
-                  background: `linear-gradient(135deg, ${team.color1}, ${team.color2})`,
-                }}
-              >
-                {team.name ? team.name.charAt(0) : "?"}
+                >
+                  {team.name ? team.name.charAt(0) : "?"}
+                </div>
               </div>
+              {isCoach && (
+                <>
+                  <input
+                    ref={logoRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleLogoChange}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => logoRef.current?.click()}
+                    disabled={uploadingLogo}
+                    className="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-white text-gray-700 flex items-center justify-center shadow-lg hover:bg-gray-100 transition-colors border-2 border-white/50"
+                  >
+                    {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  </button>
+                </>
+              )}
             </div>
 
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">{team.name}</h1>
@@ -262,39 +383,83 @@ export default function TeamPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {team.captain_name && (
-                  <div className="flex items-center gap-3">
-                    <Users className="w-5 h-5 text-gray-400" />
-                    <div>
-                      <p className="font-semibold">Capitán</p>
-                      <p className="text-gray-600">{team.captain_name}</p>
+                {/* Coach */}
+                {(team.coach_name || team.coach_photo_url || isCoach) && (
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                    <div className="relative flex-shrink-0">
+                      {team.coach_photo_url ? (
+                        <img
+                          src={team.coach_photo_url}
+                          alt={`Coach ${team.coach_name || "del equipo"}`}
+                          className="w-14 h-14 rounded-full object-cover border-2 border-blue-300"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-300">
+                          <User className="w-6 h-6 text-blue-400" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-blue-600 font-medium uppercase tracking-wide">Coach</p>
+                      <p className="font-semibold text-gray-900">{team.coach_name || "Coach"}</p>
+                      {team.coach_phone && <p className="text-gray-500 text-sm">{team.coach_phone}</p>}
+                      {isCoach && (
+                        <>
+                          <input
+                            ref={coachPhotoRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={handleCoachPhotoChange}
+                            className="hidden"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => coachPhotoRef.current?.click()}
+                            disabled={uploadingCoachPhoto}
+                            className="mt-2 h-7 text-xs border-blue-300 text-blue-600 hover:bg-blue-100 hover:text-blue-700"
+                          >
+                            {uploadingCoachPhoto ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
+                            {team.coach_photo_url ? "Cambiar foto" : "Subir mi foto"}
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
-                {team.captain_phone && (
-                  <div className="flex items-center gap-3">
-                    <Phone className="w-5 h-5 text-gray-400" />
+
+                {/* Captain */}
+                {(team.captain_name || team.captain_photo_url) && (
+                  <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
+                    {team.captain_photo_url ? (
+                      <img
+                        src={team.captain_photo_url}
+                        alt={`Capitan ${team.captain_name || "del equipo"}`}
+                        className="w-14 h-14 rounded-full object-cover border-2 border-yellow-400"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-yellow-100 flex items-center justify-center border-2 border-yellow-400">
+                        <Star className="w-6 h-6 text-yellow-500" />
+                      </div>
+                    )}
                     <div>
-                      <p className="font-semibold">Teléfono</p>
-                      <p className="text-gray-600">{team.captain_phone}</p>
+                      <p className="text-xs text-yellow-700 font-medium uppercase tracking-wide">Capitan</p>
+                      <p className="font-semibold text-gray-900">{team.captain_name || "Capitan"}</p>
+                      {team.captain_phone && <p className="text-gray-500 text-sm">{team.captain_phone}</p>}
                     </div>
                   </div>
                 )}
+
                 {team.is_institutional && team.coordinator_name && (
-                  <div className="flex items-center gap-3">
-                    <Mail className="w-5 h-5 text-gray-400" />
-                    <div>
-                      <p className="font-semibold">Coordinador</p>
-                      <p className="text-gray-600">{team.coordinator_name}</p>
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-300">
+                      <Users className="w-6 h-6 text-gray-400" />
                     </div>
-                  </div>
-                )}
-                {team.is_institutional && team.coordinator_phone && (
-                  <div className="flex items-center gap-3">
-                    <Phone className="w-5 h-5 text-gray-400" />
                     <div>
-                      <p className="font-semibold">Teléfono Coordinador</p>
-                      <p className="text-gray-600">{team.coordinator_phone}</p>
+                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Coordinador</p>
+                      <p className="font-semibold text-gray-900">{team.coordinator_name}</p>
+                      {team.coordinator_phone && <p className="text-gray-500 text-sm">{team.coordinator_phone}</p>}
                     </div>
                   </div>
                 )}
@@ -349,12 +514,24 @@ export default function TeamPage() {
                           <span>#{player.jersey_number}</span>
                           {player.position && (
                             <>
-                              <span>•</span>
+                              <span>{'•'}</span>
                               <span>{player.position}</span>
                             </>
                           )}
                         </div>
                       </div>
+                      {/* Attendance */}
+                      {attendanceMap[player.id] && attendanceMap[player.id].total > 0 && (
+                        <div className="text-center flex-shrink-0">
+                          <div className="flex items-center gap-1">
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                            <span className="text-sm font-semibold text-gray-900">
+                              {attendanceMap[player.id].attended}/{attendanceMap[player.id].total}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500">Asistencia</p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

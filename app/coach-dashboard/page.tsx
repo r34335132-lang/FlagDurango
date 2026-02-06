@@ -2,14 +2,14 @@
 
 import type React from "react"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Trophy, Users, Calendar, Plus, Edit, Trash2, DollarSign, Clock, Target, Star } from "lucide-react"
+import { Trophy, Users, Calendar, Plus, Edit, Trash2, DollarSign, Clock, Target, Star, UserPlus, Key, Copy, Check, Upload, Loader2 } from "lucide-react"
 
 interface CoachDashboardUser {
   id: number
@@ -35,6 +35,7 @@ interface Team {
   captain_phone?: string
   coach_name?: string
   coach_phone?: string
+  coach_photo_url?: string
   paid?: boolean
   coach_id?: number
   created_at?: string
@@ -47,6 +48,15 @@ interface Player {
   photo_url?: string
   jersey_number?: number
   team_id: number
+  user_id?: number
+  profile_completed?: boolean
+}
+
+interface PlayerCredentials {
+  player_id: number
+  player_name: string
+  email: string
+  password: string
 }
 
 interface Game {
@@ -117,6 +127,16 @@ export default function CoachDashboard() {
   const [autoAssigning, setAutoAssigning] = useState(false)
   const [payingTeam, setPayingTeam] = useState<number | null>(null)
   const [activeTab, setActiveTab] = useState("overview")
+  const [creatingAccount, setCreatingAccount] = useState<number | null>(null)
+  const [playerCredentials, setPlayerCredentials] = useState<PlayerCredentials | null>(null)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [showAccountForm, setShowAccountForm] = useState<Player | null>(null)
+  const [accountForm, setAccountForm] = useState({ email: "", password: "" })
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const logoInputRef = useRef<HTMLInputElement>(null)
+  const [uploadingCoachPhoto, setUploadingCoachPhoto] = useState(false)
+  const coachPhotoInputRef = useRef<HTMLInputElement>(null)
+  const [coachPhotoUrl, setCoachPhotoUrl] = useState("")
 
   // Filtros para juegos
   const [gameFilter, setGameFilter] = useState({
@@ -407,7 +427,8 @@ export default function CoachDashboard() {
         body: JSON.stringify({
           ...teamForm,
           coach_id: user.id,
-          coach_name: user.username, // IMPORTANTE: Asegurar que se envíe el coach_name
+          coach_name: user.username,
+          coach_photo_url: coachPhotoUrl || null,
         }),
       })
 
@@ -432,6 +453,7 @@ export default function CoachDashboard() {
           coordinator_name: "",
           coordinator_phone: "",
         })
+        setCoachPhotoUrl("")
         setError(null)
         setSuccess("Equipo creado exitosamente")
       } else {
@@ -493,6 +515,154 @@ export default function CoachDashboard() {
         `Error al ${editingPlayer ? "actualizar" : "crear"} jugador: ` +
           (error instanceof Error ? error.message : "Error desconocido"),
       )
+    }
+  }
+
+  // Función para crear cuenta de jugador con email y password manual
+  const createPlayerAccount = async (player: Player, email: string, password: string) => {
+    if (!email || !password) {
+      setError("El correo y la contraseña son requeridos")
+      return
+    }
+
+    if (password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres")
+      return
+    }
+
+    setCreatingAccount(player.id)
+    setError(null)
+    setPlayerCredentials(null)
+
+    try {
+      const response = await fetch("/api/auth/register-player", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          player_id: player.id,
+          coach_user_id: user!.id,
+          email: email,
+          password: password,
+        }),
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        setPlayerCredentials({
+          player_id: player.id,
+          player_name: player.name,
+          email: email,
+          password: password,
+        })
+        setSuccess("Cuenta creada exitosamente.")
+        setShowAccountForm(null)
+        setAccountForm({ email: "", password: "" })
+        await loadDataOld()
+      } else {
+        setError(data.message || "Error al crear la cuenta")
+      }
+    } catch (error) {
+      console.error("Error creando cuenta:", error)
+      setError("Error al crear la cuenta del jugador")
+    } finally {
+      setCreatingAccount(null)
+    }
+  }
+
+  // Función para copiar al portapapeles
+  const copyToClipboard = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedField(field)
+      setTimeout(() => setCopiedField(null), 2000)
+    } catch (err) {
+      console.error("Error copiando:", err)
+    }
+  }
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingLogo(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("folder", "team-logos")
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        setTeamForm((prev) => ({ ...prev, logo_url: data.url }))
+        setSuccess("Logo subido exitosamente")
+      } else {
+        setError(data.message || "Error al subir el logo")
+      }
+    } catch (err) {
+      setError("Error al subir el logo")
+    } finally {
+      setUploadingLogo(false)
+      if (logoInputRef.current) {
+        logoInputRef.current.value = ""
+      }
+    }
+  }
+
+  const handleCoachPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, teamId?: number) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingCoachPhoto(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("folder", "coach-photos")
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        if (teamId) {
+          // Updating existing team
+          const updateRes = await fetch("/api/teams", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: teamId,
+              coach_photo_url: data.url,
+              coach_name: user?.username || user?.name || user?.email || null,
+            }),
+          })
+          const updateData = await updateRes.json()
+          if (updateData.success) {
+            setSuccess("Foto del coach actualizada exitosamente")
+            await loadDataOld()
+          } else {
+            setError(updateData.message || "Error al actualizar la foto")
+          }
+        } else {
+          // For new team creation form
+          setCoachPhotoUrl(data.url)
+          setSuccess("Foto del coach subida exitosamente")
+        }
+      } else {
+        setError(data.message || "Error al subir la foto")
+      }
+    } catch (err) {
+      setError("Error al subir la foto del coach")
+    } finally {
+      setUploadingCoachPhoto(false)
+      if (coachPhotoInputRef.current) {
+        coachPhotoInputRef.current.value = ""
+      }
     }
   }
 
@@ -902,9 +1072,25 @@ export default function CoachDashboard() {
                         <Card key={team.id} className="bg-white border-gray-200">
                           <CardHeader>
                             <div className="flex justify-between items-start">
-                              <div>
-                                <CardTitle className="text-gray-900 text-lg">{team.name}</CardTitle>
-                                <p className="text-gray-600 text-sm">{getCategoryLabel(team.category)}</p>
+                              <div className="flex items-center gap-3">
+                                {team.logo_url ? (
+                                  <img
+                                    src={team.logo_url}
+                                    alt={`Logo ${team.name}`}
+                                    className="w-12 h-12 rounded-lg object-cover border border-gray-200"
+                                  />
+                                ) : (
+                                  <div
+                                    className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-lg"
+                                    style={{ background: `linear-gradient(135deg, ${team.color1}, ${team.color2})` }}
+                                  >
+                                    {team.name?.charAt(0) || "?"}
+                                  </div>
+                                )}
+                                <div>
+                                  <CardTitle className="text-gray-900 text-lg">{team.name}</CardTitle>
+                                  <p className="text-gray-600 text-sm">{getCategoryLabel(team.category)}</p>
+                                </div>
                               </div>
                               <Badge className={team.paid ? "bg-green-600" : "bg-yellow-600"}>
                                 {team.paid ? "Pagado" : "Pendiente"}
@@ -912,12 +1098,118 @@ export default function CoachDashboard() {
                             </div>
                           </CardHeader>
                           <CardContent>
-                            <div className="space-y-2 text-sm text-gray-700">
+                            <div className="space-y-3 text-sm text-gray-700">
+                              {/* Coach Photo */}
+                              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                <div className="relative">
+                                  {team.coach_photo_url ? (
+                                    <img
+                                      src={team.coach_photo_url}
+                                      alt="Foto del coach"
+                                      className="w-14 h-14 rounded-full object-cover border-2 border-blue-300"
+                                    />
+                                  ) : (
+                                    <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-300">
+                                      <Users className="w-6 h-6 text-gray-400" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-semibold text-gray-900">Coach: {team.coach_name || user?.name || user?.email}</p>
+                                  <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    onChange={(e) => handleCoachPhotoUpload(e, team.id)}
+                                    className="hidden"
+                                    id={`coach-photo-${team.id}`}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => document.getElementById(`coach-photo-${team.id}`)?.click()}
+                                    disabled={uploadingCoachPhoto}
+                                    className="mt-1 h-7 text-xs border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                  >
+                                    {uploadingCoachPhoto ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
+                                    {team.coach_photo_url ? "Cambiar foto" : "Subir foto"}
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* Logo Edit */}
+                              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                <div className="relative">
+                                  {team.logo_url ? (
+                                    <img
+                                      src={team.logo_url}
+                                      alt="Logo del equipo"
+                                      className="w-12 h-12 rounded-lg object-cover border-2 border-gray-300"
+                                    />
+                                  ) : (
+                                    <div
+                                      className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold"
+                                      style={{ background: `linear-gradient(135deg, ${team.color1}, ${team.color2})` }}
+                                    >
+                                      {team.name?.charAt(0) || "?"}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-semibold text-gray-900 text-xs">Logo del Equipo</p>
+                                  <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    onChange={async (e) => {
+                                      const file = e.target.files?.[0]
+                                      if (!file) return
+                                      setUploadingLogo(true)
+                                      try {
+                                        const formData = new FormData()
+                                        formData.append("file", file)
+                                        formData.append("folder", "team-logos")
+                                        const res = await fetch("/api/upload", { method: "POST", body: formData })
+                                        const data = await res.json()
+                                        if (data.success) {
+                                          await fetch("/api/teams", {
+                                            method: "PUT",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({ id: team.id, logo_url: data.url }),
+                                          })
+                                          setSuccess("Logo actualizado exitosamente")
+                                          await loadDataOld()
+                                        } else {
+                                          setError(data.message || "Error al subir el logo")
+                                        }
+                                      } catch {
+                                        setError("Error al subir el logo")
+                                      } finally {
+                                        setUploadingLogo(false)
+                                        e.target.value = ""
+                                      }
+                                    }}
+                                    className="hidden"
+                                    id={`team-logo-${team.id}`}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => document.getElementById(`team-logo-${team.id}`)?.click()}
+                                    disabled={uploadingLogo}
+                                    className="mt-1 h-7 text-xs border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                  >
+                                    {uploadingLogo ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
+                                    {team.logo_url ? "Cambiar logo" : "Subir logo"}
+                                  </Button>
+                                </div>
+                              </div>
+
                               <div>
-                                <span className="text-gray-600">Capitán:</span> {team.captain_name || "No asignado"}
+                                <span className="text-gray-600">Capitan:</span> {team.captain_name || "No asignado"}
                               </div>
                               <div>
-                                <span className="text-gray-600">Teléfono:</span> {team.captain_phone || "No asignado"}
+                                <span className="text-gray-600">Telefono:</span> {team.captain_phone || "No asignado"}
                               </div>
                               <div className="flex items-center gap-2 mt-4">
                                 <div
@@ -1080,39 +1372,71 @@ export default function CoachDashboard() {
                               <p className="text-gray-600 text-xs text-center mb-3">
                                 Equipo: {team?.name || "Sin equipo"}
                               </p>
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="flex-1 border-blue-300 text-blue-600 hover:bg-blue-50 bg-transparent"
-                                  onClick={() => {
-                                    setEditingPlayer(player)
-                                    setPlayerForm({
-                                      name: player.name,
-                                      jersey_number: player.jersey_number?.toString() || "",
-                                      position: player.position,
-                                      photo_url: player.photo_url || "",
-                                      team_id: player.team_id.toString(),
-                                    })
-                                    setActiveTab("edit-player")
-                                  }}
-                                >
-                                  <Edit className="w-3 h-3 mr-1" />
-                                  Editar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="border-red-300 text-red-600 hover:bg-red-50 bg-transparent"
-                                  onClick={() => {
-                                    if (confirm(`¿Eliminar a ${player.name}?`)) {
-                                      // TODO: Implement delete player API call
-                                      console.log("Delete player:", player.id)
-                                    }
-                                  }}
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
+                              
+                              {/* Estado de cuenta */}
+                              <div className="text-center mb-3">
+                                {player.user_id ? (
+                                  <Badge className="bg-green-100 text-green-800">
+                                    <Check className="w-3 h-3 mr-1" />
+                                    Tiene cuenta
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-gray-100 text-gray-600">
+                                    Sin cuenta
+                                  </Badge>
+                                )}
+                              </div>
+
+                              <div className="flex flex-col gap-2">
+                                {/* Botón crear cuenta si no tiene */}
+                                {!player.user_id && (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => {
+                                      setShowAccountForm(player)
+                                      setAccountForm({ email: "", password: "" })
+                                    }}
+                                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                                  >
+                                    <UserPlus className="w-3 h-3 mr-1" />
+                                    Crear Cuenta
+                                  </Button>
+                                )}
+
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1 border-blue-300 text-blue-600 hover:bg-blue-50 bg-transparent"
+                                    onClick={() => {
+                                      setEditingPlayer(player)
+                                      setPlayerForm({
+                                        name: player.name,
+                                        jersey_number: player.jersey_number?.toString() || "",
+                                        position: player.position,
+                                        photo_url: player.photo_url || "",
+                                        team_id: player.team_id.toString(),
+                                      })
+                                      setActiveTab("edit-player")
+                                    }}
+                                  >
+                                    <Edit className="w-3 h-3 mr-1" />
+                                    Editar
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-red-300 text-red-600 hover:bg-red-50 bg-transparent"
+                                    onClick={() => {
+                                      if (confirm(`¿Eliminar a ${player.name}?`)) {
+                                        // TODO: Implement delete player API call
+                                        console.log("Delete player:", player.id)
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
                               </div>
                             </CardContent>
                           </Card>
@@ -1277,13 +1601,126 @@ export default function CoachDashboard() {
                         </div>
 
                         <div>
-                          <Label className="text-gray-900">URL del Logo (opcional)</Label>
-                          <Input
-                            value={teamForm.logo_url}
-                            onChange={(e) => setTeamForm({ ...teamForm, logo_url: e.target.value })}
-                            className="bg-white border-gray-300 text-gray-900 placeholder-gray-400"
-                            placeholder="https://ejemplo.com/logo.png"
+                          <Label className="text-gray-900">Logo del Equipo (opcional)</Label>
+                          <input
+                            ref={logoInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={handleLogoUpload}
+                            className="hidden"
                           />
+                          {teamForm.logo_url ? (
+                            <div className="flex items-center gap-3 mt-2">
+                              <img
+                                src={teamForm.logo_url}
+                                alt="Vista previa del logo"
+                                className="w-16 h-16 rounded-lg object-cover border-2 border-gray-300"
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => logoInputRef.current?.click()}
+                                  disabled={uploadingLogo}
+                                  className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                                >
+                                  {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cambiar logo"}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setTeamForm({ ...teamForm, logo_url: "" })}
+                                  className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                >
+                                  Quitar
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full h-20 mt-2 border-dashed border-2 border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                              onClick={() => logoInputRef.current?.click()}
+                              disabled={uploadingLogo}
+                            >
+                              {uploadingLogo ? (
+                                <div className="flex flex-col items-center gap-2">
+                                  <Loader2 className="h-6 w-6 animate-spin" />
+                                  <span>Subiendo...</span>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center gap-2">
+                                  <Upload className="h-6 w-6" />
+                                  <span>Subir logo del equipo</span>
+                                </div>
+                              )}
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Coach Photo */}
+                        <div>
+                          <Label className="text-gray-900">Foto del Coach (opcional)</Label>
+                          <input
+                            ref={coachPhotoInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={(e) => handleCoachPhotoUpload(e)}
+                            className="hidden"
+                          />
+                          {coachPhotoUrl ? (
+                            <div className="flex items-center gap-3 mt-2">
+                              <img
+                                src={coachPhotoUrl}
+                                alt="Vista previa foto del coach"
+                                className="w-16 h-16 rounded-full object-cover border-2 border-gray-300"
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => coachPhotoInputRef.current?.click()}
+                                  disabled={uploadingCoachPhoto}
+                                  className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                                >
+                                  {uploadingCoachPhoto ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cambiar foto"}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setCoachPhotoUrl("")}
+                                  className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                >
+                                  Quitar
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full h-20 mt-2 border-dashed border-2 border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                              onClick={() => coachPhotoInputRef.current?.click()}
+                              disabled={uploadingCoachPhoto}
+                            >
+                              {uploadingCoachPhoto ? (
+                                <div className="flex flex-col items-center gap-2">
+                                  <Loader2 className="h-6 w-6 animate-spin" />
+                                  <span>Subiendo...</span>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center gap-2">
+                                  <Upload className="h-6 w-6" />
+                                  <span>Subir foto del coach</span>
+                                </div>
+                              )}
+                            </Button>
+                          )}
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -1520,6 +1957,182 @@ export default function CoachDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Modal para crear cuenta - Coach escribe email y password */}
+      {showAccountForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="bg-white max-w-md w-full">
+            <CardHeader>
+              <CardTitle className="text-gray-900 flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-green-600" />
+                Crear Cuenta para {showAccountForm.name}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-gray-600 text-sm">
+                Escribe el correo y contraseña que deseas asignar a este jugador.
+              </p>
+
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="player-email" className="text-gray-700">Correo electronico</Label>
+                  <Input
+                    id="player-email"
+                    type="email"
+                    placeholder="jugador@ejemplo.com"
+                    value={accountForm.email}
+                    onChange={(e) => setAccountForm({ ...accountForm, email: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="player-password" className="text-gray-700">Contraseña</Label>
+                  <Input
+                    id="player-password"
+                    type="text"
+                    placeholder="Minimo 6 caracteres"
+                    value={accountForm.password}
+                    onChange={(e) => setAccountForm({ ...accountForm, password: e.target.value })}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">La contraseña sera visible para que puedas compartirla con el jugador.</p>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  onClick={() => createPlayerAccount(showAccountForm, accountForm.email, accountForm.password)}
+                  disabled={creatingAccount === showAccountForm.id || !accountForm.email || !accountForm.password}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  {creatingAccount === showAccountForm.id ? (
+                    <>
+                      <Clock className="w-4 h-4 mr-2 animate-spin" />
+                      Creando...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Crear Cuenta
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowAccountForm(null)
+                    setAccountForm({ email: "", password: "" })
+                  }}
+                  className="border-gray-300"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal de Credenciales del Jugador */}
+      {playerCredentials && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="bg-white max-w-md w-full">
+            <CardHeader>
+              <CardTitle className="text-gray-900 flex items-center gap-2">
+                <Key className="w-5 h-5 text-green-600" />
+                Cuenta Creada Exitosamente
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-gray-600 text-sm">
+                Se ha creado la cuenta para <strong>{playerCredentials.player_name}</strong>. 
+                Comparte estas credenciales con el jugador para que pueda iniciar sesion y completar su perfil.
+              </p>
+
+              <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                <div>
+                  <Label className="text-gray-500 text-xs">Correo electronico</Label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 bg-white p-2 rounded text-sm border text-gray-900 break-all">
+                      {playerCredentials.email}
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(playerCredentials.email, "email")}
+                      className="shrink-0"
+                    >
+                      {copiedField === "email" ? (
+                        <Check className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-gray-500 text-xs">Contrasena</Label>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 bg-white p-2 rounded text-sm border text-gray-900 font-mono">
+                      {playerCredentials.password}
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => copyToClipboard(playerCredentials.password, "password")}
+                      className="shrink-0"
+                    >
+                      {copiedField === "password" ? (
+                        <Check className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-lg">
+                <p className="text-amber-800 text-xs">
+                  <strong>Importante:</strong> El jugador debe iniciar sesion en /login y completar su perfil 
+                  subiendo su cedula y datos personales para verificar que esta en la categoria correcta.
+                </p>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    const text = `Hola ${playerCredentials.player_name}!\n\nTu cuenta de jugador ha sido creada:\n\nCorreo: ${playerCredentials.email}\nContrasena: ${playerCredentials.password}\n\nInicia sesion en la pagina de la liga y completa tu perfil.`
+                    copyToClipboard(text, "all")
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                >
+                  {copiedField === "all" ? (
+                    <>
+                      <Check className="w-4 h-4 mr-2" />
+                      Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copiar Todo
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setPlayerCredentials(null)}
+                  className="border-gray-300"
+                >
+                  Cerrar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Footer CTA - Responsive */}
       <section className="py-12 md:py-16 bg-gradient-to-r from-blue-500 via-purple-600 to-orange-500">

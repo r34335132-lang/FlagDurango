@@ -23,7 +23,12 @@ import {
   UserCheck,
   Target,
   Star,
+  FileImage,
+  User,
+  Eye,
+  Shield,
 } from "lucide-react"
+import AttendanceSection from "@/components/attendance-section"
 
 type Team = {
   id?: string
@@ -51,8 +56,30 @@ type Player = {
   team_id?: string
   name: string
   number?: string
+  jersey_number?: number
   position?: string
   photo_url?: string
+  user_id?: number
+  birth_date?: string
+  phone?: string
+  personal_email?: string
+  address?: string
+  emergency_contact_name?: string
+  emergency_contact_phone?: string
+  blood_type?: string
+  seasons_played?: number
+  playing_since?: string
+  medical_conditions?: string
+  cedula_url?: string
+  profile_completed?: boolean
+  admin_verified?: boolean
+  category_verified?: boolean
+  teams?: {
+    id: number
+    name: string
+    category: string
+    logo_url?: string
+  }
 }
 
 interface Staff {
@@ -495,16 +522,18 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      const [teamsRes, gamesRes, paymentsRes, venuesRes, fieldsRes] = await Promise.all([
+      const [teamsRes, playersRes, gamesRes, paymentsRes, venuesRes, fieldsRes] = await Promise.all([
         fetch("/api/teams").catch(() => ({ json: () => ({ success: false, data: [] }) })),
+        fetch("/api/players").catch(() => ({ json: () => ({ success: false, data: [] }) })),
         fetch("/api/games").catch(() => ({ json: () => ({ success: false, data: [] }) })),
         fetch("/api/payments").catch(() => ({ json: () => ({ success: false, data: [] }) })),
         fetch("/api/venues").catch(() => ({ json: () => ({ success: false, data: [] }) })),
         fetch("/api/fields").catch(() => ({ json: () => ({ success: false, data: [] }) })),
       ])
 
-      const [teamsData, gamesData, paymentsData, venuesData, fieldsData] = await Promise.all([
+      const [teamsData, playersData, gamesData, paymentsData, venuesData, fieldsData] = await Promise.all([
         teamsRes.json(),
+        playersRes.json(),
         gamesRes.json(),
         paymentsRes.json(),
         venuesRes.json(),
@@ -512,6 +541,7 @@ export default function AdminPage() {
       ])
 
       if (teamsData.success) setTeams(teamsData.data)
+      if (playersData.success) setPlayers(playersData.data || [])
       if (gamesData.success) setGames(gamesData.data)
       if (paymentsData.success) setPayments(paymentsData.data)
       if (venuesData.success) setVenues(venuesData.data)
@@ -1092,13 +1122,20 @@ export default function AdminPage() {
         </Card>
 
         <Tabs defaultValue="teams" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-9 bg-white border border-gray-200">
+          <TabsList className="grid w-full grid-cols-10 bg-white border border-gray-200">
             <TabsTrigger
               value="teams"
               className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 text-gray-700"
             >
               <Users className="w-4 h-4 mr-2" />
               Equipos
+            </TabsTrigger>
+            <TabsTrigger
+              value="players"
+              className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 text-gray-700"
+            >
+              <User className="w-4 h-4 mr-2" />
+              Jugadores
             </TabsTrigger>
             <TabsTrigger
               value="games"
@@ -1339,6 +1376,192 @@ export default function AdminPage() {
                   </Card>
                 ))}
               </div>
+            </div>
+          </TabsContent>
+
+          {/* Jugadores - Información Completa */}
+          <TabsContent value="players">
+            <div className="grid gap-6">
+              <Card className="bg-white border border-gray-200">
+                <CardHeader>
+                  <CardTitle className="text-gray-900 flex items-center">
+                    <User className="w-5 h-5 mr-2" />
+                    Información de Jugadores
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600 mb-4">
+                    Revisa la información personal de los jugadores para verificar que están en la categoría correcta.
+                  </p>
+                  
+                  {/* Lista de jugadores con información completa */}
+                  <div className="space-y-4">
+                    {players.map((player) => (
+                      <Card key={player.id} className="border border-gray-200">
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-4">
+                            {/* Foto del jugador */}
+                            <div className="flex-shrink-0">
+                              <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
+                                {player.photo_url ? (
+                                  <img
+                                    src={player.photo_url}
+                                    alt={player.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <User className="w-10 h-10 text-gray-400" />
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Información principal */}
+                            <div className="flex-1 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                              <div>
+                                <h3 className="font-semibold text-gray-900 text-lg">{player.name}</h3>
+                                {(player.jersey_number || player.number) && (
+                                  <p className="text-2xl font-bold text-blue-600">#{player.jersey_number || player.number}</p>
+                                )}
+                                <p className="text-sm text-gray-500">{player.position || "Sin posición"}</p>
+                                {player.teams && (
+                                  <Badge className="mt-1 bg-blue-100 text-blue-800">
+                                    {player.teams.name}
+                                  </Badge>
+                                )}
+                              </div>
+
+                              <div className="space-y-1 text-sm">
+                                <p className="text-gray-500">Datos personales</p>
+                                {player.birth_date && (
+                                  <p><span className="font-medium">Nacimiento:</span> {player.birth_date}</p>
+                                )}
+                                {player.phone && (
+                                  <p><span className="font-medium">Tel:</span> {player.phone}</p>
+                                )}
+                                {player.personal_email && (
+                                  <p><span className="font-medium">Email:</span> {player.personal_email}</p>
+                                )}
+                                {player.blood_type && (
+                                  <p><span className="font-medium">Sangre:</span> {player.blood_type}</p>
+                                )}
+                              </div>
+
+                              <div className="space-y-1 text-sm">
+                                <p className="text-gray-500">Experiencia</p>
+                                {player.seasons_played !== undefined && player.seasons_played !== null && (
+                                  <p><span className="font-medium">Temporadas:</span> {player.seasons_played}</p>
+                                )}
+                                {player.playing_since && (
+                                  <p><span className="font-medium">Desde:</span> {player.playing_since}</p>
+                                )}
+{player.emergency_contact_name && (
+<p><span className="font-medium">Emergencia:</span> {player.emergency_contact_name}</p>
+  )}
+{player.emergency_contact_phone && (
+<p><span className="font-medium">Tel emergencia:</span> {player.emergency_contact_phone}</p>
+                                )}
+                              </div>
+
+                              <div className="space-y-2">
+                                <p className="text-gray-500 text-sm">Estado</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {player.profile_completed ? (
+                                    <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
+                                      <CheckCircle className="w-3 h-3" />
+                                      Perfil completo
+                                    </Badge>
+                                  ) : (
+                                    <Badge className="bg-amber-100 text-amber-800 flex items-center gap-1">
+                                      <Clock className="w-3 h-3" />
+                                      Perfil incompleto
+                                    </Badge>
+                                  )}
+                                  {player.admin_verified ? (
+                                    <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
+                                      <Shield className="w-3 h-3" />
+                                      Verificado
+                                    </Badge>
+                                  ) : (
+                                    <Badge className="bg-gray-100 text-gray-800 flex items-center gap-1">
+                                      <Shield className="w-3 h-3" />
+                                      Sin verificar
+                                    </Badge>
+                                  )}
+                                  {player.user_id ? (
+                                    <Badge className="bg-blue-100 text-blue-800">Con cuenta</Badge>
+                                  ) : (
+                                    <Badge className="bg-gray-100 text-gray-600">Sin cuenta</Badge>
+                                  )}
+                                </div>
+
+                                {/* Cédula */}
+                                {player.cedula_url && (
+                                  <a
+                                    href={player.cedula_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
+                                  >
+                                    <FileImage className="w-4 h-4" />
+                                    Ver cédula
+                                  </a>
+                                )}
+
+                                {/* Botones de acción */}
+                                <div className="flex gap-2 mt-2">
+                                  {!player.admin_verified && player.profile_completed && (
+                                    <Button
+                                      size="sm"
+                                      onClick={async () => {
+                                        const res = await fetch("/api/players", {
+                                          method: "PUT",
+                                          headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({ id: player.id, admin_verified: true }),
+                                        })
+                                        if (res.ok) {
+                                          loadData()
+                                        }
+                                      }}
+                                      className="bg-green-600 hover:bg-green-700 text-white"
+                                    >
+                                      <CheckCircle className="w-3 h-3 mr-1" />
+                                      Verificar
+                                    </Button>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => handleDelete("players", Number(player.id))}
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Condiciones médicas */}
+                          {player.medical_conditions && (
+                            <div className="mt-3 p-2 bg-red-50 rounded text-sm">
+                              <span className="font-medium text-red-700">Condiciones médicas:</span>{" "}
+                              <span className="text-red-600">{player.medical_conditions}</span>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+
+                    {players.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        No hay jugadores registrados
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Asistencia a Partidos */}
+              <AttendanceSection games={games} teams={teams} players={players} />
             </div>
           </TabsContent>
 
