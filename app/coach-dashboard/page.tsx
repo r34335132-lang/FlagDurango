@@ -2,14 +2,14 @@
 
 import type React from "react"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Trophy, Users, Calendar, Plus, Edit, Trash2, DollarSign, Clock, Target, Star, UserPlus, Key, Copy, Check } from "lucide-react"
+import { Trophy, Users, Calendar, Plus, Edit, Trash2, DollarSign, Clock, Target, Star, UserPlus, Key, Copy, Check, Upload, Loader2 } from "lucide-react"
 
 interface CoachDashboardUser {
   id: number
@@ -131,6 +131,8 @@ export default function CoachDashboard() {
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [showAccountForm, setShowAccountForm] = useState<Player | null>(null)
   const [accountForm, setAccountForm] = useState({ email: "", password: "" })
+  const [uploadingPlayerPhoto, setUploadingPlayerPhoto] = useState(false)
+  const playerPhotoInputRef = useRef<HTMLInputElement>(null)
 
   // Filtros para juegos
   const [gameFilter, setGameFilter] = useState({
@@ -570,6 +572,39 @@ export default function CoachDashboard() {
       setTimeout(() => setCopiedField(null), 2000)
     } catch (err) {
       console.error("Error copiando:", err)
+    }
+  }
+
+  const handlePlayerPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingPlayerPhoto(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("folder", "player-photos")
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        setPlayerForm((prev) => ({ ...prev, photo_url: data.url }))
+        setSuccess("Foto subida exitosamente")
+      } else {
+        setError(data.message || "Error al subir la foto")
+      }
+    } catch (err) {
+      setError("Error al subir la foto")
+    } finally {
+      setUploadingPlayerPhoto(false)
+      // Reset file input so the same file can be re-selected
+      if (playerPhotoInputRef.current) {
+        playerPhotoInputRef.current.value = ""
+      }
     }
   }
 
@@ -1489,13 +1524,64 @@ export default function CoachDashboard() {
                         </div>
 
                         <div>
-                          <Label className="text-gray-900">URL de Foto (opcional)</Label>
-                          <Input
-                            value={playerForm.photo_url}
-                            onChange={(e) => setPlayerForm({ ...playerForm, photo_url: e.target.value })}
-                            className="bg-white border-gray-300 text-gray-900 placeholder-gray-400"
-                            placeholder="https://ejemplo.com/foto.jpg"
+                          <Label className="text-gray-900">Foto del Jugador (opcional)</Label>
+                          <input
+                            ref={playerPhotoInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={handlePlayerPhotoUpload}
+                            className="hidden"
                           />
+                          {playerForm.photo_url ? (
+                            <div className="flex items-center gap-3 mt-2">
+                              <img
+                                src={playerForm.photo_url}
+                                alt="Vista previa"
+                                className="w-16 h-16 rounded-full object-cover border-2 border-gray-300"
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => playerPhotoInputRef.current?.click()}
+                                  disabled={uploadingPlayerPhoto}
+                                  className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                                >
+                                  {uploadingPlayerPhoto ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cambiar foto"}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setPlayerForm({ ...playerForm, photo_url: "" })}
+                                  className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                >
+                                  Quitar
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full h-20 mt-2 border-dashed border-2 border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                              onClick={() => playerPhotoInputRef.current?.click()}
+                              disabled={uploadingPlayerPhoto}
+                            >
+                              {uploadingPlayerPhoto ? (
+                                <div className="flex flex-col items-center gap-2">
+                                  <Loader2 className="h-6 w-6 animate-spin" />
+                                  <span>Subiendo...</span>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center gap-2">
+                                  <Upload className="h-6 w-6" />
+                                  <span>Subir foto del jugador</span>
+                                </div>
+                              )}
+                            </Button>
+                          )}
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -1593,13 +1679,64 @@ export default function CoachDashboard() {
                         </div>
 
                         <div>
-                          <Label className="text-gray-900">URL de Foto (opcional)</Label>
-                          <Input
-                            value={playerForm.photo_url}
-                            onChange={(e) => setPlayerForm({ ...playerForm, photo_url: e.target.value })}
-                            className="bg-white border-gray-300 text-gray-900 placeholder-gray-400"
-                            placeholder="https://ejemplo.com/foto.jpg"
+                          <Label className="text-gray-900">Foto del Jugador (opcional)</Label>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={handlePlayerPhotoUpload}
+                            className="hidden"
+                            id="edit-player-photo-input"
                           />
+                          {playerForm.photo_url ? (
+                            <div className="flex items-center gap-3 mt-2">
+                              <img
+                                src={playerForm.photo_url}
+                                alt="Vista previa"
+                                className="w-16 h-16 rounded-full object-cover border-2 border-gray-300"
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => document.getElementById("edit-player-photo-input")?.click()}
+                                  disabled={uploadingPlayerPhoto}
+                                  className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                                >
+                                  {uploadingPlayerPhoto ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cambiar foto"}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setPlayerForm({ ...playerForm, photo_url: "" })}
+                                  className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                >
+                                  Quitar
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full h-20 mt-2 border-dashed border-2 border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                              onClick={() => document.getElementById("edit-player-photo-input")?.click()}
+                              disabled={uploadingPlayerPhoto}
+                            >
+                              {uploadingPlayerPhoto ? (
+                                <div className="flex flex-col items-center gap-2">
+                                  <Loader2 className="h-6 w-6 animate-spin" />
+                                  <span>Subiendo...</span>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center gap-2">
+                                  <Upload className="h-6 w-6" />
+                                  <span>Subir foto del jugador</span>
+                                </div>
+                              )}
+                            </Button>
+                          )}
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-4 pt-4">
