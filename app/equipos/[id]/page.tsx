@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Navigation } from "@/components/navigation"
-import { Users, Trophy, Star, Phone, MapPin, Calendar, Clock, CheckCircle, XCircle, User } from "lucide-react"
+import { Users, Trophy, Star, Phone, MapPin, Calendar, Clock, CheckCircle, XCircle, User, Upload, Loader2 } from "lucide-react"
 
 interface Team {
   id: number
@@ -18,6 +18,7 @@ interface Team {
   captain_name?: string
   captain_phone?: string
   captain_photo_url?: string
+  coach_id?: number
   coach_name?: string
   coach_phone?: string
   coach_photo_url?: string
@@ -65,6 +66,70 @@ export default function TeamPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [attendanceMap, setAttendanceMap] = useState<Record<number, { attended: number; total: number }>>({})
+  const [loggedUserId, setLoggedUserId] = useState<number | null>(null)
+  const [uploadingCoachPhoto, setUploadingCoachPhoto] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const coachPhotoRef = useRef<HTMLInputElement>(null)
+  const logoRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    try {
+      const userData = localStorage.getItem("user")
+      if (userData) {
+        const u = JSON.parse(userData)
+        setLoggedUserId(u.id || null)
+      }
+    } catch {}
+  }, [])
+
+  const isCoach = team?.coach_id != null && loggedUserId != null && team.coach_id === loggedUserId
+
+  const handleUploadFile = async (file: File, folder: string): Promise<string | null> => {
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("folder", folder)
+    const res = await fetch("/api/upload", { method: "POST", body: formData })
+    const data = await res.json()
+    return data.success ? data.url : null
+  }
+
+  const handleCoachPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !team) return
+    setUploadingCoachPhoto(true)
+    try {
+      const url = await handleUploadFile(file, "coach-photos")
+      if (url) {
+        await fetch("/api/teams", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: team.id, coach_photo_url: url }),
+        })
+        setTeam((prev) => prev ? { ...prev, coach_photo_url: url } : prev)
+      }
+    } catch {}
+    setUploadingCoachPhoto(false)
+    if (coachPhotoRef.current) coachPhotoRef.current.value = ""
+  }
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !team) return
+    setUploadingLogo(true)
+    try {
+      const url = await handleUploadFile(file, "team-logos")
+      if (url) {
+        await fetch("/api/teams", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: team.id, logo_url: url }),
+        })
+        setTeam((prev) => prev ? { ...prev, logo_url: url } : prev)
+      }
+    } catch {}
+    setUploadingLogo(false)
+    if (logoRef.current) logoRef.current.value = ""
+  }
 
   useEffect(() => {
     const loadTeamData = async () => {
@@ -211,28 +276,49 @@ export default function TeamPage() {
               ← Volver a Equipos
             </Button>
 
-            <div className="w-32 h-32 mx-auto mb-6 rounded-full overflow-hidden border-4 border-white/20 shadow-2xl">
-              {team.logo_url ? (
-                <img
-                  src={team.logo_url || "/placeholder.svg"}
-                  alt={`Logo de ${team.name}`}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.style.display = "none"
-                    const fallback = target.nextElementSibling as HTMLElement
-                    if (fallback) fallback.classList.remove("hidden")
+            <div className="relative w-32 h-32 mx-auto mb-6">
+              <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white/20 shadow-2xl">
+                {team.logo_url ? (
+                  <img
+                    src={team.logo_url || "/placeholder.svg"}
+                    alt={`Logo de ${team.name}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.style.display = "none"
+                      const fallback = target.nextElementSibling as HTMLElement
+                      if (fallback) fallback.classList.remove("hidden")
+                    }}
+                  />
+                ) : null}
+                <div
+                  className={`w-full h-full flex items-center justify-center text-white font-bold text-4xl ${team.logo_url ? "hidden" : ""}`}
+                  style={{
+                    background: `linear-gradient(135deg, ${team.color1}, ${team.color2})`,
                   }}
-                />
-              ) : null}
-              <div
-                className={`w-full h-full flex items-center justify-center text-white font-bold text-4xl ${team.logo_url ? "hidden" : ""}`}
-                style={{
-                  background: `linear-gradient(135deg, ${team.color1}, ${team.color2})`,
-                }}
-              >
-                {team.name ? team.name.charAt(0) : "?"}
+                >
+                  {team.name ? team.name.charAt(0) : "?"}
+                </div>
               </div>
+              {isCoach && (
+                <>
+                  <input
+                    ref={logoRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleLogoChange}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => logoRef.current?.click()}
+                    disabled={uploadingLogo}
+                    className="absolute bottom-0 right-0 w-9 h-9 rounded-full bg-white text-gray-700 flex items-center justify-center shadow-lg hover:bg-gray-100 transition-colors border-2 border-white/50"
+                  >
+                    {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  </button>
+                </>
+              )}
             </div>
 
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">{team.name}</h1>
@@ -298,23 +384,47 @@ export default function TeamPage() {
             <CardContent>
               <div className="space-y-4">
                 {/* Coach */}
-                {(team.coach_name || team.coach_photo_url) && (
+                {(team.coach_name || team.coach_photo_url || isCoach) && (
                   <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                    {team.coach_photo_url ? (
-                      <img
-                        src={team.coach_photo_url}
-                        alt={`Coach ${team.coach_name || "del equipo"}`}
-                        className="w-14 h-14 rounded-full object-cover border-2 border-blue-300"
-                      />
-                    ) : (
-                      <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-300">
-                        <User className="w-6 h-6 text-blue-400" />
-                      </div>
-                    )}
-                    <div>
+                    <div className="relative flex-shrink-0">
+                      {team.coach_photo_url ? (
+                        <img
+                          src={team.coach_photo_url}
+                          alt={`Coach ${team.coach_name || "del equipo"}`}
+                          className="w-14 h-14 rounded-full object-cover border-2 border-blue-300"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-300">
+                          <User className="w-6 h-6 text-blue-400" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
                       <p className="text-xs text-blue-600 font-medium uppercase tracking-wide">Coach</p>
                       <p className="font-semibold text-gray-900">{team.coach_name || "Coach"}</p>
                       {team.coach_phone && <p className="text-gray-500 text-sm">{team.coach_phone}</p>}
+                      {isCoach && (
+                        <>
+                          <input
+                            ref={coachPhotoRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={handleCoachPhotoChange}
+                            className="hidden"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => coachPhotoRef.current?.click()}
+                            disabled={uploadingCoachPhoto}
+                            className="mt-2 h-7 text-xs border-blue-300 text-blue-600 hover:bg-blue-100 hover:text-blue-700"
+                          >
+                            {uploadingCoachPhoto ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
+                            {team.coach_photo_url ? "Cambiar foto" : "Subir mi foto"}
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 )}
