@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Navigation } from "@/components/navigation"
-import { Users, Trophy, Star, Phone, MapPin, Calendar, Clock, CheckCircle, XCircle, User, Upload, Loader2 } from "lucide-react"
+import { Users, Trophy, Star, Phone, MapPin, Calendar, Clock, CheckCircle, XCircle, User, Upload, Loader2, Medal } from "lucide-react"
 
 interface Team {
   id: number
@@ -31,6 +31,15 @@ interface Team {
 interface AttendanceRecord {
   player_id: number
   attended: boolean
+}
+
+interface Championship {
+  id: number
+  title: string
+  year: number
+  tournament?: string
+  position?: string
+  description?: string
 }
 
 interface Player {
@@ -67,6 +76,7 @@ export default function TeamPage() {
   const [error, setError] = useState<string | null>(null)
   const [attendanceMap, setAttendanceMap] = useState<Record<number, { attended: number; total: number }>>({})
   const [loggedUserId, setLoggedUserId] = useState<number | null>(null)
+  const [championships, setChampionships] = useState<Championship[]>([])
   const [uploadingCoachPhoto, setUploadingCoachPhoto] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const coachPhotoRef = useRef<HTMLInputElement>(null)
@@ -149,6 +159,13 @@ export default function TeamPage() {
         const teamInfo = teamData.data
         setTeam(teamInfo)
         setPlayers(teamData.players || [])
+
+        // Cargar campeonatos del equipo
+        try {
+          const champRes = await fetch(`/api/championships?team_id=${teamId}`)
+          const champData = await champRes.json()
+          if (champData.success) setChampionships(champData.data || [])
+        } catch {}
 
         // Cargar SOLO los partidos de este equipo específico
         if (teamInfo?.name) {
@@ -466,6 +483,44 @@ export default function TeamPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Campeonatos */}
+          {championships.length > 0 && (
+            <Card className="bg-white border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-gray-900 flex items-center">
+                  <Trophy className="w-5 h-5 mr-2 text-yellow-500" />
+                  Historial de Campeonatos ({championships.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {championships.map((ch) => (
+                    <div key={ch.id} className="flex items-start gap-3 p-3 bg-yellow-50/50 rounded-lg border border-yellow-100">
+                      <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                        <Medal className="w-5 h-5 text-yellow-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-gray-900">{ch.title}</h4>
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          {ch.position && (
+                            <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
+                              {ch.position}
+                            </Badge>
+                          )}
+                          <span className="text-sm text-gray-500 flex items-center gap-1">
+                            <Calendar className="w-3 h-3" /> {ch.year}
+                          </span>
+                        </div>
+                        {ch.tournament && <p className="text-sm text-gray-600 mt-1">{ch.tournament}</p>}
+                        {ch.description && <p className="text-sm text-gray-400 mt-1">{ch.description}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Jugadores */}
           <Card className="bg-white border-gray-200">
