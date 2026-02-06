@@ -27,7 +27,6 @@ import {
   User,
   Eye,
   Shield,
-  Target,
 } from "lucide-react"
 import AttendanceSection from "@/components/attendance-section"
 import PlayerStatsAdmin from "@/components/player-stats-admin"
