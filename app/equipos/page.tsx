@@ -366,17 +366,17 @@ export default function TeamsPage() {
                   )}
 
                   {/* Staff del equipo */}
-                  {(team.coach_name || team.captain_name) && (
+                  {(team.coach_name || team.coach_photo_url || team.captain_name || team.captain_photo_url) && (
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h4 className="text-gray-900 font-semibold mb-3 flex items-center">
                         <Users className="w-4 h-4 mr-2" />
                         Staff
                       </h4>
                       <div className="space-y-3">
-                        {team.coach_name && (
+                        {(team.coach_name || team.coach_photo_url) && (
                           <div className="flex items-center gap-2">
                             {team.coach_photo_url ? (
-                              <img src={team.coach_photo_url} alt={`Coach ${team.coach_name}`} className="w-10 h-10 rounded-full object-cover border-2 border-blue-300" />
+                              <img src={team.coach_photo_url} alt={`Coach ${team.coach_name || "del equipo"}`} className="w-10 h-10 rounded-full object-cover border-2 border-blue-300" />
                             ) : (
                               <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-300">
                                 <Trophy className="w-4 h-4 text-blue-400" />
@@ -384,14 +384,14 @@ export default function TeamsPage() {
                             )}
                             <div className="text-sm">
                               <p className="text-xs text-blue-600 font-medium">Coach</p>
-                              <p className="text-gray-900 font-medium">{team.coach_name}</p>
+                              <p className="text-gray-900 font-medium">{team.coach_name || "Coach"}</p>
                             </div>
                           </div>
                         )}
-                        {team.captain_name && (
+                        {(team.captain_name || team.captain_photo_url) && (
                           <div className="flex items-center gap-2">
                             {team.captain_photo_url ? (
-                              <img src={team.captain_photo_url} alt={`Cap ${team.captain_name}`} className="w-10 h-10 rounded-full object-cover border-2 border-yellow-400" />
+                              <img src={team.captain_photo_url} alt={`Cap ${team.captain_name || "del equipo"}`} className="w-10 h-10 rounded-full object-cover border-2 border-yellow-400" />
                             ) : (
                               <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center border-2 border-yellow-400">
                                 <Users className="w-4 h-4 text-yellow-500" />
@@ -399,7 +399,7 @@ export default function TeamsPage() {
                             )}
                             <div className="text-sm">
                               <p className="text-xs text-yellow-700 font-medium">Capitan</p>
-                              <p className="text-gray-900 font-medium">{team.captain_name}</p>
+                              <p className="text-gray-900 font-medium">{team.captain_name || "Capitan"}</p>
                             </div>
                           </div>
                         )}

@@ -298,12 +298,12 @@ export default function TeamPage() {
             <CardContent>
               <div className="space-y-4">
                 {/* Coach */}
-                {team.coach_name && (
+                {(team.coach_name || team.coach_photo_url) && (
                   <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
                     {team.coach_photo_url ? (
                       <img
                         src={team.coach_photo_url}
-                        alt={`Coach ${team.coach_name}`}
+                        alt={`Coach ${team.coach_name || "del equipo"}`}
                         className="w-14 h-14 rounded-full object-cover border-2 border-blue-300"
                       />
                     ) : (
@@ -313,19 +313,19 @@ export default function TeamPage() {
                     )}
                     <div>
                       <p className="text-xs text-blue-600 font-medium uppercase tracking-wide">Coach</p>
-                      <p className="font-semibold text-gray-900">{team.coach_name}</p>
+                      <p className="font-semibold text-gray-900">{team.coach_name || "Coach"}</p>
                       {team.coach_phone && <p className="text-gray-500 text-sm">{team.coach_phone}</p>}
                     </div>
                   </div>
                 )}
 
                 {/* Captain */}
-                {team.captain_name && (
+                {(team.captain_name || team.captain_photo_url) && (
                   <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
                     {team.captain_photo_url ? (
                       <img
                         src={team.captain_photo_url}
-                        alt={`Capitan ${team.captain_name}`}
+                        alt={`Capitan ${team.captain_name || "del equipo"}`}
                         className="w-14 h-14 rounded-full object-cover border-2 border-yellow-400"
                       />
                     ) : (
@@ -335,7 +335,7 @@ export default function TeamPage() {
                     )}
                     <div>
                       <p className="text-xs text-yellow-700 font-medium uppercase tracking-wide">Capitan</p>
-                      <p className="font-semibold text-gray-900">{team.captain_name}</p>
+                      <p className="font-semibold text-gray-900">{team.captain_name || "Capitan"}</p>
                       {team.captain_phone && <p className="text-gray-500 text-sm">{team.captain_phone}</p>}
                     </div>
                   </div>

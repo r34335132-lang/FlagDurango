@@ -635,7 +635,11 @@ export default function CoachDashboard() {
           const updateRes = await fetch("/api/teams", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: teamId, coach_photo_url: data.url }),
+            body: JSON.stringify({
+              id: teamId,
+              coach_photo_url: data.url,
+              coach_name: user?.username || user?.name || user?.email || null,
+            }),
           })
           const updateData = await updateRes.json()
           if (updateData.success) {
@@ -1068,9 +1072,25 @@ export default function CoachDashboard() {
                         <Card key={team.id} className="bg-white border-gray-200">
                           <CardHeader>
                             <div className="flex justify-between items-start">
-                              <div>
-                                <CardTitle className="text-gray-900 text-lg">{team.name}</CardTitle>
-                                <p className="text-gray-600 text-sm">{getCategoryLabel(team.category)}</p>
+                              <div className="flex items-center gap-3">
+                                {team.logo_url ? (
+                                  <img
+                                    src={team.logo_url}
+                                    alt={`Logo ${team.name}`}
+                                    className="w-12 h-12 rounded-lg object-cover border border-gray-200"
+                                  />
+                                ) : (
+                                  <div
+                                    className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold text-lg"
+                                    style={{ background: `linear-gradient(135deg, ${team.color1}, ${team.color2})` }}
+                                  >
+                                    {team.name?.charAt(0) || "?"}
+                                  </div>
+                                )}
+                                <div>
+                                  <CardTitle className="text-gray-900 text-lg">{team.name}</CardTitle>
+                                  <p className="text-gray-600 text-sm">{getCategoryLabel(team.category)}</p>
+                                </div>
                               </div>
                               <Badge className={team.paid ? "bg-green-600" : "bg-yellow-600"}>
                                 {team.paid ? "Pagado" : "Pendiente"}
@@ -1113,6 +1133,74 @@ export default function CoachDashboard() {
                                   >
                                     {uploadingCoachPhoto ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
                                     {team.coach_photo_url ? "Cambiar foto" : "Subir foto"}
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* Logo Edit */}
+                              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                <div className="relative">
+                                  {team.logo_url ? (
+                                    <img
+                                      src={team.logo_url}
+                                      alt="Logo del equipo"
+                                      className="w-12 h-12 rounded-lg object-cover border-2 border-gray-300"
+                                    />
+                                  ) : (
+                                    <div
+                                      className="w-12 h-12 rounded-lg flex items-center justify-center text-white font-bold"
+                                      style={{ background: `linear-gradient(135deg, ${team.color1}, ${team.color2})` }}
+                                    >
+                                      {team.name?.charAt(0) || "?"}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-semibold text-gray-900 text-xs">Logo del Equipo</p>
+                                  <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    onChange={async (e) => {
+                                      const file = e.target.files?.[0]
+                                      if (!file) return
+                                      setUploadingLogo(true)
+                                      try {
+                                        const formData = new FormData()
+                                        formData.append("file", file)
+                                        formData.append("folder", "team-logos")
+                                        const res = await fetch("/api/upload", { method: "POST", body: formData })
+                                        const data = await res.json()
+                                        if (data.success) {
+                                          await fetch("/api/teams", {
+                                            method: "PUT",
+                                            headers: { "Content-Type": "application/json" },
+                                            body: JSON.stringify({ id: team.id, logo_url: data.url }),
+                                          })
+                                          setSuccess("Logo actualizado exitosamente")
+                                          await loadDataOld()
+                                        } else {
+                                          setError(data.message || "Error al subir el logo")
+                                        }
+                                      } catch {
+                                        setError("Error al subir el logo")
+                                      } finally {
+                                        setUploadingLogo(false)
+                                        e.target.value = ""
+                                      }
+                                    }}
+                                    className="hidden"
+                                    id={`team-logo-${team.id}`}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => document.getElementById(`team-logo-${team.id}`)?.click()}
+                                    disabled={uploadingLogo}
+                                    className="mt-1 h-7 text-xs border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                  >
+                                    {uploadingLogo ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
+                                    {team.logo_url ? "Cambiar logo" : "Subir logo"}
                                   </Button>
                                 </div>
                               </div>
