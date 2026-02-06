@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Trophy, Users, Calendar, Plus, Edit, Trash2, DollarSign, Clock, Target, Star, UserPlus, Key, Copy, Check, Upload, Loader2 } from "lucide-react"
+import { Trophy, Users, Calendar, Plus, Edit, Trash2, DollarSign, Clock, Target, Star, UserPlus, Key, Copy, Check, Upload, Loader2, Medal } from "lucide-react"
+import CoachChampionships from "@/components/coach-championships"
 
 interface CoachDashboardUser {
   id: number
@@ -916,6 +917,16 @@ export default function CoachDashboard() {
                   }`}
                 >
                   ➕ Crear Equipo
+                </button>
+                <button
+                  onClick={() => setActiveTab("championships")}
+                  className={`w-full text-left px-3 md:px-4 py-2 md:py-3 rounded-lg transition-all text-sm md:text-base ${
+                    activeTab === "championships"
+                      ? "bg-blue-600 text-white font-semibold"
+                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                  }`}
+                >
+                  🏆 Campeonatos
                 </button>
               </div>
 
@@ -1952,6 +1963,11 @@ export default function CoachDashboard() {
                     </CardContent>
                   </Card>
                 </div>
+              )}
+
+              {/* Championships Tab */}
+              {activeTab === "championships" && (
+                <CoachChampionships teams={teams} coachId={user.id} />
               )}
             </div>
           </div>

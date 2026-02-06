@@ -27,8 +27,10 @@ import {
   User,
   Eye,
   Shield,
+  Target,
 } from "lucide-react"
 import AttendanceSection from "@/components/attendance-section"
+import PlayerStatsAdmin from "@/components/player-stats-admin"
 
 type Team = {
   id?: string
@@ -1159,6 +1161,13 @@ export default function AdminPage() {
               Deudas
             </TabsTrigger>
             <TabsTrigger
+              value="stats"
+              className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 text-gray-700"
+            >
+              <Target className="w-4 h-4 mr-2" />
+              Estadisticas
+            </TabsTrigger>
+            <TabsTrigger
               value="calendar"
               className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900 text-gray-700"
             >
@@ -2152,6 +2161,11 @@ export default function AdminPage() {
                 ))}
               </div>
             </div>
+          </TabsContent>
+
+          {/* Estadisticas */}
+          <TabsContent value="stats">
+            <PlayerStatsAdmin games={games} teams={teams} players={players} />
           </TabsContent>
 
           {/* Calendario */}
