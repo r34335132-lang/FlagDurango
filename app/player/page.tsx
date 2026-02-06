@@ -102,10 +102,10 @@ export default function PlayerPortal() {
     }
 
     setUser(userData)
-    fetchPlayerProfile(userData.id)
+    fetchPlayerProfile(userData.id, userData.email)
   }, [router])
 
-  const fetchPlayerProfile = async (userId: number) => {
+  const fetchPlayerProfile = async (userId: number, userEmail?: string) => {
     try {
       const res = await fetch(`/api/player/profile?user_id=${userId}`)
       const data = await res.json()
@@ -115,7 +115,7 @@ export default function PlayerPortal() {
         setForm({
           birth_date: data.data.birth_date || "",
           phone: data.data.phone || "",
-          personal_email: data.data.personal_email || "",
+          personal_email: data.data.personal_email || userEmail || "",
           address: data.data.address || "",
           emergency_contact: data.data.emergency_contact || "",
           emergency_phone: data.data.emergency_phone || "",
@@ -561,7 +561,7 @@ export default function PlayerPortal() {
                 <div>
                   <Label htmlFor="personal_email" className="flex items-center gap-2">
                     <Mail className="h-4 w-4" />
-                    Email personal
+                    Email personal (opcional)
                   </Label>
                   <Input
                     id="personal_email"
@@ -570,6 +570,11 @@ export default function PlayerPortal() {
                     value={form.personal_email}
                     onChange={(e) => setForm({ ...form, personal_email: e.target.value })}
                   />
+                  {user?.email && !form.personal_email && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Se usara tu email de cuenta: {user.email}
+                    </p>
+                  )}
                 </div>
               </div>
 

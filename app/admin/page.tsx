@@ -521,16 +521,18 @@ export default function AdminPage() {
 
   const loadData = async () => {
     try {
-      const [teamsRes, gamesRes, paymentsRes, venuesRes, fieldsRes] = await Promise.all([
+      const [teamsRes, playersRes, gamesRes, paymentsRes, venuesRes, fieldsRes] = await Promise.all([
         fetch("/api/teams").catch(() => ({ json: () => ({ success: false, data: [] }) })),
+        fetch("/api/players").catch(() => ({ json: () => ({ success: false, data: [] }) })),
         fetch("/api/games").catch(() => ({ json: () => ({ success: false, data: [] }) })),
         fetch("/api/payments").catch(() => ({ json: () => ({ success: false, data: [] }) })),
         fetch("/api/venues").catch(() => ({ json: () => ({ success: false, data: [] }) })),
         fetch("/api/fields").catch(() => ({ json: () => ({ success: false, data: [] }) })),
       ])
 
-      const [teamsData, gamesData, paymentsData, venuesData, fieldsData] = await Promise.all([
+      const [teamsData, playersData, gamesData, paymentsData, venuesData, fieldsData] = await Promise.all([
         teamsRes.json(),
+        playersRes.json(),
         gamesRes.json(),
         paymentsRes.json(),
         venuesRes.json(),
@@ -538,6 +540,7 @@ export default function AdminPage() {
       ])
 
       if (teamsData.success) setTeams(teamsData.data)
+      if (playersData.success) setPlayers(playersData.data || [])
       if (gamesData.success) setGames(gamesData.data)
       if (paymentsData.success) setPayments(paymentsData.data)
       if (venuesData.success) setVenues(venuesData.data)
