@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
           id,
           name,
           category,
-          logo_url
+          logo_url,
+          captain_name
         )
       `)
       .eq("user_id", Number(userId))
@@ -137,7 +138,8 @@ export async function PUT(request: NextRequest) {
           id,
           name,
           category,
-          logo_url
+          logo_url,
+          captain_name
         )
       `)
       .single()

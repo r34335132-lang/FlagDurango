@@ -35,6 +35,7 @@ interface Team {
   captain_phone?: string
   coach_name?: string
   coach_phone?: string
+  coach_photo_url?: string
   paid?: boolean
   coach_id?: number
   created_at?: string
@@ -133,6 +134,9 @@ export default function CoachDashboard() {
   const [accountForm, setAccountForm] = useState({ email: "", password: "" })
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
+  const [uploadingCoachPhoto, setUploadingCoachPhoto] = useState(false)
+  const coachPhotoInputRef = useRef<HTMLInputElement>(null)
+  const [coachPhotoUrl, setCoachPhotoUrl] = useState("")
 
   // Filtros para juegos
   const [gameFilter, setGameFilter] = useState({
@@ -423,7 +427,8 @@ export default function CoachDashboard() {
         body: JSON.stringify({
           ...teamForm,
           coach_id: user.id,
-          coach_name: user.username, // IMPORTANTE: Asegurar que se envíe el coach_name
+          coach_name: user.username,
+          coach_photo_url: coachPhotoUrl || null,
         }),
       })
 
@@ -448,6 +453,7 @@ export default function CoachDashboard() {
           coordinator_name: "",
           coordinator_phone: "",
         })
+        setCoachPhotoUrl("")
         setError(null)
         setSuccess("Equipo creado exitosamente")
       } else {
@@ -603,6 +609,55 @@ export default function CoachDashboard() {
       setUploadingLogo(false)
       if (logoInputRef.current) {
         logoInputRef.current.value = ""
+      }
+    }
+  }
+
+  const handleCoachPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>, teamId?: number) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingCoachPhoto(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("folder", "coach-photos")
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await res.json()
+      if (data.success) {
+        if (teamId) {
+          // Updating existing team
+          const updateRes = await fetch("/api/teams", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: teamId, coach_photo_url: data.url }),
+          })
+          const updateData = await updateRes.json()
+          if (updateData.success) {
+            setSuccess("Foto del coach actualizada exitosamente")
+            await loadDataOld()
+          } else {
+            setError(updateData.message || "Error al actualizar la foto")
+          }
+        } else {
+          // For new team creation form
+          setCoachPhotoUrl(data.url)
+          setSuccess("Foto del coach subida exitosamente")
+        }
+      } else {
+        setError(data.message || "Error al subir la foto")
+      }
+    } catch (err) {
+      setError("Error al subir la foto del coach")
+    } finally {
+      setUploadingCoachPhoto(false)
+      if (coachPhotoInputRef.current) {
+        coachPhotoInputRef.current.value = ""
       }
     }
   }
@@ -1023,12 +1078,50 @@ export default function CoachDashboard() {
                             </div>
                           </CardHeader>
                           <CardContent>
-                            <div className="space-y-2 text-sm text-gray-700">
+                            <div className="space-y-3 text-sm text-gray-700">
+                              {/* Coach Photo */}
+                              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                                <div className="relative">
+                                  {team.coach_photo_url ? (
+                                    <img
+                                      src={team.coach_photo_url}
+                                      alt="Foto del coach"
+                                      className="w-14 h-14 rounded-full object-cover border-2 border-blue-300"
+                                    />
+                                  ) : (
+                                    <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-300">
+                                      <Users className="w-6 h-6 text-gray-400" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-semibold text-gray-900">Coach: {team.coach_name || user?.name || user?.email}</p>
+                                  <input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp"
+                                    onChange={(e) => handleCoachPhotoUpload(e, team.id)}
+                                    className="hidden"
+                                    id={`coach-photo-${team.id}`}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => document.getElementById(`coach-photo-${team.id}`)?.click()}
+                                    disabled={uploadingCoachPhoto}
+                                    className="mt-1 h-7 text-xs border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                  >
+                                    {uploadingCoachPhoto ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Upload className="h-3 w-3 mr-1" />}
+                                    {team.coach_photo_url ? "Cambiar foto" : "Subir foto"}
+                                  </Button>
+                                </div>
+                              </div>
+
                               <div>
-                                <span className="text-gray-600">Capitán:</span> {team.captain_name || "No asignado"}
+                                <span className="text-gray-600">Capitan:</span> {team.captain_name || "No asignado"}
                               </div>
                               <div>
-                                <span className="text-gray-600">Teléfono:</span> {team.captain_phone || "No asignado"}
+                                <span className="text-gray-600">Telefono:</span> {team.captain_phone || "No asignado"}
                               </div>
                               <div className="flex items-center gap-2 mt-4">
                                 <div
@@ -1474,6 +1567,68 @@ export default function CoachDashboard() {
                                 <div className="flex flex-col items-center gap-2">
                                   <Upload className="h-6 w-6" />
                                   <span>Subir logo del equipo</span>
+                                </div>
+                              )}
+                            </Button>
+                          )}
+                        </div>
+
+                        {/* Coach Photo */}
+                        <div>
+                          <Label className="text-gray-900">Foto del Coach (opcional)</Label>
+                          <input
+                            ref={coachPhotoInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={(e) => handleCoachPhotoUpload(e)}
+                            className="hidden"
+                          />
+                          {coachPhotoUrl ? (
+                            <div className="flex items-center gap-3 mt-2">
+                              <img
+                                src={coachPhotoUrl}
+                                alt="Vista previa foto del coach"
+                                className="w-16 h-16 rounded-full object-cover border-2 border-gray-300"
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => coachPhotoInputRef.current?.click()}
+                                  disabled={uploadingCoachPhoto}
+                                  className="border-gray-300 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                                >
+                                  {uploadingCoachPhoto ? <Loader2 className="h-4 w-4 animate-spin" /> : "Cambiar foto"}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setCoachPhotoUrl("")}
+                                  className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                >
+                                  Quitar
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full h-20 mt-2 border-dashed border-2 border-gray-300 text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                              onClick={() => coachPhotoInputRef.current?.click()}
+                              disabled={uploadingCoachPhoto}
+                            >
+                              {uploadingCoachPhoto ? (
+                                <div className="flex flex-col items-center gap-2">
+                                  <Loader2 className="h-6 w-6 animate-spin" />
+                                  <span>Subiendo...</span>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center gap-2">
+                                  <Upload className="h-6 w-6" />
+                                  <span>Subir foto del coach</span>
                                 </div>
                               )}
                             </Button>

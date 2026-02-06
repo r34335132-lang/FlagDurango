@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Navigation } from "@/components/navigation"
-import { Users, Trophy, Star, Phone, Mail, MapPin, Calendar, Clock } from "lucide-react"
+import { Users, Trophy, Star, Phone, MapPin, Calendar, Clock, CheckCircle, XCircle, User } from "lucide-react"
 
 interface Team {
   id: number
@@ -18,10 +18,18 @@ interface Team {
   captain_name?: string
   captain_phone?: string
   captain_photo_url?: string
+  coach_name?: string
+  coach_phone?: string
+  coach_photo_url?: string
   is_institutional: boolean
   coordinator_name?: string
   coordinator_phone?: string
   paid?: boolean
+}
+
+interface AttendanceRecord {
+  player_id: number
+  attended: boolean
 }
 
 interface Player {
@@ -56,6 +64,7 @@ export default function TeamPage() {
   const [games, setGames] = useState<Game[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [attendanceMap, setAttendanceMap] = useState<Record<number, { attended: number; total: number }>>({})
 
   useEffect(() => {
     const loadTeamData = async () => {
@@ -82,11 +91,37 @@ export default function TeamPage() {
           const gamesData = await gamesResponse.json()
 
           if (gamesData.success) {
-            // Filtrar partidos donde este equipo participa (como local o visitante)
             const teamGames = (gamesData.data || []).filter(
               (game: Game) => game.home_team === teamInfo.name || game.away_team === teamInfo.name,
             )
             setGames(teamGames)
+
+            // Fetch attendance for all completed games
+            const completedGames = teamGames.filter((g: Game) => g.status === "finalizado")
+            const playersList = teamData.players || []
+            if (completedGames.length > 0 && playersList.length > 0) {
+              const attendanceResults: Record<number, { attended: number; total: number }> = {}
+              playersList.forEach((p: Player) => {
+                attendanceResults[p.id] = { attended: 0, total: completedGames.length }
+              })
+
+              const attendancePromises = completedGames.map((game: Game) =>
+                fetch(`/api/attendance?game_id=${game.id}`).then((r) => r.json()),
+              )
+              const attendanceData = await Promise.all(attendancePromises)
+
+              attendanceData.forEach((res) => {
+                if (res.success && res.data) {
+                  res.data.forEach((record: AttendanceRecord) => {
+                    if (attendanceResults[record.player_id] && record.attended) {
+                      attendanceResults[record.player_id].attended += 1
+                    }
+                  })
+                }
+              })
+
+              setAttendanceMap(attendanceResults)
+            }
           }
         }
       } catch (err) {
@@ -262,39 +297,59 @@ export default function TeamPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                {/* Coach */}
+                {team.coach_name && (
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                    {team.coach_photo_url ? (
+                      <img
+                        src={team.coach_photo_url}
+                        alt={`Coach ${team.coach_name}`}
+                        className="w-14 h-14 rounded-full object-cover border-2 border-blue-300"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-300">
+                        <User className="w-6 h-6 text-blue-400" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs text-blue-600 font-medium uppercase tracking-wide">Coach</p>
+                      <p className="font-semibold text-gray-900">{team.coach_name}</p>
+                      {team.coach_phone && <p className="text-gray-500 text-sm">{team.coach_phone}</p>}
+                    </div>
+                  </div>
+                )}
+
+                {/* Captain */}
                 {team.captain_name && (
-                  <div className="flex items-center gap-3">
-                    <Users className="w-5 h-5 text-gray-400" />
+                  <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
+                    {team.captain_photo_url ? (
+                      <img
+                        src={team.captain_photo_url}
+                        alt={`Capitan ${team.captain_name}`}
+                        className="w-14 h-14 rounded-full object-cover border-2 border-yellow-400"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full bg-yellow-100 flex items-center justify-center border-2 border-yellow-400">
+                        <Star className="w-6 h-6 text-yellow-500" />
+                      </div>
+                    )}
                     <div>
-                      <p className="font-semibold">Capitán</p>
-                      <p className="text-gray-600">{team.captain_name}</p>
+                      <p className="text-xs text-yellow-700 font-medium uppercase tracking-wide">Capitan</p>
+                      <p className="font-semibold text-gray-900">{team.captain_name}</p>
+                      {team.captain_phone && <p className="text-gray-500 text-sm">{team.captain_phone}</p>}
                     </div>
                   </div>
                 )}
-                {team.captain_phone && (
-                  <div className="flex items-center gap-3">
-                    <Phone className="w-5 h-5 text-gray-400" />
-                    <div>
-                      <p className="font-semibold">Teléfono</p>
-                      <p className="text-gray-600">{team.captain_phone}</p>
-                    </div>
-                  </div>
-                )}
+
                 {team.is_institutional && team.coordinator_name && (
-                  <div className="flex items-center gap-3">
-                    <Mail className="w-5 h-5 text-gray-400" />
-                    <div>
-                      <p className="font-semibold">Coordinador</p>
-                      <p className="text-gray-600">{team.coordinator_name}</p>
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-300">
+                      <Users className="w-6 h-6 text-gray-400" />
                     </div>
-                  </div>
-                )}
-                {team.is_institutional && team.coordinator_phone && (
-                  <div className="flex items-center gap-3">
-                    <Phone className="w-5 h-5 text-gray-400" />
                     <div>
-                      <p className="font-semibold">Teléfono Coordinador</p>
-                      <p className="text-gray-600">{team.coordinator_phone}</p>
+                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Coordinador</p>
+                      <p className="font-semibold text-gray-900">{team.coordinator_name}</p>
+                      {team.coordinator_phone && <p className="text-gray-500 text-sm">{team.coordinator_phone}</p>}
                     </div>
                   </div>
                 )}
@@ -349,12 +404,24 @@ export default function TeamPage() {
                           <span>#{player.jersey_number}</span>
                           {player.position && (
                             <>
-                              <span>•</span>
+                              <span>{'•'}</span>
                               <span>{player.position}</span>
                             </>
                           )}
                         </div>
                       </div>
+                      {/* Attendance */}
+                      {attendanceMap[player.id] && attendanceMap[player.id].total > 0 && (
+                        <div className="text-center flex-shrink-0">
+                          <div className="flex items-center gap-1">
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                            <span className="text-sm font-semibold text-gray-900">
+                              {attendanceMap[player.id].attended}/{attendanceMap[player.id].total}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500">Asistencia</p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

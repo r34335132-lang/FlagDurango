@@ -52,6 +52,7 @@ interface PlayerProfile {
     name: string
     category: string
     logo_url?: string
+    captain_name?: string
   }
 }
 
@@ -74,6 +75,8 @@ export default function PlayerPortal() {
   
   const photoInputRef = useRef<HTMLInputElement>(null)
   const cedulaInputRef = useRef<HTMLInputElement>(null)
+  const teamLogoInputRef = useRef<HTMLInputElement>(null)
+  const [uploadingTeamLogo, setUploadingTeamLogo] = useState(false)
 
   const [form, setForm] = useState({
     birth_date: "",
@@ -206,6 +209,42 @@ export default function PlayerPortal() {
       }
     }
     setUploadingCedula(false)
+  }
+
+  const isCaptain =
+    player?.teams?.captain_name &&
+    player.name &&
+    player.teams.captain_name.toLowerCase().trim() === player.name.toLowerCase().trim()
+
+  const handleTeamLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !player?.teams?.id) return
+
+    setUploadingTeamLogo(true)
+    const url = await handleFileUpload(file, "team-logos")
+
+    if (url) {
+      try {
+        const res = await fetch("/api/teams", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: player.teams.id, logo_url: url }),
+        })
+        const data = await res.json()
+        if (data.success) {
+          setPlayer((prev) =>
+            prev ? { ...prev, teams: prev.teams ? { ...prev.teams, logo_url: url } : prev.teams } : null,
+          )
+          setMessage({ type: "success", text: "Logo del equipo actualizado" })
+        } else {
+          setMessage({ type: "error", text: data.message || "Error al actualizar logo" })
+        }
+      } catch {
+        setMessage({ type: "error", text: "Error al actualizar el logo del equipo" })
+      }
+    }
+    setUploadingTeamLogo(false)
+    if (teamLogoInputRef.current) teamLogoInputRef.current.value = ""
   }
 
   const handleSave = async () => {
@@ -385,6 +424,47 @@ export default function PlayerPortal() {
                   <Badge variant="outline" className="mt-1">
                     {player.teams.category}
                   </Badge>
+                </div>
+              )}
+
+              {/* Captain: Team Logo Upload */}
+              {isCaptain && player.teams && (
+                <div className="pt-4 border-t">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">Logo del Equipo (Capitan)</p>
+                  <input
+                    ref={teamLogoInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleTeamLogoChange}
+                    className="hidden"
+                  />
+                  <div className="flex flex-col items-center gap-2">
+                    {player.teams.logo_url ? (
+                      <img
+                        src={player.teams.logo_url}
+                        alt="Logo del equipo"
+                        className="w-20 h-20 rounded-lg object-cover border-2 border-primary/20"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 rounded-lg bg-muted flex items-center justify-center border-2 border-dashed border-muted-foreground/20">
+                        <Shield className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => teamLogoInputRef.current?.click()}
+                      disabled={uploadingTeamLogo}
+                      className="w-full"
+                    >
+                      {uploadingTeamLogo ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <Upload className="h-4 w-4 mr-1" />
+                      )}
+                      {player.teams.logo_url ? "Cambiar logo" : "Subir logo"}
+                    </Button>
+                  </div>
                 </div>
               )}
 
