@@ -418,7 +418,7 @@ export default function HomePage() {
                     <img src="/images/cierre.png" alt="Cierre de Inscripción" className="w-12 h-12 mx-auto mb-4" />
                     <h3 className="font-bold text-gray-900 mb-2">Cierre de Inscripción</h3>
                     <div className="text-3xl font-black text-gray-900">17 Feb</div>
-                    <div className="text-gray-600">2025</div>
+                    <div className="text-gray-600">2026</div>
                   </CardContent>
                 </Card>
 
@@ -444,8 +444,8 @@ export default function HomePage() {
                   <CardContent className="p-6 text-center">
                     <img src="/images/inicio.png" alt="Inicio de Temporada" className="w-12 h-12 mx-auto mb-4" />
                     <h3 className="font-bold text-gray-900 mb-2">Inicio de Temporada</h3>
-                    <div className="text-3xl font-black text-gray-900">21 Sep</div>
-                    <div className="text-gray-600">2025</div>
+                    <div className="text-3xl font-black text-gray-900">22 Marzo</div>
+                    <div className="text-gray-600">2026</div>
                   </CardContent>
                 </Card>
 
@@ -902,7 +902,7 @@ export default function HomePage() {
               className="text-white text-center py-4 rounded-lg text-sm"
               style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}
             >
-              <p className="font-semibold">FLAGDURANGO.COM / CREADO POR WILDSTUDIO</p>
+              <p className="font-semibold">FLAGDURANGO.COM.MX / CREADO POR RafaFndz</p>
             </div>
           </div>
         </div>
