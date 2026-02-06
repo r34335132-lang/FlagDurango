@@ -1236,6 +1236,8 @@ export default function AdminPage() {
                         className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                       >
                         <option value="varonil-libre">Varonil Libre (VL)</option>
+                        <option value="varonil-gold">Varonil Gold (VG)</option>
+                        <option value="varonil-silver">Varonil Silver (VS)</option>
                         <option value="femenil-gold">Femenil Gold (FG)</option>
                         <option value="femenil-silver">Femenil Silver (FS)</option>
                         <option value="mixto-gold">Mixto Gold (MG)</option>
@@ -1735,6 +1737,8 @@ export default function AdminPage() {
                         className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                       >
                         <option value="varonil-libre">Varonil Libre</option>
+                        <option value="varonil-gold">Varonil Gold</option>
+                        <option value="varonil-silver">Varonil Silver</option>
                         <option value="femenil-gold">Femenil Gold</option>
                         <option value="femenil-silver">Femenil Silver</option>
                         <option value="mixto-gold">Mixto Gold</option>
@@ -1891,6 +1895,8 @@ export default function AdminPage() {
                     >
                       <option value="">Todas</option>
                       <option value="varonil-libre">Varonil Libre</option>
+                      <option value="varonil-gold">Varonil Gold</option>
+                      <option value="varonil-silver">Varonil Silver</option>
                       <option value="femenil-gold">Femenil Gold</option>
                       <option value="femenil-silver">Femenil Silver</option>
                       <option value="femenil-cooper">Femenil Cooper</option>
