@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getSupabaseAdmin } from "@/lib/supabase-admin"
+import { supabaseAdmin } from "@/lib/supabase-admin"
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin()
+    const supabase = supabaseAdmin
     const { searchParams } = new URL(request.url)
     const teamId = searchParams.get("team_id")
     const coachId = searchParams.get("coach_id")
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin()
+    const supabase = supabaseAdmin
     const body = await request.json()
     const { team_id, coach_id, title, year, tournament, position, description } = body
 
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin()
+    const supabase = supabaseAdmin
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
 
