@@ -63,8 +63,8 @@ type Player = {
   phone?: string
   personal_email?: string
   address?: string
-  emergency_contact?: string
-  emergency_phone?: string
+  emergency_contact_name?: string
+  emergency_contact_phone?: string
   blood_type?: string
   seasons_played?: number
   playing_since?: string
@@ -1453,11 +1453,11 @@ export default function AdminPage() {
                                 {player.playing_since && (
                                   <p><span className="font-medium">Desde:</span> {player.playing_since}</p>
                                 )}
-                                {player.emergency_contact && (
-                                  <p><span className="font-medium">Emergencia:</span> {player.emergency_contact}</p>
-                                )}
-                                {player.emergency_phone && (
-                                  <p><span className="font-medium">Tel emergencia:</span> {player.emergency_phone}</p>
+{player.emergency_contact_name && (
+<p><span className="font-medium">Emergencia:</span> {player.emergency_contact_name}</p>
+  )}
+{player.emergency_contact_phone && (
+<p><span className="font-medium">Tel emergencia:</span> {player.emergency_contact_phone}</p>
                                 )}
                               </div>
 

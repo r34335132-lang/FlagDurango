@@ -36,9 +36,16 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Mapear nombres de columnas de BD a nombres del frontend
+    const mappedPlayer = {
+      ...player,
+      emergency_contact: player.emergency_contact_name || "",
+      emergency_phone: player.emergency_contact_phone || "",
+    }
+
     return NextResponse.json({
       success: true,
-      data: player,
+      data: mappedPlayer,
     })
   } catch (error) {
     console.error("Error fetching player profile:", error)
@@ -67,6 +74,10 @@ export async function PUT(request: NextRequest) {
       cedula_url,
       photo_url,
     } = body
+
+    // Mapear nombres del frontend a nombres de columnas en la BD
+    const emergency_contact_name = emergency_contact
+    const emergency_contact_phone = emergency_phone
 
     if (!user_id) {
       return NextResponse.json(
@@ -98,8 +109,8 @@ export async function PUT(request: NextRequest) {
     if (phone) updateData.phone = phone
     if (personal_email) updateData.personal_email = personal_email
     if (address) updateData.address = address
-    if (emergency_contact) updateData.emergency_contact = emergency_contact
-    if (emergency_phone) updateData.emergency_phone = emergency_phone
+    if (emergency_contact_name) updateData.emergency_contact_name = emergency_contact_name
+    if (emergency_contact_phone) updateData.emergency_contact_phone = emergency_contact_phone
     if (blood_type) updateData.blood_type = blood_type
     if (seasons_played !== undefined) updateData.seasons_played = Number(seasons_played)
     if (playing_since) updateData.playing_since = playing_since
