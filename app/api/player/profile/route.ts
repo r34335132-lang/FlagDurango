@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
       ...player,
       emergency_contact: player.emergency_contact_name || "",
       emergency_phone: player.emergency_contact_phone || "",
+      playing_since: player.playing_since ? player.playing_since.substring(0, 4) : "",
     }
 
     return NextResponse.json({
@@ -113,7 +114,11 @@ export async function PUT(request: NextRequest) {
     if (emergency_contact_phone) updateData.emergency_contact_phone = emergency_contact_phone
     if (blood_type) updateData.blood_type = blood_type
     if (seasons_played !== undefined) updateData.seasons_played = Number(seasons_played)
-    if (playing_since) updateData.playing_since = playing_since
+    if (playing_since) {
+      // Si solo se envia un ano (ej: "2023"), convertir a fecha valida "2023-01-01"
+      const val = playing_since.toString().trim()
+      updateData.playing_since = /^\d{4}$/.test(val) ? `${val}-01-01` : val
+    }
     if (medical_conditions !== undefined) updateData.medical_conditions = medical_conditions
     if (cedula_url) updateData.cedula_url = cedula_url
     if (photo_url) updateData.photo_url = photo_url
@@ -121,8 +126,6 @@ export async function PUT(request: NextRequest) {
     // Asegurar que solo se envien columnas validas de la BD (nunca emergency_contact o emergency_phone)
     delete updateData.emergency_contact
     delete updateData.emergency_phone
-
-    console.log("[v0] updateData being sent to Supabase:", JSON.stringify(updateData, null, 2))
 
     const { data: updatedPlayer, error } = await supabase
       .from("players")
