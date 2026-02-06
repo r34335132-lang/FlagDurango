@@ -28,6 +28,7 @@ import {
   Eye,
   Shield,
 } from "lucide-react"
+import AttendanceSection from "@/components/attendance-section"
 
 type Team = {
   id?: string
@@ -1558,6 +1559,9 @@ export default function AdminPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Asistencia a Partidos */}
+              <AttendanceSection games={games} teams={teams} players={players} />
             </div>
           </TabsContent>
 
