@@ -118,6 +118,12 @@ export async function PUT(request: NextRequest) {
     if (cedula_url) updateData.cedula_url = cedula_url
     if (photo_url) updateData.photo_url = photo_url
 
+    // Asegurar que solo se envien columnas validas de la BD (nunca emergency_contact o emergency_phone)
+    delete updateData.emergency_contact
+    delete updateData.emergency_phone
+
+    console.log("[v0] updateData being sent to Supabase:", JSON.stringify(updateData, null, 2))
+
     const { data: updatedPlayer, error } = await supabase
       .from("players")
       .update(updateData)
