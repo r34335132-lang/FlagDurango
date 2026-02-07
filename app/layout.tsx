@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from "next"
 import "./globals.css"
 import { Navigation } from "@/components/navigation"
 import { NavGuard } from "@/components/nav-guard"
-import { SasaPromoBanner } from "@/components/sasa-promo-banner"
+
 
 export const metadata: Metadata = {
   title: "Liga Flag Durango - 20 Años Haciendo Historia",
@@ -17,14 +17,14 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL("https://ligaflagdurango.com"),
+  metadataBase: new URL("https://ligaflagdurango.com.mx"),
   alternates: {
     canonical: "/",
   },
   openGraph: {
     title: "Liga Flag Durango - 20 Años Haciendo Historia",
     description: "Liga oficial de flag football en Durango. 20 años promoviendo el deporte y la competencia sana.",
-    url: "https://ligaflagdurango.com",
+    url: "https://ligaflagdurango.com.mx",
     siteName: "Liga Flag Durango",
     images: [
       {
@@ -90,7 +90,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="msapplication-config" content="/browserconfig.xml" />
       </head>
       <body className="min-h-screen bg-white antialiased">
-        <SasaPromoBanner />
+        
 
         {/* Navbar global blanca. NavGuard la oculta en dashboards */}
         <NavGuard>

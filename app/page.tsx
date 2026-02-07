@@ -190,11 +190,11 @@ export default function HomePage() {
 
             <div className="container mx-auto px-4 relative z-10 text-center">
               <div className="inline-block bg-yellow-400/95 backdrop-blur-sm text-gray-900 px-8 py-3 rounded-full font-bold mb-8 border border-black/10 shadow-lg">
-                {"🏆 Temporada Primavera 2026 - ¡Inscripciones Abiertas!"}
+                {"🏆 Torneo Express 2026 - ¡Inscripciones Abiertas!"}
               </div>
               <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight">
-                <span className="block">Temporada</span>
-                <span className="block text-white">Primavera 2026</span>
+                <span className="block">Torneo</span>
+                <span className="block text-white">Express 2026</span>
               </h1>
 
               {/* Countdown */}
@@ -409,7 +409,7 @@ export default function HomePage() {
           <section className="py-20 bg-gray-50">
             <div className="container mx-auto px-4">
               <h2 className="text-4xl md:text-5xl font-black text-center text-gray-900 mb-4">
-                Convocatoria Primavera 2026
+                Convocatoria Torneo Express 2026
               </h2>
               <p className="text-xl text-center text-gray-600 mb-16">Todo lo que necesitas saber para participar</p>
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -444,7 +444,7 @@ export default function HomePage() {
                   <CardContent className="p-6 text-center">
                     <img src="/images/inicio.png" alt="Inicio de Temporada" className="w-12 h-12 mx-auto mb-4" />
                     <h3 className="font-bold text-gray-900 mb-2">Inicio de Temporada</h3>
-                    <div className="text-3xl font-black text-gray-900">22 Marzo</div>
+                    <div className="text-3xl font-black text-gray-900">Por Revelar</div>
                     <div className="text-gray-600">2026</div>
                   </CardContent>
                 </Card>

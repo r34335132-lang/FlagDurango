@@ -101,7 +101,7 @@ export function Navigation() {
                 height={80}
                 className="h-12 md:h-16 w-auto"
               />
-              <p className="text-neutral-500 text-sm mt-1">Temporada Primavera 2026 - Torneo Express</p>
+              <p className="text-neutral-500 text-sm mt-1">Torneo Express 2026</p>
             </div>
           </Link>
 
