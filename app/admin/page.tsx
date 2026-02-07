@@ -32,7 +32,7 @@ import AttendanceSection from "@/components/attendance-section"
 import PlayerStatsAdmin from "@/components/player-stats-admin"
 
 type Team = {
-  id?: string
+  id?: any
   name: string
   category?: string
   logo_url?: string
@@ -40,6 +40,14 @@ type Team = {
   coordinator_name?: string
   coordinator_phone?: string
   captain_photo_url?: string
+  captain_name?: string
+  captain_phone?: string
+  coach_name?: string
+  coach_phone?: string
+  coach_id?: number | null
+  coach_photo_url?: string
+  color1?: string
+  color2?: string
   paid?: boolean
   stats?: {
     games_played: number
@@ -213,6 +221,9 @@ export default function AdminPage() {
   const [wildbrowlEnabled, setWildbrowlEnabled] = useState<boolean>(false)
   const [gamesCategoryFilter, setGamesCategoryFilter] = useState<string>("")
   const [systemConfig, setSystemConfig] = useState<{ [key: string]: string }>({})
+  const [editingTeamId, setEditingTeamId] = useState<number | null>(null)
+  const [editTeamData, setEditTeamData] = useState<any>({})
+  const [coachAccounts, setCoachAccounts] = useState<{ id: number; username: string; email: string; role: string }[]>([])
 
   // Form states
   const [teamForm, setTeamForm] = useState({
@@ -547,6 +558,15 @@ export default function AdminPage() {
       if (paymentsData.success) setPayments(paymentsData.data)
       if (venuesData.success) setVenues(venuesData.data)
       if (fieldsData.success) setFields(fieldsData.data)
+
+      // Cargar cuentas de coach/usuario para asignacion
+      try {
+        const usersRes = await fetch("/api/users")
+        const usersData = await usersRes.json()
+        if (usersData.success) {
+          setCoachAccounts(usersData.data.filter((u: any) => u.role === "coach" || u.role === "admin" || u.role === "user"))
+        }
+      } catch {}
 
       await loadSystemConfig()
       await loadCoachPermissions()
@@ -1340,48 +1360,188 @@ export default function AdminPage() {
                 </CardContent>
               </Card>
 
-              {/* Lista de equipos */}
+              {/* Lista de equipos con edicion */}
               <div className="grid gap-4">
                 {teams.map((team) => (
-                  <Card key={team.id} className="bg-white/10 backdrop-blur-sm border-white/20">
+                  <Card key={team.id} className="bg-white border border-gray-200">
                     <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                          <div
-                            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"
-                            style={{
-                              background: `linear-gradient(to right, ${team.color1}, ${team.color2})`,
-                            }}
-                          >
-                            {team.name.charAt(0)}
-                          </div>
-                          <div>
-                            <h3 className="text-white font-semibold text-lg">{team.name}</h3>
-                            <div className="flex items-center gap-2">
-                              <Badge className="bg-blue-600 text-white">{team.category}</Badge>
-                              {team.paid && <Badge className="bg-green-600 text-white">Pagado</Badge>}
+                      {editingTeamId === team.id ? (
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label className="text-gray-700">Nombre del Equipo</Label>
+                              <Input
+                                value={editTeamData.name || ""}
+                                onChange={(e) => setEditTeamData({ ...editTeamData, name: e.target.value })}
+                                className="bg-white border-gray-300 text-gray-900"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-gray-700">Categoria</Label>
+                              <select
+                                value={editTeamData.category || ""}
+                                onChange={(e) => setEditTeamData({ ...editTeamData, category: e.target.value })}
+                                className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
+                              >
+                                <option value="varonil-libre">Varonil Libre (VL)</option>
+                                <option value="varonil-gold">Varonil Gold (VG)</option>
+                                <option value="varonil-silver">Varonil Silver (VS)</option>
+                                <option value="femenil-gold">Femenil Gold (FG)</option>
+                                <option value="femenil-silver">Femenil Silver (FS)</option>
+                                <option value="mixto-gold">Mixto Gold (MG)</option>
+                                <option value="mixto-silver">Mixto Silver (MS)</option>
+                                <option value="femenil-cooper">Femenil Cooper (FC)</option>
+                                <option value="teens">Teens (T)</option>
+                              </select>
+                            </div>
+                            <div>
+                              <Label className="text-gray-700">Nombre del Coach</Label>
+                              <Input
+                                value={editTeamData.coach_name || ""}
+                                onChange={(e) => setEditTeamData({ ...editTeamData, coach_name: e.target.value })}
+                                className="bg-white border-gray-300 text-gray-900"
+                                placeholder="Nombre del coach"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-gray-700">Telefono del Coach</Label>
+                              <Input
+                                value={editTeamData.coach_phone || ""}
+                                onChange={(e) => setEditTeamData({ ...editTeamData, coach_phone: e.target.value })}
+                                className="bg-white border-gray-300 text-gray-900"
+                                placeholder="Telefono"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-gray-700">Asignar cuenta de Coach</Label>
+                              <select
+                                value={editTeamData.coach_id || ""}
+                                onChange={(e) => setEditTeamData({ ...editTeamData, coach_id: e.target.value ? Number(e.target.value) : null })}
+                                className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
+                              >
+                                <option value="">Sin asignar</option>
+                                {coachAccounts.map((u) => (
+                                  <option key={u.id} value={u.id}>
+                                    {u.username} ({u.email}) - {u.role}
+                                  </option>
+                                ))}
+                              </select>
+                              <p className="text-xs text-gray-500 mt-1">Asigna una cuenta existente como coach de este equipo</p>
+                            </div>
+                            <div>
+                              <Label className="text-gray-700">Nombre del Capitan</Label>
+                              <Input
+                                value={editTeamData.captain_name || ""}
+                                onChange={(e) => setEditTeamData({ ...editTeamData, captain_name: e.target.value })}
+                                className="bg-white border-gray-300 text-gray-900"
+                                placeholder="Nombre del capitan"
+                              />
+                            </div>
+                            <div>
+                              <Label className="text-gray-700">Telefono del Capitan</Label>
+                              <Input
+                                value={editTeamData.captain_phone || ""}
+                                onChange={(e) => setEditTeamData({ ...editTeamData, captain_phone: e.target.value })}
+                                className="bg-white border-gray-300 text-gray-900"
+                                placeholder="Telefono del capitan"
+                              />
                             </div>
                           </div>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch("/api/teams", {
+                                    method: "PUT",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ id: team.id, ...editTeamData }),
+                                  })
+                                  const data = await res.json()
+                                  if (data.success) {
+                                    setEditingTeamId(null)
+                                    loadData()
+                                  } else {
+                                    alert("Error: " + data.message)
+                                  }
+                                } catch {
+                                  alert("Error al guardar")
+                                }
+                              }}
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              Guardar
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => setEditingTeamId(null)}
+                              className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                            >
+                              Cancelar
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          {team.stats && (
-                            <div className="text-right text-white mr-4">
-                              <div className="font-bold">{team.stats.points} pts</div>
-                              <div className="text-sm text-white/70">
-                                {team.stats.wins}W-{team.stats.losses}L-{team.stats.draws}D
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div
+                              className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold"
+                              style={{
+                                background: `linear-gradient(to right, ${team.color1}, ${team.color2})`,
+                              }}
+                            >
+                              {team.name.charAt(0)}
+                            </div>
+                            <div>
+                              <h3 className="text-gray-900 font-semibold text-lg">{team.name}</h3>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge className="bg-blue-600 text-white">{team.category}</Badge>
+                                {team.paid && <Badge className="bg-green-600 text-white">Pagado</Badge>}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                                {team.coach_name && <div>Coach: {team.coach_name} {team.coach_phone ? `(${team.coach_phone})` : ""}</div>}
+                                {team.captain_name && <div>Capitan: {team.captain_name} {team.captain_phone ? `(${team.captain_phone})` : ""}</div>}
                               </div>
                             </div>
-                          )}
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => deleteTeam(team.id)}
-                            className="bg-red-600 hover:bg-red-700 text-white"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            {team.stats && (
+                              <div className="text-right text-gray-700 mr-4">
+                                <div className="font-bold">{team.stats.points} pts</div>
+                                <div className="text-sm text-gray-500">
+                                  {team.stats.wins}W-{team.stats.losses}L-{team.stats.draws}D
+                                </div>
+                              </div>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingTeamId(team.id)
+                                setEditTeamData({
+                                  name: team.name,
+                                  category: team.category,
+                                  coach_name: team.coach_name || "",
+                                  coach_phone: team.coach_phone || "",
+                                  coach_id: team.coach_id || null,
+                                  captain_name: team.captain_name || "",
+                                  captain_phone: team.captain_phone || "",
+                                })
+                              }}
+                              className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => deleteTeam(team.id)}
+                              className="bg-red-600 hover:bg-red-700 text-white"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}

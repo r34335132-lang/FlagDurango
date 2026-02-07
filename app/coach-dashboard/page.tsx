@@ -731,6 +731,9 @@ export default function CoachDashboard() {
       "mixto-gold": "Mixto Gold",
       mixto_silver: "Mixto Silver",
       "mixto-silver": "Mixto Silver",
+      teens: "Teens",
+      "varonil-libre": "Varonil Libre",
+      varonil_libre: "Varonil Libre",
     }
     return labels[category] || category
   }
@@ -1561,6 +1564,7 @@ export default function CoachDashboard() {
                               <option value="femenil-cooper">Femenil Cooper</option>
                               <option value="mixto-gold">Mixto Gold</option>
                               <option value="mixto-silver">Mixto Silver</option>
+                              <option value="teens">Teens</option>
                             </select>
                           </div>
                         </div>
