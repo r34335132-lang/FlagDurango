@@ -192,6 +192,73 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
 
+    // Auto-advance: cuando todos los partidos de una ronda estan finalizados,
+    // generar los partidos de la siguiente ronda SI no existen ya
+    if (status === "finalizado" && match?.winner_id) {
+      try {
+        const currentRound = match.round
+        const tournamentId = match.tournament_id
+        const bracketType = match.bracket_type
+
+        const roundProgression: Record<string, string> = {
+          "32avos": "16avos",
+          "16avos": "octavos",
+          octavos: "cuartos",
+          cuartos: "semifinal",
+          semifinal: "final",
+        }
+        const nextRound = roundProgression[currentRound]
+
+        if (nextRound) {
+          // Obtener todos los partidos de esta ronda
+          const { data: roundMatches } = await supabase
+            .from("wildbrowl_matches")
+            .select("id, winner_id, status")
+            .eq("tournament_id", tournamentId)
+            .eq("round", currentRound)
+            .eq("bracket_type", bracketType)
+
+          const allFinished = roundMatches?.every((m) => m.status === "finalizado")
+
+          if (allFinished && roundMatches && roundMatches.length > 0) {
+            // Verificar que NO existan ya partidos en la siguiente ronda
+            const { data: existingNext } = await supabase
+              .from("wildbrowl_matches")
+              .select("id")
+              .eq("tournament_id", tournamentId)
+              .eq("round", nextRound)
+              .eq("bracket_type", bracketType)
+
+            if (!existingNext || existingNext.length === 0) {
+              const winners = roundMatches.map((m) => m.winner_id).filter(Boolean)
+              const nextMatches = []
+              for (let i = 0; i < winners.length; i += 2) {
+                if (i + 1 < winners.length) {
+                  nextMatches.push({
+                    tournament_id: tournamentId,
+                    participant1_id: winners[i],
+                    participant2_id: winners[i + 1],
+                    round: nextRound,
+                    bracket_type: bracketType,
+                    status: "programado",
+                    match_number: Math.floor(i / 2) + 1,
+                    participant1_score: 0,
+                    participant2_score: 0,
+                    elimination_match: false,
+                  })
+                }
+              }
+              if (nextMatches.length > 0) {
+                await supabase.from("wildbrowl_matches").insert(nextMatches)
+              }
+            }
+          }
+        }
+      } catch (advErr) {
+        console.error("Error auto-advancing round:", advErr)
+      }
+    }
+
     return NextResponse.json({ success: true, data: match })
   } catch (error) {
     console.error("Error in matches PUT:", error)

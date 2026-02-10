@@ -109,6 +109,8 @@ export async function POST(req: NextRequest) {
       "femenil-cooper": "FC",
       "mixto-gold": "MG",
       "mixto-silver": "MS",
+      "mixto-recreativo": "MR",
+      "varonil-libre": "VL",
       teens: "T",
     }
 

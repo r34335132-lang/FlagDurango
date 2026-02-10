@@ -32,6 +32,19 @@ export async function POST(request: Request) {
       tournamentId = newTournament.id
     }
 
+    // Verificar si ya existen partidos para esta categoria/torneo
+    const { data: existingMatches } = await supabase
+      .from("wildbrowl_matches")
+      .select("id")
+      .eq("tournament_id", tournamentId)
+
+    if (existingMatches && existingMatches.length > 0) {
+      return NextResponse.json(
+        { success: false, error: `Ya existen ${existingMatches.length} partidos en este torneo. Elimina los partidos existentes antes de regenerar el bracket.` },
+        { status: 400 },
+      )
+    }
+
     // Obtener participantes pagados de la categoría
     const { data: participants, error: participantsError } = await supabase
       .from("wildbrowl_participants")
