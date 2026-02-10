@@ -734,6 +734,12 @@ export default function CoachDashboard() {
       teens: "Teens",
       "varonil-libre": "Varonil Libre",
       varonil_libre: "Varonil Libre",
+      "varonil-gold": "Varonil Gold",
+      varonil_gold: "Varonil Gold",
+      "varonil-silver": "Varonil Silver",
+      varonil_silver: "Varonil Silver",
+      "mixto-recreativo": "Mixto Recreativo",
+      mixto_recreativo: "Mixto Recreativo",
     }
     return labels[category] || category
   }
@@ -1557,6 +1563,7 @@ export default function CoachDashboard() {
                               required
                             >
                               <option value="">Seleccionar categoría</option>
+                              <option value="varonil-libre">Varonil Libre</option>
                               <option value="varonil-gold">Varonil Gold</option>
                               <option value="varonil-silver">Varonil Silver</option>
                               <option value="femenil-gold">Femenil Gold</option>
@@ -1564,6 +1571,7 @@ export default function CoachDashboard() {
                               <option value="femenil-cooper">Femenil Cooper</option>
                               <option value="mixto-gold">Mixto Gold</option>
                               <option value="mixto-silver">Mixto Silver</option>
+                              <option value="mixto-recreativo">Mixto Recreativo</option>
                               <option value="teens">Teens</option>
                             </select>
                           </div>

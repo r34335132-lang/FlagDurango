@@ -22,6 +22,7 @@ interface Team {
   captain_phone?: string
   coach_name?: string
   coach_phone?: string
+  coach_photo_url?: string
   stats?: {
     games_played: number
     wins: number
@@ -364,56 +365,44 @@ export default function TeamsPage() {
                     </div>
                   )}
 
-                  {/* Información de contacto */}
-                  {(team.coordinator_name || team.coordinator_phone || team.captain_name || team.coach_name) && (
+                  {/* Staff del equipo */}
+                  {(team.coach_name || team.coach_photo_url || team.captain_name || team.captain_photo_url) && (
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="text-gray-900 font-semibold mb-2 flex items-center">
+                      <h4 className="text-gray-900 font-semibold mb-3 flex items-center">
                         <Users className="w-4 h-4 mr-2" />
-                        Contactos
+                        Staff
                       </h4>
-                      <div className="space-y-1 text-sm text-gray-600">
-                        {team.coordinator_name && (
-                          <div className="flex items-center">
-                            <Mail className="w-3 h-3 mr-2" />
-                            Coord: {team.coordinator_name}
+                      <div className="space-y-3">
+                        {(team.coach_name || team.coach_photo_url) && (
+                          <div className="flex items-center gap-2">
+                            {team.coach_photo_url ? (
+                              <img src={team.coach_photo_url} alt={`Coach ${team.coach_name || "del equipo"}`} className="w-10 h-10 rounded-full object-cover border-2 border-blue-300" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center border-2 border-blue-300">
+                                <Trophy className="w-4 h-4 text-blue-400" />
+                              </div>
+                            )}
+                            <div className="text-sm">
+                              <p className="text-xs text-blue-600 font-medium">Coach</p>
+                              <p className="text-gray-900 font-medium">{team.coach_name || "Coach"}</p>
+                            </div>
                           </div>
                         )}
-                        {team.captain_name && (
-                          <div className="flex items-center">
-                            <Users className="w-3 h-3 mr-2" />
-                            Cap: {team.captain_name}
+                        {(team.captain_name || team.captain_photo_url) && (
+                          <div className="flex items-center gap-2">
+                            {team.captain_photo_url ? (
+                              <img src={team.captain_photo_url} alt={`Cap ${team.captain_name || "del equipo"}`} className="w-10 h-10 rounded-full object-cover border-2 border-yellow-400" />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center border-2 border-yellow-400">
+                                <Users className="w-4 h-4 text-yellow-500" />
+                              </div>
+                            )}
+                            <div className="text-sm">
+                              <p className="text-xs text-yellow-700 font-medium">Capitan</p>
+                              <p className="text-gray-900 font-medium">{team.captain_name || "Capitan"}</p>
+                            </div>
                           </div>
                         )}
-                        {team.coach_name && (
-                          <div className="flex items-center">
-                            <Trophy className="w-3 h-3 mr-2" />
-                            Coach: {team.coach_name}
-                          </div>
-                        )}
-                        {team.coordinator_phone && (
-                          <div className="flex items-center">
-                            <Phone className="w-3 h-3 mr-2" />
-                            {team.coordinator_phone}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Foto del capitán */}
-                  {team.captain_photo_url && (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="text-gray-900 font-semibold mb-2">Capitán</h4>
-                      <div className="w-16 h-16 mx-auto rounded-full overflow-hidden border-2 border-gray-200">
-                        <img
-                          src={team.captain_photo_url || "/placeholder.svg"}
-                          alt="Foto del capitán"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement
-                            target.style.display = "none"
-                          }}
-                        />
                       </div>
                     </div>
                   )}

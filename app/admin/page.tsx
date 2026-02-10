@@ -1263,6 +1263,7 @@ export default function AdminPage() {
                         <option value="mixto-gold">Mixto Gold (MG)</option>
                         <option value="mixto-silver">Mixto Silver (MS)</option>
                         <option value="femenil-cooper">Femenil Cooper (FC)</option>
+                        <option value="mixto-recreativo">Mixto Recreativo (MR)</option>
                         <option value="teens">Teens (T)</option>
                       </select>
                     </div>
@@ -1391,6 +1392,7 @@ export default function AdminPage() {
                                 <option value="mixto-gold">Mixto Gold (MG)</option>
                                 <option value="mixto-silver">Mixto Silver (MS)</option>
                                 <option value="femenil-cooper">Femenil Cooper (FC)</option>
+                                <option value="mixto-recreativo">Mixto Recreativo (MR)</option>
                                 <option value="teens">Teens (T)</option>
                               </select>
                             </div>
@@ -1904,6 +1906,7 @@ export default function AdminPage() {
                         <option value="mixto-gold">Mixto Gold</option>
                         <option value="mixto-silver">Mixto Silver</option>
                         <option value="femenil-cooper">Femenil Cooper</option>
+                        <option value="mixto-recreativo">Mixto Recreativo</option>
                         <option value="teens">Teens</option>
                       </select>
                     </div>
@@ -2062,6 +2065,7 @@ export default function AdminPage() {
                       <option value="femenil-cooper">Femenil Cooper</option>
                       <option value="mixto-gold">Mixto Gold</option>
                       <option value="mixto-silver">Mixto Silver</option>
+                      <option value="mixto-recreativo">Mixto Recreativo</option>
                       <option value="teens">Teens</option>
                     </select>
                   </div>
@@ -2450,6 +2454,53 @@ export default function AdminPage() {
                   <Button onClick={toggleWildBrowl} className="bg-orange-600 hover:bg-orange-700 text-white">
                     {systemConfig.wildbrowl_enabled === "true" ? "Deshabilitar" : "Habilitar"}
                   </Button>
+                </div>
+
+                {/* Categorias activas para Estadisticas */}
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <div className="font-semibold text-gray-900 mb-1">Categorias activas en Estadisticas</div>
+                  <p className="text-gray-500 text-sm mb-3">Selecciona las categorias que apareceran en la pagina publica de estadisticas y ranking.</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {[
+                      { value: "varonil-libre", label: "Varonil Libre" },
+                      { value: "varonil-gold", label: "Varonil Gold" },
+                      { value: "varonil-silver", label: "Varonil Silver" },
+                      { value: "femenil-gold", label: "Femenil Gold" },
+                      { value: "femenil-silver", label: "Femenil Silver" },
+                      { value: "mixto-gold", label: "Mixto Gold" },
+                      { value: "mixto-silver", label: "Mixto Silver" },
+                      { value: "mixto-recreativo", label: "Mixto Recreativo" },
+                      { value: "femenil-cooper", label: "Femenil Cooper" },
+                      { value: "teens", label: "Teens" },
+                    ].map((cat) => {
+                      const enabledCats: string[] = (() => {
+                        try { return JSON.parse(systemConfig.enabled_categories || "[]") } catch { return [] }
+                      })()
+                      const isActive = enabledCats.includes(cat.value)
+                      return (
+                        <button
+                          key={cat.value}
+                          type="button"
+                          onClick={async () => {
+                            let updated: string[]
+                            if (isActive) {
+                              updated = enabledCats.filter((c) => c !== cat.value)
+                            } else {
+                              updated = [...enabledCats, cat.value]
+                            }
+                            await updateConfig("enabled_categories", JSON.stringify(updated))
+                          }}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-all border ${
+                            isActive
+                              ? "bg-green-600 text-white border-green-600"
+                              : "bg-white text-gray-500 border-gray-300 hover:border-gray-400"
+                          }`}
+                        >
+                          {cat.label}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
 
                 <div>

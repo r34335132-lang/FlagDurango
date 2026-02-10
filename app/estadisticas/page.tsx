@@ -167,17 +167,51 @@ export default function EstadisticasPage() {
   const [rankingView, setRankingView] = useState<"offense" | "defense">("offense")
   const [rankSortKey, setRankSortKey] = useState("touchdowns_totales")
   const [rankSortDir, setRankSortDir] = useState<"asc" | "desc">("desc")
+  const [enabledCategories, setEnabledCategories] = useState<string[]>([])
 
-  const categories = [
-    { value: "all", label: "Todas las Categorías" },
+  const ALL_CATEGORIES: { value: string; label: string }[] = [
     { value: "varonil-libre", label: "Varonil Libre" },
+    { value: "varonil-gold", label: "Varonil Gold" },
+    { value: "varonil-silver", label: "Varonil Silver" },
     { value: "femenil-gold", label: "Femenil Gold" },
     { value: "femenil-silver", label: "Femenil Silver" },
     { value: "femenil-cooper", label: "Femenil Cooper" },
     { value: "mixto-gold", label: "Mixto Gold" },
     { value: "mixto-silver", label: "Mixto Silver" },
+    { value: "mixto-recreativo", label: "Mixto Recreativo" },
     { value: "teens", label: "Teens" },
   ]
+
+  const categories = [
+    { value: "all", label: "Todas las Categorias" },
+    ...(enabledCategories.length > 0
+      ? ALL_CATEGORIES.filter((c) => enabledCategories.includes(c.value))
+      : ALL_CATEGORIES),
+  ]
+
+  useEffect(() => {
+    // Cargar categorias habilitadas desde system_config
+    const loadEnabledCategories = async () => {
+      try {
+        const res = await fetch("/api/system-config")
+        const data = await res.json()
+        if (data.success) {
+          const cfg = data.data.find((c: any) => c.config_key === "enabled_categories")
+          if (cfg?.config_value) {
+            try {
+              const parsed = JSON.parse(cfg.config_value)
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setEnabledCategories(parsed)
+              }
+            } catch {}
+          }
+        }
+      } catch {}
+    }
+    loadEnabledCategories()
+    fetchMvps()
+    fetchGames()
+  }, [])
 
   useEffect(() => {
     if (viewType === "teams") {
@@ -188,11 +222,6 @@ export default function EstadisticasPage() {
       fetchPlayerStats()
     }
   }, [selectedCategory, viewType])
-
-  useEffect(() => {
-    fetchMvps()
-    fetchGames()
-  }, [])
 
   const fetchStats = async () => {
     try {
