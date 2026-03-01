@@ -1219,6 +1219,9 @@ export default function CoachDashboard() {
                                     src={team.logo_url}
                                     alt={`Logo ${team.name}`}
                                     className="w-12 h-12 rounded-lg object-cover border border-gray-200"
+                                    crossOrigin="anonymous"
+                                    referrerPolicy="no-referrer"
+                                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
                                   />
                                 ) : (
                                   <div
@@ -1248,6 +1251,9 @@ export default function CoachDashboard() {
                                       src={team.coach_photo_url}
                                       alt="Foto del coach"
                                       className="w-14 h-14 rounded-full object-cover border-2 border-blue-300"
+                                      crossOrigin="anonymous"
+                                      referrerPolicy="no-referrer"
+                                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
                                     />
                                   ) : (
                                     <div className="w-14 h-14 rounded-full bg-gray-200 flex items-center justify-center border-2 border-gray-300">

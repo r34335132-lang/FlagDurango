@@ -393,6 +393,9 @@ export default function CoachPortal() {
                             src={player.photo_url}
                             alt={player.name}
                             className="w-full h-full object-cover"
+                            crossOrigin="anonymous"
+                            referrerPolicy="no-referrer"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
                           />
                         ) : (
                           <span className="text-lg font-bold text-muted-foreground">

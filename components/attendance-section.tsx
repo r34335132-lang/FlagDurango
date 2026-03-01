@@ -407,6 +407,9 @@ function TeamAttendanceList({
                       src={player.photo_url}
                       alt={player.name}
                       className="w-full h-full object-cover"
+                      crossOrigin="anonymous"
+                      referrerPolicy="no-referrer"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
                     />
                   ) : (
                     <span className="text-xs font-bold text-gray-400">
