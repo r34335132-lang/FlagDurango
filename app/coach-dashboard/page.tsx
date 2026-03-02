@@ -1292,6 +1292,9 @@ export default function CoachDashboard() {
                                       src={team.logo_url}
                                       alt="Logo del equipo"
                                       className="w-12 h-12 rounded-lg object-cover border-2 border-gray-300"
+                                      crossOrigin="anonymous"
+                                      referrerPolicy="no-referrer"
+                                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
                                     />
                                   ) : (
                                     <div
@@ -1499,6 +1502,8 @@ export default function CoachDashboard() {
                                     src={player.photo_url || "/placeholder.svg"}
                                     alt={player.name}
                                     className="w-48 h-48 rounded-full object-cover border-4 border-gray-300 shadow-lg"
+                                    crossOrigin="anonymous"
+                                    referrerPolicy="no-referrer"
                                     onError={(e) => {
                                       e.currentTarget.src = "/placeholder.svg?height=192&width=192"
                                     }}
@@ -1765,6 +1770,9 @@ export default function CoachDashboard() {
                                 src={teamForm.logo_url}
                                 alt="Vista previa del logo"
                                 className="w-16 h-16 rounded-lg object-cover border-2 border-gray-300"
+                                crossOrigin="anonymous"
+                                referrerPolicy="no-referrer"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
                               />
                               <div className="flex gap-2">
                                 <Button

@@ -981,6 +981,9 @@ export default function EstadisticasPage() {
                                   src={player.photo_url || "/placeholder.svg?height=40&width=40&query=foto-jugador"}
                                   alt={player.player_name}
                                   className="object-cover w-10 h-10"
+                                  crossOrigin="anonymous"
+                                  referrerPolicy="no-referrer"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
                                 />
                               </div>
                               <div className="text-gray-900 font-semibold">{player.player_name}</div>

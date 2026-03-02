@@ -1664,6 +1664,9 @@ export default function AdminPage() {
                                     src={player.photo_url}
                                     alt={player.name}
                                     className="w-full h-full object-cover"
+                                    crossOrigin="anonymous"
+                                    referrerPolicy="no-referrer"
+                                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
                                   />
                                 ) : (
                                   <User className="w-10 h-10 text-gray-400" />
