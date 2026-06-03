@@ -332,6 +332,7 @@ export default function AdminPage() {
     away_score: "",
     match_type: "jornada",
     game_type: "flag", // Asegurar que siempre tenga un valor por defecto
+    stage: "regular", // <-- CAMBIO APLICADO: Inicializamos con regular
     mvp: "",
   })
 
@@ -944,6 +945,7 @@ export default function AdminPage() {
           status: "programado",
           match_type: "jornada",
           game_type: "flag",
+          stage: "regular", // <-- CAMBIO APLICADO: Al limpiar el form, volvemos a regular
           mvp: "",
         })
         loadData()
@@ -2015,12 +2017,29 @@ export default function AdminPage() {
                         className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900"
                       >
                         <option value="jornada">Jornada</option>
+                        <option value="comodin">Comodín</option>
                         <option value="semifinal">Semifinal</option>
                         <option value="final">Final</option>
                         <option value="amistoso">Amistoso</option>
                       </select>
                     </div>
-                    <div />
+                    
+                    {/* ¡NUEVO CAMPO: FASE DEL TORNEO! */}
+                    <div>
+                      <Label className="text-gray-700">Fase del Torneo (Stage)</Label>
+                      <select
+                        value={gameForm.stage}
+                        onChange={(e) => setGameForm({ ...gameForm, stage: e.target.value })}
+                        className="w-full p-2 rounded bg-white border border-gray-300 text-gray-900 font-semibold"
+                      >
+                        <option value="regular">Temporada Regular (Suma puntos)</option>
+                        <option value="comodin">Playoffs: Comodín</option>
+                        <option value="quarterfinal">Playoffs: Cuartos de Final</option>
+                        <option value="semifinal">Playoffs: Semifinal</option>
+                        <option value="final">Playoffs: La Gran Final</option>
+                      </select>
+                    </div>
+                    
                     {gameForm.game_type === "flag" ? (
                       <>
                         <div>
@@ -2032,6 +2051,7 @@ export default function AdminPage() {
                             required
                           >
                             <option value="">Seleccionar equipo</option>
+                            <option value="Por definir" className="font-bold text-blue-600">Por definir (Esperando rival)</option>
                             {teams
                               .filter((t) => t.category === gameForm.category)
                               .map((t) => (
@@ -2050,6 +2070,7 @@ export default function AdminPage() {
                             required
                           >
                             <option value="">Seleccionar equipo</option>
+                            <option value="Por definir" className="font-bold text-blue-600">Por definir (Esperando rival)</option>
                             {teams
                               .filter((t) => t.category === gameForm.category)
                               .map((t) => (
@@ -2171,7 +2192,7 @@ export default function AdminPage() {
                   {games
                     .filter((game) => !gamesCategoryFilter || game.category === gamesCategoryFilter)
                     .map((game) => (
-                      <div key={game.id} className="flex items-center justify-between mb-4 p-4 bg-white/5 rounded">
+                      <div key={game.id} className="flex items-center justify-between mb-4 p-4 bg-white/5 rounded border border-gray-100">
                         <div>
                           <h3 className="text-gray-900 font-semibold text-lg">
                             {game.home_team} vs {game.away_team}
@@ -2185,11 +2206,19 @@ export default function AdminPage() {
                           <div className="text-gray-600 text-sm">
                             Árbitros: {[game.referee1, game.referee2].filter(Boolean).join(", ") || "Sin asignar"}
                           </div>
-                          {game.game_type && (
-                            <Badge className="mt-1 bg-purple-600 text-white">
-                              {game.game_type === "wildbrowl" ? "WildBrowl 1v1" : "Flag Football"}
-                            </Badge>
-                          )}
+                          <div className="flex gap-2 mt-1">
+                            {game.game_type && (
+                              <Badge className="bg-purple-600 text-white">
+                                {game.game_type === "wildbrowl" ? "WildBrowl 1v1" : "Flag Football"}
+                              </Badge>
+                            )}
+                            {/* Mostrar si es un juego de Playoffs visualmente */}
+                            {game.stage && game.stage !== 'regular' && (
+                               <Badge className="bg-orange-500 text-white capitalize">
+                                 {game.stage === 'comodin' ? 'Comodín' : game.stage}
+                               </Badge>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Badge className={`${getStatusColor(game.status)} text-white`}>
@@ -2294,7 +2323,7 @@ export default function AdminPage() {
                           <Input
                             value={editingGame.mvp || ""}
                             onChange={(e) => setEditingGame({ ...editingGame, mvp: e.target.value })}
-                            className="bg-black/10 border-white/20 text-black placeholder:text-black/50"
+                            className="bg-black/10 border-black/20 text-black placeholder:text-black/50"
                             placeholder="Nombre del MVP (opcional)"
                           />
                         </div>
@@ -2396,16 +2425,16 @@ export default function AdminPage() {
 
               <div className="grid gap-4">
                 {payments.map((p) => (
-                  <Card key={p.id} className="bg-white/10 backdrop-blur-sm border-white/20">
+                  <Card key={p.id} className="bg-white/10 backdrop-blur-sm border-gray-200 shadow-sm">
                     <CardContent className="p-4 flex items-center justify-between">
                       <div>
-                        <div className="text-white font-semibold">
+                        <div className="text-gray-900 font-semibold">
                           {p.team?.name || p.player?.name || p.referee?.name || "Entidad"}
                         </div>
-                        <div className="text-white/70 text-sm">
+                        <div className="text-gray-600 text-sm">
                           {p.payment_type} — ${p.amount.toFixed(2)} MXN
                         </div>
-                        <div className="text-white/50 text-xs">Vence: {p.due_date}</div>
+                        <div className="text-gray-500 text-xs">Vence: {p.due_date}</div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge className={`${getPaymentStatusColor(p.status)} text-white flex items-center gap-1`}>
@@ -2460,13 +2489,13 @@ export default function AdminPage() {
                 </Card>
               ) : (
                 coachPermissions.map((perm) => (
-                  <Card key={perm.id} className="bg-white/10 backdrop-blur-sm border-white/20">
+                  <Card key={perm.id} className="bg-white border border-gray-200">
                     <CardContent className="p-4 flex items-center justify-between">
-                      <div className="text-white">
+                      <div className="text-gray-900">
                         <div className="font-semibold">
                           {perm.users.username} ({perm.users.email})
                         </div>
-                        <div className="text-sm text-white/70">
+                        <div className="text-sm text-gray-600">
                           Equipo: {perm.teams.name} — {perm.teams.category}
                         </div>
                       </div>
