@@ -114,7 +114,7 @@ function HomePageContent() {
   // Countdown timer
   useEffect(() => {
     const updateCountdown = () => {
-      const deadlineDate = systemConfig.registration_deadline || "2025-09-16"
+      const deadlineDate = systemConfig.registration_deadline || "2026-09-14"
       const targetDate = new Date(`${deadlineDate}T23:59:59`).getTime()
       const now = new Date().getTime()
       const distance = targetDate - now
@@ -195,13 +195,16 @@ function HomePageContent() {
             <div className="absolute inset-0 bg-black/50" />
 
             <div className="container mx-auto px-4 relative z-10 text-center">
-              <div className="inline-block bg-yellow-400/95 backdrop-blur-sm text-gray-900 px-8 py-3 rounded-full font-bold mb-8 border border-black/10 shadow-lg">
-                {"🏆 Torneo Flag Durango - ¡Inscripciones Abiertas!"}
+              <div className="inline-block bg-white/95 backdrop-blur-sm text-gray-900 px-8 py-3 rounded-2xl font-bold mb-8 border border-black/10 shadow-sm">
+                Temporada Otoño 2026 · Inscripciones abiertas
               </div>
               <h1 className="text-5xl md:text-7xl font-black text-white mb-6 leading-tight">
-                <span className="block">Torneo Flag Durango</span>
-                <span className="block text-white">Nueva temporada</span>
+                <span className="block">Flag Durango</span>
+                <span className="block text-white/90 text-3xl md:text-5xl font-bold mt-2">Temporada Otoño 2026</span>
               </h1>
+              <p className="text-white/90 text-lg md:text-xl max-w-2xl mx-auto mb-10">
+                21 años de historia. Por primera vez, parte del sistema federado de la FMFA.
+              </p>
 
               {/* Countdown */}
               <div className="mb-12">
@@ -268,17 +271,15 @@ function HomePageContent() {
 
             <div className="container mx-auto px-4 relative z-10">
               <div className="text-center max-w-4xl mx-auto">
-                <div className="inline-block bg-green-400/95 backdrop-blur-sm text-gray-900 px-6 py-2 rounded-full font-bold mb-6">
-                  {"🏈 Temporada en Curso - ¡Sigue la Acción!"}
+                <div className="inline-block bg-white/95 backdrop-blur-sm text-gray-900 px-6 py-2 rounded-2xl font-bold mb-6 shadow-sm">
+                  Temporada Otoño 2026 · En curso
                 </div>
                 <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
                   Liga Flag
-                  <span className="block bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-                    Durango
-                  </span>
+                  <span className="block text-white/90">Durango</span>
                 </h1>
                 <p className="text-xl md:text-2xl text-white/90 mb-8 leading-relaxed">
-                  20 años haciendo historia en el flag football de Durango.
+                  Temporada Otoño 2026 — 21 años promoviendo el flag football en Durango.
                   <span className="block mt-2 text-yellow-300 font-semibold">¡La temporada activa está en marcha!</span>
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -313,14 +314,39 @@ function HomePageContent() {
         </>
       )}
 
-      {/* 20 Años Section */}
-      <section className="py-16" style={{ background: "linear-gradient(to right, #0857b5, #e266be, #ff6d06)" }}>
-        <div className="container mx-auto px-4 text-center">
-          <img
-            src="/images/20.png"
-            alt="20 Años de Flag - Haciendo Historia"
-            className="max-w-md w-full h-auto mx-auto filter drop-shadow-lg"
-          />
+      {/* 21 Años + FMFA */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center mb-12">
+            <img
+              src="/images/20.png"
+              alt="21 Años de Flag Durango"
+              className="max-w-xs w-full h-auto mx-auto mb-10"
+            />
+            <p className="text-sm font-semibold tracking-widest text-gray-500 uppercase mb-3">Anuncio histórico</p>
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">
+              Incorporación oficial a la FMFA
+            </h2>
+            <p className="text-gray-600 text-lg leading-relaxed">
+              Después de más de 20 años de trayectoria, Liga Flag Durango se incorpora por primera vez al
+              sistema de la Federación Mexicana de Fútbol Americano. A partir de Otoño 2026, equipos, coaches,
+              jugadores y árbitros forman parte del sistema federado con proyección nacional.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
+              <p className="text-sm text-gray-500 mb-1">Preselecciones</p>
+              <p className="font-semibold text-gray-900">Procesos nacionales</p>
+            </div>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
+              <p className="text-sm text-gray-500 mb-1">Competencias</p>
+              <p className="font-semibold text-gray-900">Alcance federado</p>
+            </div>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 text-center">
+              <p className="text-sm text-gray-500 mb-1">Desarrollo</p>
+              <p className="font-semibold text-gray-900">Identificación de talento</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -411,195 +437,120 @@ function HomePageContent() {
             </div>
           </section>
 
-          {/* Convocatoria Primavera 2026 */}
-          <section className="py-20 bg-gray-50">
+          {/* Convocatoria Otoño 2026 */}
+          <section className="py-24 bg-gray-50">
             <div className="container mx-auto px-4">
-              <h2 className="text-4xl md:text-5xl font-black text-center text-gray-900 mb-4">
-                Convocatoria Torneo FlagDurango primavera 2026
-              </h2>
-              <p className="text-xl text-center text-gray-600 mb-16">Todo lo que necesitas saber para participar</p>
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                  <CardContent className="p-6 text-center">
-                    <img src="/images/cierre.png" alt="Cierre de Inscripción" className="w-12 h-12 mx-auto mb-4" />
-                    <h3 className="font-bold text-gray-900 mb-2">Cierre de Inscripción</h3>
-                    <div className="text-3xl font-black text-gray-900">17 marzo</div>
-                    <div className="text-gray-600">2026</div>
-                  </CardContent>
-                </Card>
+              <div className="text-center max-w-2xl mx-auto mb-16">
+                <p className="text-sm font-semibold tracking-widest text-gray-500 uppercase mb-3">Convocatoria</p>
+                <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">
+                  Temporada Otoño 2026
+                </h2>
+                <p className="text-lg text-gray-600">
+                  Fechas, costos y sede oficial · Deportivo Tapias
+                </p>
+              </div>
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+                  <Calendar className="w-8 h-8 mx-auto mb-4 text-gray-400" />
+                  <h3 className="font-semibold text-gray-900 mb-2">Cierre de registro</h3>
+                  <div className="text-3xl font-black text-gray-900">14 sep</div>
+                  <div className="text-gray-500 mt-1">2026</div>
+                </div>
 
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                  <CardContent className="p-6 text-center">
-                    <img src="/images/inscripciones.png" alt="Inscripción" className="w-12 h-12 mx-auto mb-4" />
-                    <h3 className="font-bold text-gray-900 mb-2">Inscripción</h3>
-                    <div className="text-3xl font-black text-gray-900">$1900</div>
-                    <div className="text-gray-600">Por equipo</div>
-                  </CardContent>
-                </Card>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+                  <Play className="w-8 h-8 mx-auto mb-4 text-gray-400" />
+                  <h3 className="font-semibold text-gray-900 mb-2">Kickoff</h3>
+                  <div className="text-3xl font-black text-gray-900">20 sep</div>
+                  <div className="text-gray-500 mt-1">Jornada 1</div>
+                </div>
 
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                  <CardContent className="p-6 text-center">
-                    <img src="/images/inicio.png" alt="Inicio de Temporada" className="w-12 h-12 mx-auto mb-4" />
-                    <h3 className="font-bold text-gray-900 mb-2">Inicio de Torneo</h3>
-                    <div className="text-3xl font-black text-gray-900">22 de marzo</div>
-                    <div className="text-gray-600">2026</div>
-                  </CardContent>
-                </Card>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+                  <Trophy className="w-8 h-8 mx-auto mb-4 text-gray-400" />
+                  <h3 className="font-semibold text-gray-900 mb-2">Inscripción</h3>
+                  <div className="text-3xl font-black text-gray-900">$1,900</div>
+                  <div className="text-gray-500 mt-1">Por equipo</div>
+                </div>
 
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                  <CardContent className="p-6 text-center">
-                    <img src="/images/sede.png" alt="Sede" className="w-12 h-12 mx-auto mb-4" />
-                    <h3 className="font-bold text-gray-900 mb-2">Sede</h3>
-                    <div className="text-xl font-black text-gray-900">Deportivo</div>
-                    <div className="text-gray-600">Tapias</div>
-                  </CardContent>
-                </Card>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+                  <MapPin className="w-8 h-8 mx-auto mb-4 text-gray-400" />
+                  <h3 className="font-semibold text-gray-900 mb-2">Sede</h3>
+                  <div className="text-2xl font-black text-gray-900">Deportivo</div>
+                  <div className="text-gray-500 mt-1">Tapias</div>
+                </div>
 
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                  <CardContent className="p-6 text-center">
-                    <img src="/images/modalidad.png" alt="Modalidad" className="w-12 h-12 mx-auto mb-4" />
-                    <h3 className="font-bold text-gray-900 mb-2">Modalidad</h3>
-                    <div className="text-xl font-black text-gray-900">IFAF</div>
-                    <div className="text-gray-600">Dominical round robin 8 jornadas</div>
-                  </CardContent>
-                </Card>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+                  <Users className="w-8 h-8 mx-auto mb-4 text-gray-400" />
+                  <h3 className="font-semibold text-gray-900 mb-2">Formato</h3>
+                  <div className="text-xl font-black text-gray-900">8 jornadas</div>
+                  <div className="text-gray-500 mt-1">Regular + playoffs</div>
+                </div>
 
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                  <CardContent className="p-6 text-center">
-                    <img src="/images/arbitraje.png" alt="Arbitraje" className="w-12 h-12 mx-auto mb-4" />
-                    <h3 className="font-bold text-gray-900 mb-2">Arbitraje</h3>
-                    <div className="text-3xl font-black text-gray-900">$320</div>
-                    <div className="text-gray-600">Por juego</div>
-                  </CardContent>
-                </Card>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+                  <Target className="w-8 h-8 mx-auto mb-4 text-gray-400" />
+                  <h3 className="font-semibold text-gray-900 mb-2">Arbitraje</h3>
+                  <div className="text-3xl font-black text-gray-900">$350</div>
+                  <div className="text-gray-500 mt-1">Por equipo / partido</div>
+                </div>
 
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                  <CardContent className="p-6 text-center">
-                    <img src="/images/premiacion.png" alt="Premiación" className="w-12 h-12 mx-auto mb-4" />
-                    <h3 className="font-bold text-gray-900 mb-2">Premiación</h3>
-                    <div className="text-xl font-black text-gray-900">Campeón</div>
-                    <div className="text-gray-600">Subcampeones y MVPs</div>
-                  </CardContent>
-                </Card>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+                  <Clock className="w-8 h-8 mx-auto mb-4 text-gray-400" />
+                  <h3 className="font-semibold text-gray-900 mb-2">Junta previa</h3>
+                  <div className="text-2xl font-black text-gray-900">10 sep</div>
+                  <div className="text-gray-500 mt-1">Capitanes y coaches</div>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+                  <Star className="w-8 h-8 mx-auto mb-4 text-gray-400" />
+                  <h3 className="font-semibold text-gray-900 mb-2">Premiación</h3>
+                  <div className="text-xl font-black text-gray-900">Campeón</div>
+                  <div className="text-gray-500 mt-1">Subcampeón y MVPs</div>
+                </div>
               </div>
             </div>
           </section>
 
           {/* Categorías */}
-          <section className="py-20 bg-white">
+          <section className="py-24 bg-white">
             <div className="container mx-auto px-4">
-              <h3 className="text-3xl md:text-4xl font-black text-center text-gray-900 mb-12">
-                Categorías Disponibles
-              </h3>
-              <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                  <CardContent className="p-6 text-center">
-                    <img src="/images/varonilgold.png" alt="Varonil Gold" className="w-16 h-16 mx-auto mb-4" />
-                    <h4 className="font-bold text-gray-900">Varonil Gold</h4>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                  <CardContent className="p-6 text-center">
-                    <img src="/images/varonilsilver.png" alt="Varonil Silver" className="w-16 h-16 mx-auto mb-4" />
-                    <h4 className="font-bold text-gray-900">Varonil Silver</h4>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                  <CardContent className="p-6 text-center">
-                    <img src="/images/femenilgold.png" alt="Femenil Gold" className="w-16 h-16 mx-auto mb-4" />
-                    <h4 className="font-bold text-gray-900">Femenil Gold</h4>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                  <CardContent className="p-6 text-center">
-                    <img src="/images/femenilsilver.png" alt="Femenil Silver" className="w-16 h-16 mx-auto mb-4" />
-                    <h4 className="font-bold text-gray-900">Femenil Silver</h4>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                  <CardContent className="p-6 text-center">
-                    <img src="/images/mixtogold.png" alt="Mixto Gold" className="w-16 h-16 mx-auto mb-4" />
-                    <h4 className="font-bold text-gray-900">Mixto Gold</h4>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                  <CardContent className="p-6 text-center">
-                    <img src="/images/mixtosilver.png" alt="Mixto Silver" className="w-16 h-16 mx-auto mb-4" />
-                    <h4 className="font-bold text-gray-900">Mixto Silver</h4>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105 relative">
-                  <div className="absolute -top-2 -right-2 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse shadow-lg">
-                    {"¡NUEVA!"}
+              <div className="text-center max-w-2xl mx-auto mb-14">
+                <h3 className="text-3xl md:text-4xl font-black text-gray-900 mb-3">
+                  Categorías
+                </h3>
+                <p className="text-gray-600">Temporada Otoño 2026 · Todas con 8 jornadas regulares</p>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                {[
+                  { name: "Femenil Copper", img: "/images/femenilcopper.png" },
+                  { name: "Femenil Silver", img: "/images/femenilsilver.png" },
+                  { name: "Femenil Gold", img: "/images/femenilgold.png" },
+                  { name: "Mixto Silver", img: "/images/mixtosilver.png" },
+                  { name: "Mixto Gold", img: "/images/mixtogold.png" },
+                  { name: "Varonil Silver", img: "/images/varonilsilver.png" },
+                  { name: "Varonil Gold", img: "/images/varonilgold.png" },
+                ].map((cat) => (
+                  <div
+                    key={cat.name}
+                    className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center"
+                  >
+                    <img src={cat.img} alt={cat.name} className="w-14 h-14 mx-auto mb-4" />
+                    <h4 className="font-semibold text-gray-900">{cat.name}</h4>
                   </div>
-                  <CardContent className="p-6 text-center">
-                    <img src="/images/femenilcopper.png" alt="Cooper Femenil" className="w-16 h-16 mx-auto mb-4" />
-                    <h4 className="font-bold text-gray-900">Cooper Femenil</h4>
-                  </CardContent>
-                </Card>
-                                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105 relative">
-                  <div className="absolute -top-2 -right-2 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse shadow-lg">
-                    {"¡NUEVO!"}
-                  </div>
-                  <CardContent className="p-6 text-center">
-                    <img src="/images/1vs1.png" alt="1v1" className="w-16 h-16 mx-auto mb-4" />
-                    <h4 className="font-bold text-gray-900">Varonil Cooper</h4>
-                  </CardContent>
-                </Card>
-                                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105 relative">
-                  <div className="absolute -top-2 -right-2 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse shadow-lg">
-                    {"¡NUEVO!"}
-                  </div>
-                  <CardContent className="p-6 text-center">
-                    <img src="/images/1vs1.png" alt="1v1" className="w-16 h-16 mx-auto mb-4" />
-                    <h4 className="font-bold text-gray-900">MIxto Cooper</h4>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105 relative">
-                  <div className="absolute -top-2 -right-2 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse shadow-lg">
-                    {"¡NUEVO!"}
-                  </div>
-                  <CardContent className="p-6 text-center">
-                    <img src="/images/1vs1.png" alt="1v1" className="w-16 h-16 mx-auto mb-4" />
-                    <h4 className="font-bold text-gray-900">1 vs 1</h4>
-                  </CardContent>
-                </Card>
+                ))}
               </div>
             </div>
           </section>
 
           {/* MVPs */}
-          <section className="py-20 bg-gray-50">
+          <section className="py-24 bg-gray-50">
             <div className="container mx-auto px-4">
               <h3 className="text-3xl md:text-4xl font-black text-center text-gray-900 mb-12">Premiación MVPs</h3>
-              <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                  <CardContent className="p-8 text-center">
-                    <img src="/images/MVPs.png" alt="MVP Ofensivo" className="w-16 h-16 mx-auto mb-4" />
-                    <h4 className="font-bold text-gray-900">MVP Ofensivo</h4>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                  <CardContent className="p-8 text-center">
-                    <img src="/images/MVPs.png" alt="MVP Defensivo" className="w-16 h-16 mx-auto mb-4" />
-                    <h4 className="font-bold text-gray-900">MVP Defensivo</h4>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-                  <CardContent className="p-8 text-center">
-                    <img src="/images/MVPs.png" alt="MVP Final" className="w-16 h-16 mx-auto mb-4" />
-                    <h4 className="font-bold text-gray-900">MVP Final</h4>
-                  </CardContent>
-                </Card>
+              <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                {["MVP Temporada Regular", "MVP de la Final", "Reconocimientos individuales"].map((label) => (
+                  <div key={label} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+                    <img src="/images/MVPs.png" alt={label} className="w-14 h-14 mx-auto mb-4" />
+                    <h4 className="font-semibold text-gray-900">{label}</h4>
+                  </div>
+                ))}
               </div>
             </div>
           </section>
@@ -829,7 +780,7 @@ function HomePageContent() {
             {/* Logo */}
             <div className="flex flex-col items-start">
               <img src="/images/20.png" alt="20 Años de Flag" className="w-40 h-auto mb-4" />
-              <p className="text-sm text-gray-400">20 años haciendo historia en el Flag Football.</p>
+              <p className="text-sm text-gray-400">21 años promoviendo el flag football en Durango.</p>
             </div>
 
             {/* Contacto */}

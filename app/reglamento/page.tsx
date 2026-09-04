@@ -13,6 +13,7 @@ export const metadata = {
 
 // ESTA LÍNEA EVITA QUE VERCEL GUARDE LA PÁGINA EN CACHÉ
 export const dynamic = 'force-dynamic';
+// keep: sandbox write probe
 
 export default function ReglamentoPage() {
   return (

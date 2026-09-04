@@ -41,6 +41,8 @@ interface Team {
   paid?: boolean
   coach_id?: number
   created_at?: string
+  season_id?: string
+  seasons?: { id: string; name: string; year: number; is_active: boolean } | null
 }
 
 interface Player {
@@ -164,6 +166,9 @@ export default function CoachDashboard() {
   const [uploadingCoachPhoto, setUploadingCoachPhoto] = useState(false)
   const coachPhotoInputRef = useRef<HTMLInputElement>(null)
   const [coachPhotoUrl, setCoachPhotoUrl] = useState("")
+  const [activeSeason, setActiveSeason] = useState<Season | null>(null)
+  const [duplicatingTeamId, setDuplicatingTeamId] = useState<number | null>(null)
+  const [removingPlayerId, setRemovingPlayerId] = useState<number | null>(null)
 
   // Filtros para juegos
   const [gameFilter, setGameFilter] = useState({
@@ -196,7 +201,10 @@ export default function CoachDashboard() {
       if (!result.success) return
       setSeasons(result.data || [])
       const active = result.data?.find((season: Season) => season.is_active)
-      if (active) setTeamForm((current) => ({ ...current, season_id: current.season_id || active.id }))
+      if (active) {
+        setActiveSeason(active)
+        setTeamForm((current) => ({ ...current, season_id: current.season_id || active.id }))
+      }
     })
   }, [])
 
@@ -422,6 +430,77 @@ export default function CoachDashboard() {
 
   const pendingJoinRequests = joinRequests.filter(r => r.status === "pending" || r.status === "pending_coordinator")
   const resolvedJoinRequests = joinRequests.filter(r => r.status === "accepted" || r.status === "rejected")
+
+  const teamsNeedingReenroll = (() => {
+    if (!activeSeason) return []
+    const alreadyInActive = new Set(
+      teams.filter((team) => team.season_id === activeSeason.id).map((team) => team.name),
+    )
+    return teams.filter(
+      (team) => team.season_id !== activeSeason.id && !alreadyInActive.has(team.name),
+    )
+  })()
+
+  const managedTeams = activeSeason
+    ? teams.filter((team) => team.season_id === activeSeason.id)
+    : teams
+
+  const handleReenrollTeam = async (team: Team) => {
+    if (!user || !activeSeason) return
+    const confirmed = confirm(
+      `¿Deseas volver a inscribir a "${team.name}" para la Temporada ${activeSeason.name}? Se clonará el equipo y su roster actual.`,
+    )
+    if (!confirmed) return
+
+    setDuplicatingTeamId(team.id)
+    setError(null)
+    setSuccess(null)
+    try {
+      const res = await fetch("/api/teams/duplicate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ team_id: team.id, coach_user_id: user.id }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setSuccess(data.message || `Equipo reinscripto en ${activeSeason.name}`)
+        await loadDataOld()
+      } else {
+        setError(data.message || "No se pudo reinscribir el equipo")
+      }
+    } catch {
+      setError("Error de conexión al reinscribir el equipo")
+    } finally {
+      setDuplicatingTeamId(null)
+    }
+  }
+
+  const handleRemoveFromRoster = async (player: Player) => {
+    if (!confirm(`¿Dar de baja a ${player.name} del roster de esta temporada? El jugador quedará como agente libre.`)) {
+      return
+    }
+    setRemovingPlayerId(player.id)
+    setError(null)
+    setSuccess(null)
+    try {
+      const res = await fetch(`/api/players/${player.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ team_id: null }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setSuccess(`${player.name} fue dado de baja del roster`)
+        await loadDataOld()
+      } else {
+        setError(data.message || "No se pudo dar de baja al jugador")
+      }
+    } catch {
+      setError("Error de conexión al dar de baja")
+    } finally {
+      setRemovingPlayerId(null)
+    }
+  }
 
   const autoAssignBestMatches = async () => {
     if (potentialMatches.length === 0) return
@@ -849,7 +928,7 @@ export default function CoachDashboard() {
   }
 
   const getMyGames = () => {
-    const myTeamNames = teams.map((t) => t.name)
+    const myTeamNames = managedTeams.map((t) => t.name)
     let filteredGames = games.filter((g) => myTeamNames.includes(g.home_team) || myTeamNames.includes(g.away_team))
 
     // Aplicar filtros
@@ -867,7 +946,7 @@ export default function CoachDashboard() {
   }
 
   const getUpcomingGames = () => {
-    const myTeamNames = teams.map((t) => t.name)
+    const myTeamNames = managedTeams.map((t) => t.name)
     return games
       .filter((g) => myTeamNames.includes(g.home_team) || myTeamNames.includes(g.away_team))
       .filter((g) => g.status === "programado")
@@ -876,7 +955,7 @@ export default function CoachDashboard() {
   }
 
   const getRecentResults = () => {
-    const myTeamNames = teams.map((t) => t.name)
+    const myTeamNames = managedTeams.map((t) => t.name)
     return games
       .filter((g) => myTeamNames.includes(g.home_team) || myTeamNames.includes(g.away_team))
       .filter((g) => g.status === "finalizado")
@@ -885,7 +964,7 @@ export default function CoachDashboard() {
   }
 
   const getMyPlayers = () => {
-    const myTeamIds = teams.map((t) => t.id)
+    const myTeamIds = managedTeams.map((t) => t.id)
     return players.filter((p) => myTeamIds.includes(p.team_id))
   }
 
@@ -1083,6 +1162,40 @@ export default function CoachDashboard() {
                 </div>
               )}
 
+              {teamsNeedingReenroll.length > 0 && activeSeason && (
+                <div className="mb-6 p-5 bg-amber-50 border border-amber-300 rounded-2xl shadow-sm">
+                  <div className="flex flex-col gap-4">
+                    <div>
+                      <p className="font-bold text-amber-950 text-lg">
+                        ¿Deseas volver a inscribir a este equipo para la Temporada {activeSeason.name}?
+                      </p>
+                      <p className="text-amber-800 text-sm mt-1">
+                        Tienes {teamsNeedingReenroll.length} equipo(s) de temporadas anteriores. Al confirmar se clonará el equipo y su roster a la temporada activa.
+                      </p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+                      {teamsNeedingReenroll.map((team) => (
+                        <Button
+                          key={team.id}
+                          onClick={() => handleReenrollTeam(team)}
+                          disabled={duplicatingTeamId === team.id}
+                          className="bg-amber-600 hover:bg-amber-700 text-white"
+                        >
+                          {duplicatingTeamId === team.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Reinscribiendo…
+                            </>
+                          ) : (
+                            <>Reinscribir {team.name}</>
+                          )}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Overview Tab */}
               {activeTab === "overview" && (
                 <div className="space-y-6">
@@ -1093,7 +1206,7 @@ export default function CoachDashboard() {
                     <Card className="bg-white border-gray-200">
                       <CardContent className="p-4 text-center">
                         <Trophy className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-                        <h3 className="text-2xl font-bold text-gray-900">{teams.length}</h3>
+                        <h3 className="text-2xl font-bold text-gray-900">{managedTeams.length}</h3>
                         <p className="text-gray-600 text-sm">Equipos</p>
                       </CardContent>
                     </Card>
@@ -1210,12 +1323,20 @@ export default function CoachDashboard() {
                     </Button>
                   </div>
 
-                  {teams.length === 0 ? (
+                  {managedTeams.length === 0 ? (
                     <Card className="bg-white border-gray-200">
                       <CardContent className="p-8 text-center">
                         <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold text-gray-900 mb-2">No tienes equipos</h3>
-                        <p className="text-gray-600 mb-4">Crea tu primer equipo para comenzar</p>
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                          {teamsNeedingReenroll.length > 0
+                            ? "Sin equipo en la temporada activa"
+                            : "No tienes equipos"}
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          {teamsNeedingReenroll.length > 0
+                            ? `Reinscribe tu equipo para ${activeSeason?.name || "la temporada activa"} usando el banner de arriba`
+                            : "Crea tu primer equipo para comenzar"}
+                        </p>
                         <Button onClick={() => setActiveTab("create")} className="bg-blue-600 hover:bg-blue-700">
                           <Plus className="w-4 h-4 mr-2" />
                           Crear Equipo
@@ -1224,7 +1345,7 @@ export default function CoachDashboard() {
                     </Card>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {teams.map((team) => (
+                      {managedTeams.map((team) => (
                         <Card key={team.id} className="bg-white border-gray-200">
                           <CardHeader>
                             <div className="flex justify-between items-start">
@@ -1480,7 +1601,7 @@ export default function CoachDashboard() {
                 <div className="space-y-6">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <h2 className="text-2xl md:text-3xl font-bold text-gray-900">Mis Jugadores</h2>
-                    {teams.length > 0 && (
+                    {managedTeams.length > 0 && (
                       <Button
                         onClick={() => {
                           setActiveTab("add-player")
@@ -1500,11 +1621,11 @@ export default function CoachDashboard() {
                         <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-xl font-semibold text-gray-900 mb-2">No tienes jugadores</h3>
                         <p className="text-gray-600 mb-4">
-                          {teams.length === 0
-                            ? "Primero crea un equipo para agregar jugadores"
+                          {managedTeams.length === 0
+                            ? "Primero reinscribe o crea un equipo para esta temporada"
                             : "Agrega jugadores a tu equipo"}
                         </p>
-                        {teams.length > 0 && (
+                        {managedTeams.length > 0 && (
                           <Button onClick={() => setActiveTab("add-player")} className="bg-blue-600 hover:bg-blue-700">
                             <Plus className="w-4 h-4 mr-2" />
                             Agregar Jugador
@@ -1515,7 +1636,7 @@ export default function CoachDashboard() {
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {getMyPlayers().map((player) => {
-                        const team = teams.find((t) => t.id === player.team_id)
+                        const team = managedTeams.find((t) => t.id === player.team_id)
                         return (
                           <Card key={player.id} className="bg-white border-gray-200">
                             <CardContent className="p-4">
@@ -1597,6 +1718,20 @@ export default function CoachDashboard() {
                                   >
                                     <Edit className="w-3 h-3 mr-1" />
                                     Editar
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="flex-1 border-orange-300 text-orange-700 hover:bg-orange-50 bg-transparent"
+                                    disabled={removingPlayerId === player.id}
+                                    onClick={() => handleRemoveFromRoster(player)}
+                                  >
+                                    {removingPlayerId === player.id ? (
+                                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                    ) : (
+                                      <UserX className="w-3 h-3 mr-1" />
+                                    )}
+                                    Dar de baja
                                   </Button>
                                   <Button
                                     size="sm"
@@ -1962,7 +2097,7 @@ export default function CoachDashboard() {
                             required
                           >
                             <option value="">Seleccionar equipo</option>
-                            {teams.map((team) => (
+                            {managedTeams.map((team) => (
                               <option key={team.id} value={team.id}>
                                 {team.name}
                               </option>
@@ -2114,7 +2249,7 @@ export default function CoachDashboard() {
                             required
                           >
                             <option value="">Seleccionar equipo</option>
-                            {teams.map((team) => (
+                            {managedTeams.map((team) => (
                               <option key={team.id} value={team.id}>
                                 {team.name}
                               </option>

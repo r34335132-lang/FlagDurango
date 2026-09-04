@@ -62,6 +62,8 @@ interface PlayerProfile {
     name: string
     category: string
     logo_url?: string
+    season_id?: string
+    seasons?: { id: string; name: string; year: number; is_active: boolean } | null
   }
 }
 
@@ -80,6 +82,8 @@ interface TeamItem {
   color1?: string
   color2?: string
   coach_name?: string
+  season_id?: string
+  seasons?: { id: string; name: string; year: number; is_active: boolean } | null
 }
 
 interface JoinRequest {
@@ -109,6 +113,8 @@ interface PlayerTeamEntry {
     name: string
     category: string
     logo_url?: string
+    season_id?: string
+    seasons?: { id: string; name: string; year: number; is_active: boolean } | null
   }
   position: string
   jersey_number: number
@@ -134,6 +140,9 @@ export default function PlayerPortal() {
   const [requestingTeamId, setRequestingTeamId] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [showTransferView, setShowTransferView] = useState(false)
+  const [activeSeasonId, setActiveSeasonId] = useState<string | null>(null)
+  const [activeSeasonName, setActiveSeasonName] = useState("Otoño 2026")
+  const [showJoinTeams, setShowJoinTeams] = useState(false)
 
   const photoInputRef = useRef<HTMLInputElement>(null)
   const cedulaInputRef = useRef<HTMLInputElement>(null)
@@ -196,20 +205,37 @@ export default function PlayerPortal() {
     fetchPlayerProfile(userData.id, userData.email)
   }, [router, fetchPlayerProfile])
 
+  useEffect(() => {
+    fetch("/api/seasons")
+      .then((res) => res.json())
+      .then((result) => {
+        if (!result.success) return
+        const active = (result.data || []).find((season: { is_active: boolean }) => season.is_active)
+        if (active) {
+          setActiveSeasonId(active.id)
+          setActiveSeasonName(active.name || "Otoño 2026")
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   // Load teams and join requests for all players (needed for transfers too)
   useEffect(() => {
     if (player && user) {
       loadTeamsAndRequests()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player?.id, user?.id])
+  }, [player?.id, user?.id, activeSeasonId])
 
   const loadTeamsAndRequests = async () => {
     if (!user) return
     setLoadingTeams(true)
     try {
+      const teamsUrl = activeSeasonId
+        ? `/api/teams?season=${encodeURIComponent(activeSeasonId)}`
+        : "/api/teams"
       const [teamsRes, requestsRes] = await Promise.all([
-        fetch("/api/teams"),
+        fetch(teamsUrl),
         fetch(`/api/team-join-requests?player_user_id=${user.id}`),
       ])
       const teamsData = await teamsRes.json()
@@ -258,9 +284,11 @@ export default function PlayerPortal() {
 
       const data = await res.json()
       if (data.success) {
-        setMessage({ type: "success", text: data.message || "Solicitud enviada exitosamente" })
+        setMessage({ type: "success", text: data.message || "Te uniste al equipo exitosamente" })
         setRequestMessage("")
         setRequestingTeamId(null)
+        setShowJoinTeams(false)
+        await fetchPlayerProfile(user.id, user.email)
         await loadTeamsAndRequests()
       } else {
         setMessage({ type: "error", text: data.message })
@@ -464,8 +492,17 @@ export default function PlayerPortal() {
     )
   }
 
-  // If the player has any team (including from other rows), show the profile form
-  const hasTeam = (player.team_id !== null && player.team_id !== undefined) || playerTeams.length > 0
+  // Equipo en la temporada activa (Otoño 2026 / temporada is_active)
+  const activeSeasonTeams = playerTeams.filter((pt) => {
+    if (!activeSeasonId) return !!pt.team_id
+    return pt.team?.season_id === activeSeasonId || pt.team?.seasons?.is_active === true
+  })
+  const playerPrimaryTeamInActiveSeason =
+    !!player.team_id &&
+    (!activeSeasonId ||
+      player.teams?.season_id === activeSeasonId ||
+      player.teams?.seasons?.is_active === true)
+  const hasTeam = activeSeasonTeams.length > 0 || playerPrimaryTeamInActiveSeason
 
   const filteredTeams = teams.filter(t =>
     t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -529,22 +566,42 @@ export default function PlayerPortal() {
         )}
 
         {!hasTeam ? (
-          /* ====== NO TEAM: Browse teams + request to join ====== */
+          /* ====== FREE AGENT: Empty state + join flow ====== */
           <div className="space-y-6">
-            {/* Info Banner */}
-            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-start gap-3">
-              <Users className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-6">
+                <Users className="h-8 w-8 text-gray-400" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Aún no tienes equipo para esta temporada
+              </h2>
+              <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                No estás vinculado a ningún roster de {activeSeasonName}. Solicita unirte a un equipo
+                y quedarás inscrito automáticamente.
+              </p>
+              {!showJoinTeams && (
+                <Button size="lg" className="rounded-2xl" onClick={() => setShowJoinTeams(true)}>
+                  <Send className="h-4 w-4 mr-2" />
+                  Solicitar unirse a un equipo
+                </Button>
+              )}
+            </div>
+
+            {showJoinTeams && (
+            <>
+            <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-start gap-3">
+              <Users className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-medium text-blue-700">Busca tu equipo</h3>
-                <p className="text-sm text-muted-foreground">
-                  Aun no perteneces a ningun equipo. Busca un equipo y envia tu solicitud. El coach revisara y aceptara o rechazara tu solicitud.
+                <h3 className="font-medium text-blue-900">Equipos de {activeSeasonName}</h3>
+                <p className="text-sm text-blue-800/80">
+                  Elige un equipo y envía tu solicitud. La aceptación es automática.
                 </p>
               </div>
             </div>
 
             {/* My Requests */}
             {joinRequests.length > 0 && (
-              <Card>
+              <Card className="rounded-2xl shadow-sm border-gray-100">
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Send className="h-5 w-5" />
@@ -556,7 +613,7 @@ export default function PlayerPortal() {
                     {joinRequests.map((req) => (
                       <div
                         key={req.id}
-                        className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                        className="flex items-center justify-between p-3 rounded-2xl border bg-card"
                       >
                         <div className="flex items-center gap-3">
                           {req.teams?.logo_url ? (
@@ -589,7 +646,7 @@ export default function PlayerPortal() {
                         </div>
                         <Badge
                           variant={
-                            req.status === "pending"
+                            req.status === "pending" || req.status === "pending_coordinator"
                               ? "secondary"
                               : req.status === "accepted"
                               ? "default"
@@ -600,11 +657,11 @@ export default function PlayerPortal() {
                           {req.status === "pending" && <Clock className="h-3 w-3" />}
                           {req.status === "accepted" && <CheckCircle className="h-3 w-3" />}
                           {req.status === "rejected" && <XCircle className="h-3 w-3" />}
-                          {req.status === "pending"
-                            ? "Pendiente"
-                            : req.status === "accepted"
+                          {req.status === "accepted"
                             ? "Aceptada"
-                            : "Rechazada"}
+                            : req.status === "rejected"
+                            ? "Rechazada"
+                            : "Pendiente"}
                         </Badge>
                       </div>
                     ))}
@@ -618,7 +675,7 @@ export default function PlayerPortal() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar equipo por nombre o categoria..."
-                className="pl-10"
+                className="pl-10 rounded-2xl"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -630,7 +687,7 @@ export default function PlayerPortal() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             ) : filteredTeams.length === 0 ? (
-              <Card>
+              <Card className="rounded-2xl shadow-sm">
                 <CardContent className="pt-6 text-center">
                   <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">No se encontraron equipos</p>
@@ -643,7 +700,7 @@ export default function PlayerPortal() {
                   const isPending = pendingRequestTeamIds.includes(team.id)
 
                   return (
-                    <Card key={team.id} className="overflow-hidden">
+                    <Card key={team.id} className="overflow-hidden rounded-2xl shadow-sm border-gray-100">
                       <div
                         className="h-2"
                         style={{
@@ -701,49 +758,19 @@ export default function PlayerPortal() {
                               <Clock className="h-4 w-4 mr-1" />
                               Solicitud Pendiente
                             </Badge>
-                          ) : requestingTeamId === team.id ? (
-                            <div className="space-y-2">
-                              <Textarea
-                                placeholder="Mensaje al coach (opcional)..."
-                                value={requestMessage}
-                                onChange={(e) => setRequestMessage(e.target.value)}
-                                className="text-sm"
-                                rows={2}
-                              />
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  className="flex-1"
-                                  onClick={() => handleSendRequest(team.id)}
-                                  disabled={sendingRequest === team.id}
-                                >
-                                  {sendingRequest === team.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                                  ) : (
-                                    <Send className="h-4 w-4 mr-1" />
-                                  )}
-                                  Enviar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setRequestingTeamId(null)
-                                    setRequestMessage("")
-                                  }}
-                                >
-                                  Cancelar
-                                </Button>
-                              </div>
-                            </div>
                           ) : (
                             <Button
                               size="sm"
-                              className="w-full"
-                              onClick={() => setRequestingTeamId(team.id)}
+                              className="w-full rounded-2xl"
+                              onClick={() => handleSendRequest(team.id)}
+                              disabled={sendingRequest === team.id}
                             >
-                              <Send className="h-4 w-4 mr-2" />
-                              Solicitar Unirme
+                              {sendingRequest === team.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                              ) : (
+                                <Send className="h-4 w-4 mr-1" />
+                              )}
+                              Unirme
                             </Button>
                           )}
                         </div>
@@ -752,6 +779,8 @@ export default function PlayerPortal() {
                   )
                 })}
               </div>
+            )}
+            </>
             )}
           </div>
         ) : (

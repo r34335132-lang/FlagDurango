@@ -193,7 +193,7 @@ export async function PUT(request: NextRequest) {
     if (jersey_number !== undefined) updateData.jersey_number = jersey_number ? Number(jersey_number) : null
     if (position !== undefined) updateData.position = position || null
     if (photo_url !== undefined) updateData.photo_url = photo_url || null
-    if (team_id !== undefined) updateData.team_id = Number(team_id)
+    if (team_id !== undefined) updateData.team_id = team_id === null || team_id === "" ? null : Number(team_id)
     if (admin_verified !== undefined) updateData.admin_verified = admin_verified
     if (category_verified !== undefined) updateData.category_verified = category_verified
 

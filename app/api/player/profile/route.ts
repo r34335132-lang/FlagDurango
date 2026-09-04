@@ -24,7 +24,9 @@ export async function GET(request: NextRequest) {
           id,
           name,
           category,
-          logo_url
+          logo_url,
+          season_id,
+          seasons(id, name, year, is_active)
         )
       `)
       .eq("user_id", Number(userId))
@@ -37,8 +39,20 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Prefer a row that actually has a team assigned (team_id is not null)
-    const player = allPlayerRows.find((p: any) => p.team_id !== null) || allPlayerRows[0]
+    const { data: activeSeason } = await supabase
+      .from("seasons")
+      .select("id")
+      .eq("is_active", true)
+      .maybeSingle()
+
+    // Preferir fila del roster en la temporada activa; si no, cualquier equipo; si no, primera fila
+    const player =
+      (activeSeason &&
+        allPlayerRows.find(
+          (p: any) => p.team_id !== null && p.teams?.season_id === activeSeason.id,
+        )) ||
+      allPlayerRows.find((p: any) => p.team_id !== null) ||
+      allPlayerRows[0]
 
     // Collect ALL teams the player belongs to
     const playerTeams = allPlayerRows

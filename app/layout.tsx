@@ -4,10 +4,11 @@ import "./globals.css"
 import { Navigation } from "@/components/navigation"
 import { NavGuard } from "@/components/nav-guard"
 
+export const dynamic = "force-dynamic"
 
 export const metadata: Metadata = {
-  title: "Liga Flag Durango - 20 Años Haciendo Historia",
-  description: "Liga oficial de flag football en Durango. 20 años promoviendo el deporte y la competencia sana.",
+  title: "Liga Flag Durango - Temporada Otoño 2026",
+  description: "Liga oficial de flag football en Durango. Temporada Otoño 2026 · 21 años · Incorporación a la FMFA.",
   keywords: ["flag football", "durango", "liga", "deporte", "competencia"],
   authors: [{ name: "Liga Flag Durango" }],
   creator: "Liga Flag Durango",

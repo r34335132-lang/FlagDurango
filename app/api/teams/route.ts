@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
       const coachId = Number.parseInt(coach_id)
       const { data, error } = await supabase
         .from("teams")
-        .select("*")
+        .select("*, seasons(id, name, year, is_active)")
         .eq("coach_id", coachId)
         .order("name", { ascending: true })
 

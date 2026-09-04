@@ -117,15 +117,23 @@ export async function PUT(
     const body = await request.json()
     const { name, jersey_number, position, photo_url, team_id } = body
 
+    const updateData: Record<string, unknown> = {}
+    if (name !== undefined) updateData.name = name
+    if (jersey_number !== undefined) updateData.jersey_number = jersey_number ? Number(jersey_number) : null
+    if (position !== undefined) updateData.position = position
+    if (photo_url !== undefined) updateData.photo_url = photo_url
+    if (team_id !== undefined) updateData.team_id = team_id === null || team_id === "" ? null : Number(team_id)
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { success: false, message: "No hay campos para actualizar" },
+        { status: 400 }
+      )
+    }
+
     const { data, error } = await supabase
       .from("players")
-      .update({
-        name,
-        jersey_number: jersey_number ? Number(jersey_number) : null,
-        position,
-        photo_url,
-        team_id: team_id ? Number(team_id) : null,
-      })
+      .update(updateData)
       .eq("id", Number(id))
       .select()
       .single()
