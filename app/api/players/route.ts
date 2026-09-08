@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
+export const dynamic = "force-dynamic"
+
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 
 export async function GET(request: NextRequest) {
@@ -88,10 +90,17 @@ export async function GET(request: NextRequest) {
 
     console.log(`✅ Found ${players?.length || 0} players`)
 
-    return NextResponse.json({
-      success: true,
-      data: players || [],
-    })
+    return NextResponse.json(
+      {
+        success: true,
+        data: players || [],
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        },
+      },
+    )
   } catch (error) {
     console.error("💥 Error in players API:", error)
     return NextResponse.json(

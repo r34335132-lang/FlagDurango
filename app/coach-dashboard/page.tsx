@@ -330,7 +330,7 @@ export default function CoachDashboard() {
       console.log("🔄 Cargando datos para coach_id:", user.id)
 
       // Cargar todos los equipos
-      const allTeamsRes = await fetch("/api/teams")
+      const allTeamsRes = await fetch("/api/teams", { cache: "no-store" })
       const allTeamsData = await allTeamsRes.json()
 
       if (allTeamsData.success) {
@@ -344,7 +344,7 @@ export default function CoachDashboard() {
       }
 
       // Cargar equipos del coach específico
-      const teamsRes = await fetch(`/api/teams?coach_id=${user.id}`)
+      const teamsRes = await fetch(`/api/teams?coach_id=${user.id}`, { cache: "no-store" })
       const teamsData = await teamsRes.json()
 
       console.log("🏈 Respuesta equipos del coach:", teamsData)
@@ -356,7 +356,7 @@ export default function CoachDashboard() {
         if (teamsData.data && teamsData.data.length > 0) {
           // Cargar jugadores de los equipos del coach
           const teamIds = teamsData.data.map((t: Team) => t.id)
-          const playersRes = await fetch(`/api/players?team_ids=${teamIds.join(",")}`)
+          const playersRes = await fetch(`/api/players?team_ids=${teamIds.join(",")}`, { cache: "no-store" })
           const playersData = await playersRes.json()
 
           if (playersData.success) {
@@ -369,7 +369,7 @@ export default function CoachDashboard() {
       }
 
       // Cargar partidos
-      const gamesRes = await fetch("/api/games")
+      const gamesRes = await fetch("/api/games", { cache: "no-store" })
       const gamesData = await gamesRes.json()
 
       if (gamesData.success) {
@@ -381,7 +381,7 @@ export default function CoachDashboard() {
         const teamIds = teamsData.data.map((t: Team) => t.id)
         const allRequests: JoinRequest[] = []
         for (const tid of teamIds) {
-          const reqRes = await fetch(`/api/team-join-requests?team_id=${tid}`)
+          const reqRes = await fetch(`/api/team-join-requests?team_id=${tid}`, { cache: "no-store" })
           const reqData = await reqRes.json()
           if (reqData.success) {
             allRequests.push(...reqData.data)
