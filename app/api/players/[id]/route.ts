@@ -118,13 +118,27 @@ export async function PUT(
 
     const body = await request.json()
     const { name, jersey_number, position, photo_url, team_id } = body
+    const nextTeamId = team_id === null || team_id === "" ? null : team_id === undefined ? undefined : Number(team_id)
+
+    const { data: currentPlayer, error: currentPlayerError } = await supabase
+      .from("players")
+      .select("id, user_id, team_id")
+      .eq("id", Number(id))
+      .maybeSingle()
+
+    if (currentPlayerError || !currentPlayer) {
+      return NextResponse.json(
+        { success: false, message: "Jugador no encontrado" },
+        { status: 404 }
+      )
+    }
 
     const updateData: Record<string, unknown> = {}
     if (name !== undefined) updateData.name = name
     if (jersey_number !== undefined) updateData.jersey_number = jersey_number ? Number(jersey_number) : null
     if (position !== undefined) updateData.position = position
     if (photo_url !== undefined) updateData.photo_url = photo_url
-    if (team_id !== undefined) updateData.team_id = team_id === null || team_id === "" ? null : Number(team_id)
+    if (team_id !== undefined) updateData.team_id = nextTeamId
 
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
@@ -145,6 +159,28 @@ export async function PUT(
         { success: false, message: error.message },
         { status: 500 }
       )
+    }
+
+    // Si el coach da de baja al jugador, cerrar cualquier membresía lógica activa
+    // para que ningún listado reconstruya al jugador desde solicitudes históricas.
+    if (team_id !== undefined && nextTeamId === null && currentPlayer.team_id !== null) {
+      let releaseQuery = supabase
+        .from("team_join_requests")
+        .update({ status: "released", updated_at: new Date().toISOString() })
+        .eq("team_id", currentPlayer.team_id)
+        .eq("status", "accepted")
+
+      if (currentPlayer.user_id) {
+        releaseQuery = releaseQuery.or(`player_id.eq.${Number(id)},player_user_id.eq.${currentPlayer.user_id}`)
+      } else {
+        releaseQuery = releaseQuery.eq("player_id", Number(id))
+      }
+
+      const { error: releaseError } = await releaseQuery
+
+      if (releaseError) {
+        console.error("Error releasing join requests for player:", releaseError)
+      }
     }
 
     return NextResponse.json({ success: true, data })
