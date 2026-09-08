@@ -8,12 +8,27 @@ import { supabase } from "@/lib/supabase-admin"
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const teamId = Number(body.team_id)
-    const coachUserId = Number(body.coach_user_id)
+    const resolvedTeamId = Number(body.team_id || body.source_team_id)
+    const resolvedCoachUserId = Number(body.coach_user_id || body.coach_id)
+    const resolvedTargetSeasonId = String(body.target_season_id || body.season_id || "").trim()
 
-    if (!teamId || !coachUserId) {
+    if (!resolvedTeamId) {
       return NextResponse.json(
-        { success: false, message: "team_id y coach_user_id son requeridos" },
+        { success: false, message: "team_id o source_team_id es requerido" },
+        { status: 400 },
+      )
+    }
+
+    if (!resolvedCoachUserId) {
+      return NextResponse.json(
+        { success: false, message: "coach_user_id o coach_id es requerido" },
+        { status: 400 },
+      )
+    }
+
+    if (!resolvedTargetSeasonId) {
+      return NextResponse.json(
+        { success: false, message: "target_season_id o season_id es requerido" },
         { status: 400 },
       )
     }
@@ -21,38 +36,38 @@ export async function POST(req: NextRequest) {
     const { data: sourceTeam, error: sourceError } = await supabase
       .from("teams")
       .select("*")
-      .eq("id", teamId)
+      .eq("id", resolvedTeamId)
       .maybeSingle()
 
     if (sourceError || !sourceTeam) {
       return NextResponse.json({ success: false, message: "Equipo no encontrado" }, { status: 404 })
     }
 
-    if (Number(sourceTeam.coach_id) !== coachUserId) {
+    if (Number(sourceTeam.coach_id) !== resolvedCoachUserId) {
       return NextResponse.json(
         { success: false, message: "No tienes permisos para reinscribir este equipo" },
         { status: 403 },
       )
     }
 
-    const { data: activeSeason, error: seasonError } = await supabase
+    const { data: targetSeason, error: seasonError } = await supabase
       .from("seasons")
       .select("id, name, year, is_active")
-      .eq("is_active", true)
+      .eq("id", resolvedTargetSeasonId)
       .maybeSingle()
 
-    if (seasonError || !activeSeason) {
+    if (seasonError || !targetSeason) {
       return NextResponse.json(
-        { success: false, message: "No hay una temporada activa configurada" },
+        { success: false, message: "La temporada destino no existe" },
         { status: 400 },
       )
     }
 
-    if (sourceTeam.season_id === activeSeason.id) {
+    if (sourceTeam.season_id === targetSeason.id) {
       return NextResponse.json(
         {
           success: false,
-          message: `Este equipo ya pertenece a la temporada activa (${activeSeason.name})`,
+          message: `Este equipo ya pertenece a la temporada destino (${targetSeason.name})`,
         },
         { status: 400 },
       )
@@ -61,8 +76,8 @@ export async function POST(req: NextRequest) {
     const { data: existingClone } = await supabase
       .from("teams")
       .select("id, name")
-      .eq("coach_id", coachUserId)
-      .eq("season_id", activeSeason.id)
+      .eq("coach_id", resolvedCoachUserId)
+      .eq("season_id", targetSeason.id)
       .eq("name", sourceTeam.name)
       .maybeSingle()
 
@@ -70,7 +85,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          message: `Ya tienes inscrito a "${existingClone.name}" en ${activeSeason.name}`,
+          message: `Ya tienes inscrito a "${existingClone.name}" en ${targetSeason.name}`,
           data: existingClone,
         },
         { status: 400 },
@@ -93,7 +108,7 @@ export async function POST(req: NextRequest) {
       coach_phone: sourceTeam.coach_phone,
       coach_photo_url: sourceTeam.coach_photo_url,
       coach_id: sourceTeam.coach_id,
-      season_id: activeSeason.id,
+      season_id: targetSeason.id,
       paid: false,
       status: "active",
     }
@@ -107,7 +122,7 @@ export async function POST(req: NextRequest) {
     if (insertError && /season/i.test(insertError.message || "")) {
       const retry = await supabase
         .from("teams")
-        .insert([{ ...clonePayload, season: activeSeason.year }])
+        .insert([{ ...clonePayload, season: targetSeason.year }])
         .select("*, seasons(id, name, year, is_active)")
         .single()
       newTeam = retry.data
@@ -125,7 +140,7 @@ export async function POST(req: NextRequest) {
     const { data: roster, error: rosterError } = await supabase
       .from("players")
       .select("*")
-      .eq("team_id", teamId)
+      .eq("team_id", resolvedTeamId)
 
     if (rosterError) {
       console.error("Error fetching roster for clone:", rosterError)
@@ -172,7 +187,7 @@ export async function POST(req: NextRequest) {
         success: true,
         data: newTeam,
         cloned_players: clonedPlayers,
-        message: `"${newTeam.name}" reinscripto en ${activeSeason.name} con ${clonedPlayers} jugador(es)`,
+        message: `"${newTeam.name}" reinscripto en ${targetSeason.name} con ${clonedPlayers} jugador(es)`,
       },
       { status: 201 },
     )
