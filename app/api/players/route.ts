@@ -7,7 +7,12 @@ export async function GET(request: NextRequest) {
   try {
     console.log("👥 Fetching players...")
 
-    const { data: players, error } = await supabase
+    const { searchParams } = new URL(request.url)
+    const teamIdsParam = searchParams.get("team_ids")
+    const teamIdParam = searchParams.get("team_id")
+    const userIdParam = searchParams.get("user_id")
+
+    let query = supabase
       .from("players")
       .select(`
         id,
@@ -43,6 +48,31 @@ export async function GET(request: NextRequest) {
       `)
       .order("name", { ascending: true })
       .limit(5000) // <-- AQUÍ ESTÁ EL CAMBIO PARA EVITAR EL LÍMITE DE 1000
+
+    if (teamIdsParam) {
+      const teamIds = teamIdsParam
+        .split(",")
+        .map((value) => Number.parseInt(value.trim(), 10))
+        .filter((value) => !Number.isNaN(value))
+
+      if (teamIds.length > 0) {
+        query = query.in("team_id", teamIds)
+      }
+    } else if (teamIdParam) {
+      const teamId = Number.parseInt(teamIdParam, 10)
+      if (!Number.isNaN(teamId)) {
+        query = query.eq("team_id", teamId)
+      }
+    }
+
+    if (userIdParam) {
+      const userId = Number.parseInt(userIdParam, 10)
+      if (!Number.isNaN(userId)) {
+        query = query.eq("user_id", userId)
+      }
+    }
+
+    const { data: players, error } = await query
 
     if (error) {
       console.error("❌ Error fetching players:", error)
